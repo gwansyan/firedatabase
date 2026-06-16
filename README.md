@@ -1,19 +1,17 @@
-# RT7 EDU TEST V2A Push Send Result Debug
+# RT7 EDU TEST V2B Android Push Button Diagnostic Fix
+
+修正手機按鈕沒反應時無法知道原因的問題。
 
 新增：
-- /edu 顯示最新 push log 詳細內容
-- 顯示 sent / total / removed / failures
-- 新增「重新訂閱推播」
-- 新增「檢查本機瀏覽器訂閱」
-- 新增 /api/push/debug
-- Node-RED 顯示 sent/total/failures
+- 所有按鈕都有 try/catch
+- 錯誤會顯示在「即時診斷結果」
+- 檢查 service worker / PushManager / Notification.permission / endpoint
+- 前景通知測試
+- 重新訂閱推播會先 unsubscribe 舊訂閱，再清除 server 訂閱，再重新 subscribe
 
 測試：
 1. 手機開 /edu
-2. 按「重新訂閱推播」
-3. count = 1
-4. 按「測試推播」
-5. 若手機沒跳出通知，看最新 push log：
-   - sent=1：Server 已送出，請查手機通知權限/勿擾/Chrome通知
-   - sent=0 且 failures 有 400/403/410：重新訂閱
-   - total=0：沒有訂閱
+2. 按「檢查本機瀏覽器訂閱」
+3. 看即時診斷結果
+4. 按「重新訂閱推播」
+5. 按「測試推播」
