@@ -57,3 +57,13 @@ const char* SERVER_BASE = "https://你的Railway網址";
 4. 建立 A社區 admin，綁定該 UID。
 5. 登入測試。
 6. 門鈴事件與開門命令測試。
+
+
+## V1C1 Node-RED Observer 修正
+
+原本 node-red flow 使用 HTTP In 節點，所以 ESP32 若直接送到 Railway，Node-RED 本機不會有反應。
+本版改成 Node-RED 每 5 秒輪詢 Railway `/edu/state`，因此按 ESP32 門鈴後，Debug 視窗會看到新事件。
+
+匯入：`node-red/RT7_EDU_NODE_RED_FLOW.json`
+部署後觀察右側 Debug。
+
