@@ -1,16 +1,25 @@
-# RT7_EDU_TEST_V1B_REAL_ESP32_HEARTBEAT_PRIORITY
+# RT7_EDU_TEST_V1C_REAL_UID_FROM_MAC
 
-教學版 RT7 API，重點修正：真實 ESP32 heartbeat 優先。
+可直接上傳 Railway 的完整 `server.js` 教學版 V1C。
 
-## V1B 修正
+## V1C 重點
 
-- Master Registry 新增「來源」欄位：ESP32 / SIM。
-- 預設不啟用網頁自動模擬 heartbeat，避免覆蓋真實 ESP32 MAC。
-- 若已收到真實 ESP32 MAC，例如 `14:C1:9F:29:F2:68`，網頁模擬器 `AA:BB:CC:DD:EE:01` 不會覆蓋真機資料。
-- 模擬 heartbeat 只在勾選「啟用網頁模擬器自動 heartbeat」時自動送出。
-- ONLINE 判斷維持 5 分鐘，適合課堂操作。
+- ESP32 Master UID 由真實 Wi-Fi MAC 自動產生。
+- 規則與正式 RT7 Cloud 一致。
+- 範例：
+  - MAC：`14:C1:9F:29:F2:68`
+  - UID：`RT7-MASTER-68F2299FC114`
+- 若舊 ESP32 韌體仍送 `RT7-MASTER-TEST-A001`，server 收到真實 MAC 後會自動改成真實 UID。
+- 網頁模擬器預設關閉，不會覆蓋真實 ESP32 MAC / UID。
 
-## 測試網址
+## Railway 測試
+
+```bash
+npm install
+npm start
+```
+
+開啟：
 
 ```text
 https://你的Railway網址/edu
@@ -18,39 +27,33 @@ https://你的Railway網址/edu
 
 ## ESP32 測試
 
-ESP32 開機後應送出：
-
-```json
-{
-  "master_uid": "RT7-MASTER-TEST-A001",
-  "ip": "192.168.0.179",
-  "mac": "14:C1:9F:29:F2:68"
-}
-```
-
-網頁 Master Registry 應顯示：
+打開：
 
 ```text
-來源：ESP32
-MAC：14:C1:9F:29:F2:68
+esp32/RT7_EDU_HEARTBEAT_DOORBELL_TEST.ino
 ```
 
-## 模擬器測試
+修改：
 
-沒有 ESP32 時，才勾選：
+```cpp
+const char* WIFI_SSID = "你的 WiFi";
+const char* WIFI_PASS = "你的密碼";
+const char* SERVER_BASE = "https://你的Railway網址";
+```
+
+序列埠應看到：
 
 ```text
-啟用網頁模擬器自動 heartbeat
+[WIFI] OK ip=192.168.0.179 mac=14:C1:9F:29:F2:68
+[RT7_EDU_UID][V1C] UID=RT7-MASTER-68F2299FC114
+[HTTP] POST /edu/master/heartbeat code=200
 ```
 
-模擬 MAC：
+## 教學流程
 
-```text
-AA:BB:CC:DD:EE:01
-```
-
-會顯示來源：
-
-```text
-SIM
-```
+1. ESP32 開機，自動產生 UID。
+2. ESP32 heartbeat 上傳 UID / IP / MAC。
+3. `/edu` Master Registry 顯示 ONLINE。
+4. 建立 A社區 admin，綁定該 UID。
+5. 登入測試。
+6. 門鈴事件與開門命令測試。
