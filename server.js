@@ -1,4 +1,4 @@
-// RT7_EDU_TEST_V1A_INPUT_FOCUS_AUTO_HEARTBEAT_FIX
+// RT7_EDU_TEST_V1B_REAL_ESP32_HEARTBEAT_PRIORITY
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
@@ -16,7 +16,7 @@ function nowIso(){return new Date().toISOString();}
 function onlineStatus(lastSeen){if(!lastSeen)return 'OFFLINE'; return (Date.now()-new Date(lastSeen).getTime())<300000?'ONLINE':'OFFLINE';} // V1A: 教學版延長為 5 分鐘，避免學生填表時太快 OFFLINE
 ensureFile('master_registry.json',{}); ensureFile('communities.json',[]); ensureFile('events.json',[]); ensureFile('commands.json',{});
 app.get('/',(_req,res)=>res.redirect('/edu'));
-app.get('/edu',(_req,res)=>{res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU TEST V1</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:white;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}button{background:#0b9b5a;color:#fff;border:0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.ok{color:#079b50;font-weight:bold}.bad{color:#d33;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU TEST V1A</h1><p>教學版：Heartbeat / 多社區綁定 / 登入 / 門鈴事件 / 開門命令</p><p style="color:#64748b">V1A：輸入框焦點保護 + 自動 heartbeat，填寫 A社區 時不再跳出輸入框。</p><div id="app">載入中...</div></div><script>
+app.get('/edu',(_req,res)=>{res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU TEST V1B</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:white;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}button{background:#0b9b5a;color:#fff;border:0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.ok{color:#079b50;font-weight:bold}.bad{color:#d33;font-weight:bold}.sim{color:#8a5a00;font-weight:bold}.real{color:#005bbb;font-weight:bold}.hint{color:#64748b;font-size:14px;line-height:1.5}.small{font-size:13px;color:#64748b}</style></head><body><div class="wrap"><h1>RT7 EDU TEST V1B</h1><p>教學版：Heartbeat / 多社區綁定 / 登入 / 門鈴事件 / 開門命令</p><p style="color:#64748b">V1B：真實 ESP32 heartbeat 優先；模擬 heartbeat 不會覆蓋真機 MAC。</p><div id="app">載入中...</div></div><script>
 async function api(path,opt){const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'}},opt||{}));return r.json();}
 async function post(path,data){return api(path,{method:'POST',body:JSON.stringify(data)});}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -24,10 +24,10 @@ function out(x){var e=document.getElementById('out'); if(e)e.textContent=JSON.st
 async function load(){
  const s=await api('/edu/state'); const masters=Object.values(s.masters||{});
  var h='';
- h+='<div class="card"><h2>1. 模組上線 Master Registry</h2><table><tr><th>UID</th><th>IP</th><th>MAC</th><th>狀態</th><th>最後 heartbeat</th></tr>';
- masters.forEach(function(m){h+='<tr><td>'+esc(m.master_uid)+'</td><td>'+esc(m.ip)+'</td><td>'+esc(m.mac)+'</td><td class="'+(m.status==='ONLINE'?'ok':'bad')+'">'+esc(m.status)+'</td><td>'+esc(m.last_heartbeat)+'</td></tr>';});
+ h+='<div class="card"><h2>1. 模組上線 Master Registry</h2><table><tr><th>UID</th><th>IP</th><th>MAC</th><th>狀態</th><th>來源</th><th>最後 heartbeat</th></tr>';
+ masters.forEach(function(m){h+='<tr><td>'+esc(m.master_uid)+'</td><td>'+esc(m.ip)+'</td><td>'+esc(m.mac)+'</td><td class="'+(m.status==='ONLINE'?'ok':'bad')+'">'+esc(m.status)+'</td><td class="'+(m.source==='ESP32'?'real':'sim')+'">'+esc(m.source||'UNKNOWN')+'</td><td>'+esc(m.last_heartbeat)+'</td></tr>';});
  h+='</table></div>';
- h+='<div class="card"><h2>2. 模擬 Heartbeat</h2><div class="grid"><input id="h_uid" value="RT7-MASTER-TEST-A001"><input id="h_ip" value="192.168.0.179"><input id="h_mac" value="AA:BB:CC:DD:EE:01"></div><button onclick="sendHeartbeat()">送出 heartbeat</button></div>';
+ h+='<div class="card"><h2>2. Heartbeat 測試</h2><div class="hint">預設使用真實 ESP32 優先；模擬 MAC=AA:BB:CC:DD:EE:01 只作教學，不會覆蓋真機 MAC。</div><label class="small"><input type="checkbox" id="sim_enable"> 啟用網頁模擬器自動 heartbeat（沒有 ESP32 時才開）</label><div class="grid"><input id="h_uid" value="RT7-MASTER-TEST-A001"><input id="h_ip" value="192.168.0.179"><input id="h_mac" value="AA:BB:CC:DD:EE:01"></div><button onclick="sendHeartbeat()">送出模擬 heartbeat</button></div>';
  h+='<div class="card"><h2>3. 社區註冊 / 綁定主門禁</h2><div class="grid"><input id="c_name" placeholder="社區名稱，例如 A社區"><input id="c_user" placeholder="帳號" value="admin"><input id="c_pass" placeholder="密碼" value="1234"><select id="c_master"><option value="">選擇在線主門禁</option>';
  masters.forEach(function(m){h+='<option value="'+esc(m.master_uid+'|'+(m.ip||''))+'">'+esc(m.master_uid+' / '+(m.ip||''))+'</option>';});
  h+='</select></div><button onclick="regCommunity()">建立帳號並綁定</button></div>';
@@ -41,7 +41,7 @@ async function load(){
  h+='</table></div><div class="card"><h2>回應</h2><pre id="out">READY</pre></div>';
  document.getElementById('app').innerHTML=h;
 }
-async function sendHeartbeat(){out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value})); await load();}
+async function sendHeartbeat(){out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value,source:'SIM'})); await load();}
 async function regCommunity(){const pair=(c_master.value||'|').split('|'); out(await post('/edu/community/register',{community:c_name.value,username:c_user.value,password:c_pass.value,master_uid:pair[0],master_ip:pair[1]})); await load();}
 async function loginTest(){out(await post('/edu/login',{community:l_comm.value,username:l_user.value,password:l_pass.value}));}
 async function doorbell(){out(await post('/edu/event/doorbell',{master_uid:e_uid.value,event:'doorbell',message:e_msg.value})); await load();}
@@ -59,23 +59,49 @@ async function autoHeartbeatKeepOnline(){
     var uid=document.getElementById('h_uid');
     var ip=document.getElementById('h_ip');
     var mac=document.getElementById('h_mac');
-    if(uid && uid.value){
-      await post('/edu/master/heartbeat',{master_uid:uid.value,ip:ip&&ip.value||'',mac:mac&&mac.value||''});
+    var sim=document.getElementById('sim_enable');
+    if(sim && sim.checked && uid && uid.value){
+      await post('/edu/master/heartbeat',{master_uid:uid.value,ip:ip&&ip.value||'',mac:mac&&mac.value||'',source:'SIM'});
       if(!isTypingNow()) await load();
     }
   }catch(e){ console.log('[EDU][AUTO_HEARTBEAT_FAIL]', e); }
 }
 load();
 // V1A: 不再每 10 秒重畫整個頁面，避免正在輸入「A社區」時 input 被重建而跳出。
-// 改成每 30 秒自動送 heartbeat；只有使用者沒有正在輸入時才重新載入畫面。
+// V1B: 預設不啟用網頁模擬 heartbeat，避免覆蓋真實 ESP32 MAC；勾選模擬器時才自動送。
 setInterval(autoHeartbeatKeepOnline,30000);
 
 </script></body></html>`);});
-app.get('/edu/state',(_req,res)=>{const masters=readJson('master_registry.json',{}); Object.keys(masters).forEach(uid=>masters[uid].status=onlineStatus(masters[uid].last_heartbeat)); res.json({ok:true,masters,communities:readJson('communities.json',[]),events:readJson('events.json',[]),commands:readJson('commands.json',{})});});
-app.post('/edu/master/heartbeat',(req,res)=>{const {master_uid,ip,mac}=req.body||{}; if(!master_uid)return res.status(400).json({ok:false,error:'missing master_uid'}); const masters=readJson('master_registry.json',{}); masters[master_uid]={master_uid,ip:ip||req.ip,mac:mac||'',last_heartbeat:nowIso(),status:'ONLINE'}; writeJson('master_registry.json',masters); console.log('[EDU][HEARTBEAT]',master_uid,ip||req.ip,mac||''); res.json({ok:true,master:masters[master_uid]});});
+app.get('/edu/state',(_req,res)=>{const masters=readJson('master_registry.json',{}); Object.keys(masters).forEach(uid=>{masters[uid].status=onlineStatus(masters[uid].last_heartbeat); masters[uid].source=masters[uid].source||detectSource(masters[uid].mac);}); res.json({ok:true,masters,communities:readJson('communities.json',[]),events:readJson('events.json',[]),commands:readJson('commands.json',{})});});
+function detectSource(mac, source){
+  const m=String(mac||'').trim().toUpperCase();
+  const s=String(source||'').trim().toUpperCase();
+  if(s==='SIM' || m==='AA:BB:CC:DD:EE:01') return 'SIM';
+  if(m) return 'ESP32';
+  return s || 'UNKNOWN';
+}
+app.post('/edu/master/heartbeat',(req,res)=>{
+  const {master_uid,ip,mac,source}=req.body||{};
+  if(!master_uid)return res.status(400).json({ok:false,error:'missing master_uid'});
+  const masters=readJson('master_registry.json',{});
+  const old=masters[master_uid]||{};
+  const newSource=detectSource(mac, source);
+  const oldSource=old.source || detectSource(old.mac, old.source);
+  // V1B: 真實 ESP32 優先。若已有 ESP32 真機資料，網頁模擬器 heartbeat 只更新 last_heartbeat/status，不覆蓋真機 MAC/IP。
+  if(old.master_uid && oldSource==='ESP32' && newSource==='SIM'){
+    masters[master_uid]={...old, master_uid, last_heartbeat:nowIso(), status:'ONLINE', source:'ESP32', sim_last_heartbeat:nowIso(), sim_mac:mac||'', sim_ip:ip||''};
+    writeJson('master_registry.json',masters);
+    console.log('[EDU][HEARTBEAT][SIM_IGNORED_REAL_KEPT]',master_uid,'real_mac='+old.mac,'sim_mac='+(mac||''));
+    return res.json({ok:true,priority:'ESP32_REAL_KEPT',master:masters[master_uid]});
+  }
+  masters[master_uid]={master_uid,ip:ip||req.ip,mac:mac||'',last_heartbeat:nowIso(),status:'ONLINE',source:newSource};
+  writeJson('master_registry.json',masters);
+  console.log('[EDU][HEARTBEAT]',master_uid,ip||req.ip,mac||'',newSource);
+  res.json({ok:true,master:masters[master_uid]});
+});
 app.post('/edu/community/register',(req,res)=>{const {community,username,password,master_uid,master_ip}=req.body||{}; if(!community||!username||!password||!master_uid)return res.status(400).json({ok:false,error:'missing community/username/password/master_uid'}); const masters=readJson('master_registry.json',{}); if(!masters[master_uid])return res.status(400).json({ok:false,error:'master_uid not online in registry'}); const communities=readJson('communities.json',[]); if(communities.some(u=>u.community===community&&u.username===username))return res.status(409).json({ok:false,error:'account exists in same community'}); if(communities.some(u=>u.community!==community&&u.master_uid===master_uid))return res.status(409).json({ok:false,error:'master_uid already bound by another community'}); const role=communities.some(u=>u.community===community)?'user':'admin'; const user={id:'u_'+Math.random().toString(16).slice(2)+Date.now().toString(16),community,username,password,role,master_uid,master_ip:master_ip||masters[master_uid].ip||'',created_at:nowIso()}; communities.push(user); writeJson('communities.json',communities); res.json({ok:true,user:{...user,password:'***'}});});
 app.post('/edu/login',(req,res)=>{const {community,username,password}=req.body||{}; const communities=readJson('communities.json',[]); const user=communities.find(u=>u.community===community&&u.username===username&&u.password===password); if(!user)return res.status(401).json({ok:false,error:'login failed'}); const masters=readJson('master_registry.json',{}); const master=masters[user.master_uid]; res.json({ok:true,message:'login success',user:{community:user.community,username:user.username,role:user.role,master_uid:user.master_uid,master_status:master?onlineStatus(master.last_heartbeat):'OFFLINE'}});});
 app.post('/edu/event/doorbell',(req,res)=>{const {master_uid,event,message}=req.body||{}; if(!master_uid)return res.status(400).json({ok:false,error:'missing master_uid'}); const events=readJson('events.json',[]); const item={time:nowIso(),master_uid,event:event||'doorbell',message:message||'有人按門鈴'}; events.push(item); writeJson('events.json',events.slice(-200)); res.json({ok:true,event:item});});
 app.post('/edu/door/open',(req,res)=>{const {master_uid}=req.body||{}; if(!master_uid)return res.status(400).json({ok:false,error:'missing master_uid'}); const commands=readJson('commands.json',{}); commands[master_uid]=commands[master_uid]||[]; const cmd={time:nowIso(),cmd:'OPEN_DOOR',pin:40,pulse_ms:800}; commands[master_uid].push(cmd); writeJson('commands.json',commands); res.json({ok:true,command:cmd});});
 app.get('/edu/device/command',(req,res)=>{const master_uid=String(req.query.master_uid||''); if(!master_uid)return res.status(400).json({ok:false,error:'missing master_uid'}); const commands=readJson('commands.json',{}); const queue=commands[master_uid]||[]; const cmd=queue.shift()||null; commands[master_uid]=queue; writeJson('commands.json',commands); res.json({ok:true,command:cmd});});
-app.listen(PORT,()=>console.log('[RT7_EDU_TEST_V1A] http://localhost:'+PORT+'/edu')); 
+app.listen(PORT,()=>console.log('[RT7_EDU_TEST_V1B] http://localhost:'+PORT+'/edu')); 

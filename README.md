@@ -1,149 +1,56 @@
-# RT7_EDU_TEST_V1A_INPUT_FOCUS_AUTO_HEARTBEAT_FIX
+# RT7_EDU_TEST_V1B_REAL_ESP32_HEARTBEAT_PRIORITY
 
-教學版 RT7 測試專案（V1A：輸入框焦點保護 + 自動 heartbeat），將正式 RT7 的大型 `server.js` 拆成學生容易理解的 API：
+教學版 RT7 API，重點修正：真實 ESP32 heartbeat 優先。
 
-1. ESP32 Heartbeat：模組上線
-2. 多社區綁定：A社區 / B社區各綁不同 Master UID
-3. 登入驗證：同名 admin 可依社區分辨
-4. 門鈴事件：紀錄有人按門鈴
-5. 開門控制：手機送命令，ESP32 輪詢執行
-6. Node-RED Flow：用流程圖學習同樣邏輯
+## V1B 修正
 
-## 1. server.js 教學版
+- Master Registry 新增「來源」欄位：ESP32 / SIM。
+- 預設不啟用網頁自動模擬 heartbeat，避免覆蓋真實 ESP32 MAC。
+- 若已收到真實 ESP32 MAC，例如 `14:C1:9F:29:F2:68`，網頁模擬器 `AA:BB:CC:DD:EE:01` 不會覆蓋真機資料。
+- 模擬 heartbeat 只在勾選「啟用網頁模擬器自動 heartbeat」時自動送出。
+- ONLINE 判斷維持 5 分鐘，適合課堂操作。
 
-```bash
-npm install
-npm start
-```
-
-開啟：
+## 測試網址
 
 ```text
-http://localhost:3000/edu
+https://你的Railway網址/edu
 ```
 
-## 2. 測試 API
+## ESP32 測試
 
-### Heartbeat
-
-```http
-POST /edu/master/heartbeat
-```
+ESP32 開機後應送出：
 
 ```json
 {
-  "master_uid":"RT7-MASTER-TEST-A001",
-  "ip":"192.168.0.179",
-  "mac":"AA:BB:CC:DD:EE:01"
+  "master_uid": "RT7-MASTER-TEST-A001",
+  "ip": "192.168.0.179",
+  "mac": "14:C1:9F:29:F2:68"
 }
 ```
 
-### 社區註冊
-
-```http
-POST /edu/community/register
-```
-
-```json
-{
-  "community":"A社區",
-  "username":"admin",
-  "password":"1234",
-  "master_uid":"RT7-MASTER-TEST-A001",
-  "master_ip":"192.168.0.179"
-}
-```
-
-### 登入
-
-```http
-POST /edu/login
-```
-
-```json
-{
-  "community":"A社區",
-  "username":"admin",
-  "password":"1234"
-}
-```
-
-### 門鈴事件
-
-```http
-POST /edu/event/doorbell
-```
-
-```json
-{
-  "master_uid":"RT7-MASTER-TEST-A001",
-  "event":"doorbell",
-  "message":"有人按門鈴"
-}
-```
-
-### 開門命令
-
-```http
-POST /edu/door/open
-```
-
-```json
-{
-  "master_uid":"RT7-MASTER-TEST-A001"
-}
-```
-
-ESP32 輪詢：
-
-```http
-GET /edu/device/command?master_uid=RT7-MASTER-TEST-A001
-```
-
-## 3. Node-RED
-
-匯入：
+網頁 Master Registry 應顯示：
 
 ```text
-node-red/RT7_EDU_NODE_RED_FLOW.json
+來源：ESP32
+MAC：14:C1:9F:29:F2:68
 ```
 
-這個 Flow 示範：
+## 模擬器測試
+
+沒有 ESP32 時，才勾選：
 
 ```text
-HTTP In → Function → Flow Memory → HTTP Response
+啟用網頁模擬器自動 heartbeat
 ```
 
-## 4. ESP32
-
-開啟：
+模擬 MAC：
 
 ```text
-esp32/RT7_EDU_HEARTBEAT_DOORBELL_TEST.ino
+AA:BB:CC:DD:EE:01
 ```
 
-修改：
+會顯示來源：
 
-```cpp
-WIFI_SSID
-WIFI_PASS
-SERVER_BASE
-MASTER_UID
+```text
+SIM
 ```
-
-再上傳到 ESP32。
-
-
-## V1A 修正
-
-- 修正 `/edu` 頁面每 10 秒重畫整個表單，造成輸入 `A社區` 時游標跳出。
-- 改成每 30 秒自動送 heartbeat。
-- 使用者正在輸入 input/select/textarea 時，不重新載入整個頁面。
-- 教學版 ONLINE 判斷由 60 秒延長為 5 分鐘，避免學生填表時太快 OFFLINE。
-
-測試：
-
-1. 開啟 `/edu`。
-2. 按「送出 heartbeat」。
-3. 在「社區名稱」完整輸入 `A社區`，確認游標不會跳出。
-4. 選擇在線主門禁，按「建立帳號並綁定」。
