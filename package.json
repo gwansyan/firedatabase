@@ -1,13 +1,13 @@
 {
-  "name": "rt7-edu-test-v1c-real-uid-from-mac",
-  "version": "1.0.0",
-  "description": "RT7 EDU TEST V1C: real ESP32 UID generated from WiFi MAC",
+  "name": "rt7-edu-test-v2-push-notification",
+  "version": "2.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "cors": "latest",
-    "express": "latest"
+    "express": "latest",
+    "web-push": "latest"
   }
 }
