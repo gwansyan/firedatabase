@@ -1,6 +1,6 @@
 {
-  "name": "rt7-edu-test-v2-push-notification",
-  "version": "2.0.0",
+  "name": "rt7-edu-test-v2a-push-send-result-debug",
+  "version": "2.1.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
