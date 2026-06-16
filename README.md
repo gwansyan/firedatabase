@@ -1,6 +1,6 @@
-# RT7_EDU_TEST_V1_NODE_RED_AND_SERVER_API
+# RT7_EDU_TEST_V1A_INPUT_FOCUS_AUTO_HEARTBEAT_FIX
 
-教學版 RT7 測試專案，將正式 RT7 的大型 `server.js` 拆成學生容易理解的 API：
+教學版 RT7 測試專案（V1A：輸入框焦點保護 + 自動 heartbeat），將正式 RT7 的大型 `server.js` 拆成學生容易理解的 API：
 
 1. ESP32 Heartbeat：模組上線
 2. 多社區綁定：A社區 / B社區各綁不同 Master UID
@@ -132,3 +132,18 @@ MASTER_UID
 ```
 
 再上傳到 ESP32。
+
+
+## V1A 修正
+
+- 修正 `/edu` 頁面每 10 秒重畫整個表單，造成輸入 `A社區` 時游標跳出。
+- 改成每 30 秒自動送 heartbeat。
+- 使用者正在輸入 input/select/textarea 時，不重新載入整個頁面。
+- 教學版 ONLINE 判斷由 60 秒延長為 5 分鐘，避免學生填表時太快 OFFLINE。
+
+測試：
+
+1. 開啟 `/edu`。
+2. 按「送出 heartbeat」。
+3. 在「社區名稱」完整輸入 `A社區`，確認游標不會跳出。
+4. 選擇在線主門禁，按「建立帳號並綁定」。
