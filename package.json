@@ -1,6 +1,6 @@
 {
   "name": "rt7-ch5b-openai-real-face-match",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
