@@ -312,7 +312,7 @@ app.get('/api/ch5/face/log',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH6A_VISITOR_ANALYZER
+// RT7_CH6B_VISITOR_CLASSIFIER
 // 第6章：RT7 Community AI Visitor Assistant
 // New page:
 //   /rt7_ch6_ai_visitor
@@ -387,24 +387,42 @@ async function ch6AnalyzeVisitorImage(imageFile,question){
     return {ok:false,error:'OPENAI_API_KEY_MISSING_OR_OPENAI_PACKAGE_MISSING'};
   }
   const img64=fs.readFileSync(imageFile).toString('base64');
-  const prompt = question || `請分析門口訪客畫面。只輸出 JSON，不要 Markdown。
-格式：
+  const prompt = question || `請分析門口訪客畫面，並做「訪客分類」。只輸出 JSON，不要 Markdown。
+
+visitor_type 必須從以下選一個：
+delivery_package      = 包裹/宅配物流人員，例如黑貓、郵局、新竹物流、宅急便
+delivery_food         = 外送員，例如 UberEats、FoodPanda
+resident              = 看起來像社區住戶/熟悉住戶，但若無法確認不要選
+guest                 = 一般訪客/親友/拜訪者
+maintenance           = 維修/水電/清潔/工程人員
+security              = 保全/管理員
+unknown               = 無法分類
+suspicious            = 可疑人士
+
+carrier 必須從以下選一個：
+黑貓宅急便|郵局|新竹物流|宅配通|DHL|FedEx|UPS|UberEats|FoodPanda|Lalamove|none|unknown
+
+輸出格式：
 {
- "visitor_type":"delivery|resident|guest|unknown|suspicious",
+ "visitor_type":"delivery_package|delivery_food|resident|guest|maintenance|security|unknown|suspicious",
+ "visitor_label":"繁體中文短標籤，例如 包裹物流/外送員/一般訪客/維修人員/可疑訪客",
  "people_count":1,
- "person_description":"簡短描述",
+ "person_description":"簡短描述，避免臆測身份",
  "delivery":true,
- "carrier":"黑貓|郵局|新竹物流|FoodPanda|UberEats|unknown|none",
+ "carrier":"黑貓宅急便|郵局|新竹物流|UberEats|FoodPanda|none|unknown",
  "package":true,
+ "uniform_or_logo":false,
+ "vehicle_or_bag":false,
  "risk":"LOW|MEDIUM|HIGH",
  "risk_reason":"原因",
  "confidence":92,
+ "action_suggestion":"NOTIFY_ONLY|ASK_VISITOR|ALLOW_OPTION|SECURITY_ALERT",
  "summary":"給住戶看的繁體中文摘要"
 }`;
   const r=await openai.chat.completions.create({
     model:process.env.RT7_VISITOR_MODEL||'gpt-4o',
     messages:[
-      {role:'system',content:'你是 RT7 社區門禁 AI 訪客助理。請根據單張門口照片判斷訪客類型、包裹、風險。不要做身份認定，只描述畫面與風險。只輸出 JSON。'},
+      {role:'system',content:'你是 RT7 社區門禁 AI 訪客分類器。根據單張門口照片做訪客類型分類、包裹/外送/維修/保全/可疑分析。不要做真實身份認定，只描述畫面特徵與風險。只輸出 JSON。'},
       {role:'user',content:[
         {type:'text',text:prompt},
         {type:'image_url',image_url:{url:`data:image/jpeg;base64,${img64}`}}
@@ -423,8 +441,8 @@ function ch6SaveEvent(event){
   return event;
 }
 
-app.get('/rt7_ch6_ai_visitor',(_,res)=>res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH6 AI Visitor Assistant</title><style>
-body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:18px auto;padding:14px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button,textarea{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}textarea{width:95%;min-height:70px}button{background:#0b9b5a;color:#fff;border:0}.blue{background:#0b78d0}.red{background:#c0392b}.gray{background:#64748b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 CH6 AI Visitor Assistant</h1><p>AI 訪客辨識、包裹分析、風險提示、推播通知、遠端開門。</p><div id="app">載入中...</div></div><script>
+app.get('/rt7_ch6_ai_visitor',(_,res)=>res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH6B Visitor Classifier</title><style>
+body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:18px auto;padding:14px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button,textarea{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}textarea{width:95%;min-height:70px}button{background:#0b9b5a;color:#fff;border:0}.blue{background:#0b78d0}.red{background:#c0392b}.gray{background:#64748b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 CH6B Visitor Classifier</h1><p>AI 訪客分類：包裹物流、外送員、維修人員、一般訪客、可疑訪客。</p><div id="app">載入中...</div></div><script>
 async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let t=await r.text();try{return JSON.parse(t)}catch{return{ok:false,status:r.status,text:t.slice(0,500)}}}
 async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)});}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -438,7 +456,7 @@ async function render(){
  comms.forEach(c=>h+='<option value="'+esc(c.community_id)+'">'+esc(c.name)+'</option>');
  h+='</select><select id="master"><option value="">選擇 Master UID</option>';
  masters.forEach(m=>h+='<option value="'+esc(m.master_uid)+'">'+esc(m.master_uid+'</option>'));
- h+='</select></div><input id="visitor_photo" type="file" accept="image/*" capture="environment"><button class="blue" onclick="visitorCheck()">上傳 Snapshot + AI 分析</button></div>';
+ h+='</select></div><input id="visitor_photo" type="file" accept="image/*" capture="environment"><button class="blue" onclick="visitorCheck()">上傳 Snapshot + AI 分類</button></div>';
  h+='<div class="card"><h2>2. AI 問答</h2><textarea id="q">請問畫面中的訪客是否像物流人員？是否有包裹？風險高不高？</textarea><button onclick="visitorQuestion()">詢問 AI</button></div>';
  h+='<div class="card"><h2>3. 遠端允許進入</h2><button class="blue" onclick="visitorOpen()">允許進入 OPEN_DOOR</button></div>';
  h+='<div class="card"><h2>4. Visitor Event Log <span class="pill">'+esc((st.visitor_events||[]).length)+'</span></h2><pre>'+esc(JSON.stringify((st.visitor_events||[]).slice(0,20),null,2))+'</pre></div>';
@@ -508,9 +526,17 @@ app.post('/api/ch6/visitor/check',async(req,res)=>{
 
     const analysis=await ch6AnalyzeVisitorImage(fp);
     const risk=String(analysis.risk||'UNKNOWN').toUpperCase();
-    const delivery=!!analysis.delivery;
-    const title = risk==='HIGH' ? '⚠️ '+community.name+' 可疑訪客' : (delivery ? '📦 '+community.name+' 疑似物流訪客' : '🔔 '+community.name+' AI訪客分析');
-    const body = analysis.summary || ((analysis.visitor_type||'unknown')+' / risk '+risk);
+    const visitorType=String(analysis.visitor_type||'unknown');
+    const label=analysis.visitor_label||visitorType;
+    const delivery=visitorType==='delivery_package'||visitorType==='delivery_food'||!!analysis.delivery;
+    let icon='🔔';
+    if(visitorType==='delivery_package')icon='📦';
+    else if(visitorType==='delivery_food')icon='🍱';
+    else if(visitorType==='maintenance')icon='🛠️';
+    else if(visitorType==='security')icon='🛡️';
+    else if(visitorType==='suspicious'||risk==='HIGH')icon='⚠️';
+    const title = icon+' '+community.name+' '+label;
+    const body = analysis.summary || (label+' / risk '+risk+' / confidence '+(analysis.confidence||0)+'%');
 
     const push=await ch6PushCommunity(community_id,{
       type:'visitor_analysis',
@@ -595,11 +621,36 @@ app.post('/api/ch6/visitor/open',(req,res)=>{
   }catch(e){res.status(500).json({ok:false,error:String(e.message||e)});}
 });
 
+
+app.post('/api/ch6/visitor/classify',async(req,res)=>{
+  req.url='/api/ch6/visitor/check';
+  app._router.handle(req,res,()=>{});
+});
+
+app.get('/api/ch6/classifier/types',(_,res)=>{
+  res.json({
+    ok:true,
+    version:'RT7_CH6B_VISITOR_CLASSIFIER',
+    visitor_types:[
+      {id:'delivery_package',label:'包裹物流'},
+      {id:'delivery_food',label:'外送員'},
+      {id:'resident',label:'住戶'},
+      {id:'guest',label:'一般訪客'},
+      {id:'maintenance',label:'維修人員'},
+      {id:'security',label:'保全/管理員'},
+      {id:'unknown',label:'無法分類'},
+      {id:'suspicious',label:'可疑訪客'}
+    ],
+    carriers:['黑貓宅急便','郵局','新竹物流','宅配通','DHL','FedEx','UPS','UberEats','FoodPanda','Lalamove','none','unknown'],
+    actions:['NOTIFY_ONLY','ASK_VISITOR','ALLOW_OPTION','SECURITY_ALERT']
+  });
+});
+
 app.get('/api/ch6/visitor/log',(_,res)=>{
   res.json({ok:true,logs:readJson('visitor_events.json',[]).slice(0,100)});
 });
 // ======================================================
-// End RT7_CH6A_VISITOR_ANALYZER
+// End RT7_CH6B_VISITOR_CLASSIFIER
 // ======================================================
 
-app.listen(PORT,()=>console.log('[RT7_CH6A_VISITOR_ANALYZER] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
+app.listen(PORT,()=>console.log('[RT7_CH6B_VISITOR_CLASSIFIER] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
