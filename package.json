@@ -1,6 +1,6 @@
 {
-  "name": "rt7-ch6e-visitor-appointment",
-  "version": "6.5.0",
+  "name": "rt7-ch7a-intruder-detector",
+  "version": "7.1.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

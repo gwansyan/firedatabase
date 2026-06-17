@@ -312,7 +312,7 @@ app.get('/api/ch5/face/log',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH6E_VISITOR_APPOINTMENT
+// RT7_CH7A_INTRUDER_DETECTOR
 // 第6章：RT7 Community AI Visitor Assistant
 // New page:
 //   /rt7_ch6_ai_visitor
@@ -673,7 +673,7 @@ app.post('/api/ch6/visitor/classify',async(req,res)=>{
 app.get('/api/ch6/classifier/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH6E_VISITOR_APPOINTMENT',
+    version:'RT7_CH7A_INTRUDER_DETECTOR',
     visitor_types:[
       {id:'delivery_package',label:'包裹物流'},
       {id:'delivery_food',label:'外送員'},
@@ -691,7 +691,7 @@ app.get('/api/ch6/classifier/types',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH6E_VISITOR_APPOINTMENT
+// RT7_CH7A_INTRUDER_DETECTOR
 // 安全訪客問答：只回答包裹、制服、外送箱、工作證、風險、人數。
 // 避免詢問「他是誰 / 是否為特定人物 / 是否住戶」。
 // ======================================================
@@ -830,7 +830,7 @@ app.post('/api/ch6/visitor/safe_qa',async(req,res)=>{
 app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH6E_VISITOR_APPOINTMENT',
+    version:'RT7_CH7A_INTRUDER_DETECTOR',
     allowed_questions:[
       '是否有包裹？',
       '是否有物流制服或公司標誌？',
@@ -853,12 +853,12 @@ app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   });
 });
 // ======================================================
-// End RT7_CH6E_VISITOR_APPOINTMENT
+// End RT7_CH7A_INTRUDER_DETECTOR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH6E_VISITOR_APPOINTMENT
+// RT7_CH7A_INTRUDER_DETECTOR
 // 物流/外送/郵差/維修/一般訪客/可疑訪客偵測
 // New APIs:
 //   GET  /api/ch6/delivery/types
@@ -947,7 +947,7 @@ unknown          = 無法判斷
 app.get('/api/ch6/delivery/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH6E_VISITOR_APPOINTMENT',
+    version:'RT7_CH7A_INTRUDER_DETECTOR',
     visitor_types:[
       {id:'delivery_package',label:'📦 宅配員'},
       {id:'delivery_food',label:'🍔 外送員'},
@@ -1072,12 +1072,12 @@ app.post('/api/ch6/delivery/detect',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH6E_VISITOR_APPOINTMENT
+// End RT7_CH7A_INTRUDER_DETECTOR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH6E_VISITOR_APPOINTMENT
+// RT7_CH7A_INTRUDER_DETECTOR
 // 常客/保全/管委會/維修白名單
 // New APIs:
 //   GET  /api/ch6/whitelist
@@ -1275,12 +1275,12 @@ app.post('/api/ch6/whitelist/check',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH6E_VISITOR_APPOINTMENT
+// End RT7_CH7A_INTRUDER_DETECTOR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH6E_VISITOR_APPOINTMENT
+// RT7_CH7A_INTRUDER_DETECTOR
 // 訪客預約 / 邀請碼 / 時段驗證 / 自動放行
 // New APIs:
 //   GET  /api/ch6/appointments
@@ -1489,14 +1489,220 @@ app.post('/api/ch6/appointments/check',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH6E_VISITOR_APPOINTMENT
+// End RT7_CH7A_INTRUDER_DETECTOR
 // ======================================================
 
 app.get('/api/ch6/visitor/log',(_,res)=>{
   res.json({ok:true,logs:readJson('visitor_events.json',[]).slice(0,100)});
 });
 // ======================================================
-// End RT7_CH6E_VISITOR_APPOINTMENT
+// End RT7_CH7A_INTRUDER_DETECTOR
 // ======================================================
 
-app.listen(PORT,()=>console.log('[RT7_CH6E_VISITOR_APPOINTMENT] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
+
+// ======================================================
+// RT7_CH7A_INTRUDER_DETECTOR
+// 第7章：RT7 Community AI Security Guard - Intruder Detector
+// New page: /rt7_ch7_ai_security
+// New APIs:
+//   GET  /api/ch7/state
+//   POST /api/ch7/intruder/snapshot
+//   POST /api/ch7/intruder/check
+//   GET  /api/ch7/intruder/log
+// ======================================================
+
+const CH7_UPLOAD_DIR=path.join(DATA_DIR,'security_uploads');
+if(!fs.existsSync(CH7_UPLOAD_DIR))fs.mkdirSync(CH7_UPLOAD_DIR,{recursive:true});
+ensureFile('intruder_events.json',[]);
+
+function ch7CleanBase64Image(image){return image?String(image).replace(/^data:image\/\w+;base64,/,''):null;}
+function ch7SafeJsonParse(txt){
+  const raw=String(txt||'').trim();
+  try{return JSON.parse(raw);}catch(e){}
+  const m=raw.match(/\{[\s\S]*\}/);
+  if(m){try{return JSON.parse(m[0]);}catch(e){}}
+  return {ok:false,people_count:0,face_visible:true,mask:false,helmet:false,face_covered:false,suspicious:false,intruder:false,risk:'LOW',reason:'JSON_PARSE_FAILED',raw:raw.slice(0,500)};
+}
+function ch7GetOpenAI(){
+  if(!OpenAI||!process.env.OPENAI_API_KEY)return null;
+  return new OpenAI({apiKey:process.env.OPENAI_API_KEY});
+}
+function ch7CommunityById(community_id){return readJson('communities.json',[]).find(x=>x.community_id===community_id)||null;}
+function ch7CommunityByMaster(master_uid){return readJson('communities.json',[]).find(x=>x.master_uid===master_uid)||null;}
+async function ch7PushCommunity(community_id,payload){
+  const groups=readJson('community_push_groups.json',[]).filter(g=>g.community_id===community_id);
+  return await sendPushToSubs(groups,payload);
+}
+function ch7SaveIntruderEvent(event){
+  const logs=readJson('intruder_events.json',[]);
+  logs.unshift(event);
+  writeJson('intruder_events.json',logs.slice(0,500));
+  return event;
+}
+function ch7NormalizeIntruderRisk(ai){
+  ai=ai||{};
+  let risk=String(ai.risk||'LOW').toUpperCase();
+  let intruder=!!ai.intruder;
+  if(Number(ai.people_count||0)<=0){risk='LOW';intruder=false;ai.reason=ai.reason||'畫面中未偵測到人。';}
+  if(ai.mask||ai.helmet){if(risk==='LOW')risk='MEDIUM';}
+  if(ai.face_covered||ai.face_visible===false){risk='HIGH';intruder=true;ai.reason=ai.reason||'臉部被遮蔽或無法清楚看見。';}
+  if(ai.suspicious||ai.climbing||ai.forced_entry||ai.dangerous_object){risk='HIGH';intruder=true;ai.reason=ai.reason||'偵測到可疑行為或危險物品。';}
+  ai.risk=risk; ai.intruder=intruder; return ai;
+}
+function ch7SecurityTitle(communityName, ai){
+  const risk=String(ai.risk||'LOW').toUpperCase();
+  if(risk==='HIGH')return '🚨 '+communityName+' 入侵警報';
+  if(risk==='MEDIUM')return '⚠️ '+communityName+' 可疑訪客';
+  return '🛡️ '+communityName+' 安全巡檢';
+}
+async function ch7AnalyzeIntruderImage(imagePath){
+  const openai=ch7GetOpenAI();
+  if(!openai)return {ok:false,error:'OPENAI_API_KEY_MISSING_OR_OPENAI_PACKAGE_MISSING',risk:'LOW',intruder:false};
+  const img64=fs.readFileSync(imagePath).toString('base64');
+  const prompt=`你是 RT7 社區 AI 保全系統。請依據門口/社區攝影機畫面判斷是否有入侵或可疑行為。
+
+請只分析可見畫面，不要辨識人物身份，不要判斷是否為特定人物。
+
+請判斷：
+1. 畫面中有幾個人
+2. 臉是否清楚可見
+3. 是否戴口罩
+4. 是否戴安全帽
+5. 是否遮臉或刻意遮蔽
+6. 是否翻牆、攀爬、闖入、破壞
+7. 是否長時間滯留或可疑徘徊
+8. 是否有危險物品
+9. 整體風險 LOW / MEDIUM / HIGH
+
+只輸出 JSON，不要 Markdown：
+{
+ "ok": true,
+ "people_count":0,
+ "person_description":"畫面描述",
+ "face_visible":true,
+ "mask":false,
+ "helmet":false,
+ "face_covered":false,
+ "climbing":false,
+ "forced_entry":false,
+ "loitering":false,
+ "dangerous_object":false,
+ "suspicious":false,
+ "intruder":false,
+ "risk":"LOW|MEDIUM|HIGH",
+ "reason":"繁體中文原因",
+ "suggestion":"NOTIFY_ONLY|WATCH|SECURITY_ALERT",
+ "confidence":85,
+ "summary":"給保全/住戶看的繁體中文摘要"
+}`;
+  const r=await openai.chat.completions.create({
+    model:process.env.RT7_SECURITY_MODEL||process.env.RT7_VISITOR_MODEL||'gpt-4o',
+    messages:[
+      {role:'system',content:'你是社區 AI 保全，只分析可見行為、遮蔽、物品、風險，不辨識人物身份。只輸出 JSON。'},
+      {role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:`data:image/jpeg;base64,${img64}`}}]}
+    ],
+    temperature:0
+  });
+  const parsed=ch7SafeJsonParse(r.choices&&r.choices[0]&&r.choices[0].message&&r.choices[0].message.content);
+  parsed.ok=true;
+  return ch7NormalizeIntruderRisk(parsed);
+}
+
+app.get('/rt7_ch7_ai_security',(_,res)=>res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH7A AI Security Guard</title><style>
+body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:18px auto;padding:14px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}button{background:#0b9b5a;color:#fff;border:0}.blue{background:#0b78d0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 CH7A AI Security Guard</h1><p>入侵者偵測、遮臉/安全帽/可疑行為、高風險推播警報。</p><div id="app">載入中...</div></div><script>
+async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let t=await r.text();try{return JSON.parse(t)}catch{return{ok:false,status:r.status,text:t.slice(0,500)}}}
+async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)});}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function show(x){document.getElementById('out').textContent=JSON.stringify(x,null,2);}
+function fileDataUrl(input){return new Promise((resolve,reject)=>{const f=input.files&&input.files[0];if(!f)return reject(new Error('NO_FILE'));const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(f);});}
+async function render(){
+ const st=await api('/api/ch7/state');
+ const comms=st.communities||[]; const masters=Object.values(st.masters||{});
+ let h='';
+ h+='<div class="card"><h2>1. Intruder Detector 入侵者偵測</h2><div class="grid"><select id="comm"><option value="">選擇社區</option>';
+ comms.forEach(c=>h+='<option value="'+esc(c.community_id)+'">'+esc(c.name)+'</option>');
+ h+='</select><select id="master"><option value="">選擇 Master UID</option>';
+ masters.forEach(m=>h+='<option value="'+esc(m.master_uid)+'">'+esc(m.master_uid+'</option>'));
+ h+='</select></div><input id="sec_photo" type="file" accept="image/*" capture="environment"><button class="blue" onclick="intruderCheck()">上傳 Snapshot + 入侵偵測</button></div>';
+ h+='<div class="card"><h2>2. Intruder Event Log <span class="pill">'+esc((st.intruder_events||[]).length)+'</span></h2><pre>'+esc(JSON.stringify((st.intruder_events||[]).slice(0,20),null,2))+'</pre></div>';
+ h+='<div class="card"><h2>3. 最新結果</h2><pre id="out">READY</pre></div>';
+ document.getElementById('app').innerHTML=h;
+}
+async function intruderCheck(){
+ const image=await fileDataUrl(document.getElementById('sec_photo'));
+ const r=await post('/api/ch7/intruder/check',{community_id:comm.value,master_uid:master.value,image});
+ show(r); setTimeout(render,1000);
+}
+render();
+</script></body></html>`));
+
+app.get('/api/ch7/state',(_,res)=>{
+  const masters=readJson('master_registry.json',{});
+  Object.keys(masters).forEach(uid=>masters[uid].status=onlineStatus(masters[uid].last_heartbeat));
+  const communities=readJson('communities.json',[]).map(c=>({...c,master_status:masters[c.master_uid]?onlineStatus(masters[c.master_uid].last_heartbeat):'OFFLINE'}));
+  res.json({
+    ok:true,ch7a:true,openai_package:!!OpenAI,openai_key:!!process.env.OPENAI_API_KEY,
+    security_model:process.env.RT7_SECURITY_MODEL||process.env.RT7_VISITOR_MODEL||'gpt-4o',
+    upload_dir:CH7_UPLOAD_DIR,masters,communities,
+    intruder_events:readJson('intruder_events.json',[]).slice(0,100),
+    push:{count:readJson('push_subscriptions.json',[]).length,groups:readJson('community_push_groups.json',[]).length}
+  });
+});
+
+app.post('/api/ch7/intruder/snapshot',(req,res)=>{
+  try{
+    const {master_uid,community_id,image}=req.body||{};
+    if(!image)return res.status(400).json({ok:false,error:'missing image'});
+    const file='intruder_'+Date.now()+'.jpg';
+    fs.writeFileSync(path.join(CH7_UPLOAD_DIR,file),Buffer.from(ch7CleanBase64Image(image),'base64'));
+    res.json({ok:true,file,master_uid,community_id});
+  }catch(e){res.status(500).json({ok:false,error:String(e.message||e)});}
+});
+
+app.post('/api/ch7/intruder/check',async(req,res)=>{
+  const started=Date.now();
+  try{
+    const {community_id,master_uid,snapshot_file,image}=req.body||{};
+    let community=community_id?ch7CommunityById(community_id):null;
+    if(!community&&master_uid)community=ch7CommunityByMaster(master_uid);
+    if(!community)return res.status(404).json({ok:false,error:'community_not_found'});
+    let imagePath=null,file=snapshot_file||'';
+    if(image){
+      file='intruder_'+Date.now()+'.jpg';
+      imagePath=path.join(CH7_UPLOAD_DIR,file);
+      fs.writeFileSync(imagePath,Buffer.from(ch7CleanBase64Image(image),'base64'));
+    }else if(snapshot_file){
+      imagePath=path.join(CH7_UPLOAD_DIR,snapshot_file);
+      if(!fs.existsSync(imagePath))return res.status(404).json({ok:false,error:'snapshot_not_found'});
+    }else return res.status(400).json({ok:false,error:'missing image_or_snapshot_file'});
+    const ai=await ch7AnalyzeIntruderImage(imagePath);
+    const risk=String(ai.risk||'LOW').toUpperCase();
+    const title=ch7SecurityTitle(community.name, ai);
+    const body=ai.summary||ai.reason||('風險：'+risk);
+    let push={sent:0,total:0,status:'SKIPPED_LOW_RISK'};
+    if(risk==='HIGH'||risk==='MEDIUM'){
+      push=await ch7PushCommunity(community.community_id,{
+        type:risk==='HIGH'?'intruder_alarm':'suspicious_visitor',
+        title,body,url:'/rt7_ch7_ai_security',tag:'rt7-ai-security',
+        community_id:community.community_id,master_uid:master_uid||community.master_uid,risk,intruder:!!ai.intruder
+      });
+    }
+    const event=ch7SaveIntruderEvent({
+      time:nowIso(),community_id:community.community_id,community_name:community.name,
+      master_uid:master_uid||community.master_uid,snapshot_file:file,kind:'intruder_check',
+      analysis:ai,intruder:!!ai.intruder,risk,result:ai.intruder?'INTRUDER':'SAFE',
+      push_status:push.status,push_sent:push.sent||0,elapsed_ms:Date.now()-started
+    });
+    res.json({ok:true,event,analysis:ai,push});
+  }catch(e){
+    const event=ch7SaveIntruderEvent({time:nowIso(),kind:'intruder_check',result:'ERROR',error:String(e.message||e),elapsed_ms:Date.now()-started});
+    res.status(500).json({ok:false,event,error:String(e.message||e)});
+  }
+});
+
+app.get('/api/ch7/intruder/log',(_,res)=>res.json({ok:true,logs:readJson('intruder_events.json',[]).slice(0,100)}));
+// ======================================================
+// End RT7_CH7A_INTRUDER_DETECTOR
+// ======================================================
+
+app.listen(PORT,()=>console.log('[RT7_CH7A_INTRUDER_DETECTOR] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
