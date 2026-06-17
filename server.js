@@ -312,7 +312,7 @@ app.get('/api/ch5/face/log',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH6C1_VISITOR_FALLBACK_FIX
+// RT7_CH6D_VISITOR_WHITELIST
 // 第6章：RT7 Community AI Visitor Assistant
 // New page:
 //   /rt7_ch6_ai_visitor
@@ -441,8 +441,8 @@ function ch6SaveEvent(event){
   return event;
 }
 
-app.get('/rt7_ch6_ai_visitor',(_,res)=>res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH6C1 Visitor Fallback Fix</title><style>
-body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:18px auto;padding:14px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button,textarea{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}textarea{width:95%;min-height:70px}button{background:#0b9b5a;color:#fff;border:0}.blue{background:#0b78d0}.red{background:#c0392b}.gray{background:#64748b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 CH6C1 Visitor Fallback Fix</h1><p>AI 訪客分類 + Delivery Detector + Visitor Fallback：有人但無法分類時自動改為一般訪客。</p><div id="app">載入中...</div></div><script>
+app.get('/rt7_ch6_ai_visitor',(_,res)=>res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH6D Visitor Whitelist</title><style>
+body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:18px auto;padding:14px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button,textarea{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}textarea{width:95%;min-height:70px}button{background:#0b9b5a;color:#fff;border:0}.blue{background:#0b78d0}.red{background:#c0392b}.gray{background:#64748b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 CH6D Visitor Whitelist</h1><p>AI 訪客分類 + Delivery Detector + 白名單：常客、保全、管委會、維修人員可建立白名單。</p><div id="app">載入中...</div></div><script>
 async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let t=await r.text();try{return JSON.parse(t)}catch{return{ok:false,status:r.status,text:t.slice(0,500)}}}
 async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)});}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -458,9 +458,9 @@ async function render(){
  masters.forEach(m=>h+='<option value="'+esc(m.master_uid)+'">'+esc(m.master_uid+'</option>'));
  h+='</select></div><input id="visitor_photo" type="file" accept="image/*" capture="environment"><button class="blue" onclick="visitorCheck()">上傳 Snapshot + AI 分類</button></div>';
  h+='<div class="card"><h2>2. Safe Visitor QA 安全訪客問答</h2><p>只問包裹、制服、外送箱、工作證、人數與風險；不問人物身份。</p><select id="q"><option>是否有包裹？</option><option>是否有物流制服或公司標誌？</option><option>是否有外送箱？</option><option>是否有工作證？</option><option>是否有工具或維修用品？</option><option>現場有幾個人？</option><option>是否多人聚集？</option><option>是否有危險物品或可疑行為？</option><option>風險高不高？</option><option>建議住戶如何處理？</option></select><button onclick="safeQA()">詢問 AI Safe QA</button></div>';
- h+='<div class="card"><h2>3. Delivery Detector 物流偵測</h2><p>判斷宅配員、外送員、郵差、維修人員、一般訪客、可疑訪客。</p><button class="blue" onclick="deliveryDetect()">上傳 Snapshot + Delivery Detector</button></div>';h+='<div class="card"><h2>4. 遠端允許進入</h2><button class="blue" onclick="visitorOpen()">允許進入 OPEN_DOOR</button></div>';
- h+='<div class="card"><h2>5. Visitor Event Log <span class="pill">'+esc((st.visitor_events||[]).length)+'</span></h2><pre>'+esc(JSON.stringify((st.visitor_events||[]).slice(0,20),null,2))+'</pre></div>';
- h+='<div class="card"><h2>6. 最新結果</h2><pre id="out">READY</pre></div>';
+ h+='<div class="card"><h2>3. Delivery Detector 物流偵測</h2><p>判斷宅配員、外送員、郵差、維修人員、一般訪客、可疑訪客。</p><button class="blue" onclick="deliveryDetect()">上傳 Snapshot + Delivery Detector</button></div>';h+='<div class="card"><h2>4. Visitor Whitelist 白名單</h2><p>新增常客、保全、管委會、維修人員。可用關鍵字比對 AI 分析結果。</p><div class="grid"><input id="wl_name" placeholder="名稱，例如 張先生"><select id="wl_type"><option value="regular_visitor">常客</option><option value="security">保全</option><option value="committee">管委會</option><option value="maintenance">維修人員</option><option value="delivery">固定物流</option></select><input id="wl_keywords" placeholder="關鍵字，用逗號分隔"></div><label><input type="checkbox" id="wl_auto"> 允許白名單自動開門</label><br><button onclick="addWhitelist()">新增白名單</button><button class="blue" onclick="whitelistCheck()">上傳 Snapshot + 白名單檢查</button></div>';h+='<div class="card"><h2>5. 遠端允許進入</h2><button class="blue" onclick="visitorOpen()">允許進入 OPEN_DOOR</button></div>';
+ h+='<div class="card"><h2>6. Visitor Event Log <span class="pill">'+esc((st.visitor_events||[]).length)+'</span></h2><pre>'+esc(JSON.stringify((st.visitor_events||[]).slice(0,20),null,2))+'</pre></div>';
+ h+='<div class="card"><h2>7. 最新結果</h2><pre id="out">READY</pre></div>';
  document.getElementById('app').innerHTML=h;
 }
 async function uploadSnapshot(){
@@ -485,6 +485,24 @@ async function deliveryDetect(){
  if(!up.ok){show(up);return;}
  const r=await post('/api/ch6/delivery/detect',{community_id:comm.value,master_uid:master.value,snapshot_file:up.file});
  show({snapshot:up,delivery_detector:r}); setTimeout(render,1000);
+}
+async function addWhitelist(){
+ const r=await post('/api/ch6/whitelist/add',{
+   community_id:comm.value,
+   name:wl_name.value,
+   type:wl_type.value,
+   role_label:wl_type.options[wl_type.selectedIndex].text,
+   keywords:wl_keywords.value.split(',').map(x=>x.trim()).filter(Boolean),
+   allow_auto_open:wl_auto.checked,
+   notify_only:true
+ });
+ show(r); setTimeout(render,1000);
+}
+async function whitelistCheck(){
+ const up=await uploadSnapshot();
+ if(!up.ok){show(up);return;}
+ const r=await post('/api/ch6/whitelist/check',{community_id:comm.value,master_uid:master.value,snapshot_file:up.file});
+ show({snapshot:up,whitelist:r}); setTimeout(render,1000);
 }
 async function visitorOpen(){
  show(await post('/api/ch6/visitor/open',{community_id:comm.value,master_uid:master.value,reason:'VISITOR_APPROVED_BY_USER'}));
@@ -637,7 +655,7 @@ app.post('/api/ch6/visitor/classify',async(req,res)=>{
 app.get('/api/ch6/classifier/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH6C1_VISITOR_FALLBACK_FIX',
+    version:'RT7_CH6D_VISITOR_WHITELIST',
     visitor_types:[
       {id:'delivery_package',label:'包裹物流'},
       {id:'delivery_food',label:'外送員'},
@@ -655,7 +673,7 @@ app.get('/api/ch6/classifier/types',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH6C1_VISITOR_FALLBACK_FIX
+// RT7_CH6D_VISITOR_WHITELIST
 // 安全訪客問答：只回答包裹、制服、外送箱、工作證、風險、人數。
 // 避免詢問「他是誰 / 是否為特定人物 / 是否住戶」。
 // ======================================================
@@ -794,7 +812,7 @@ app.post('/api/ch6/visitor/safe_qa',async(req,res)=>{
 app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH6C1_VISITOR_FALLBACK_FIX',
+    version:'RT7_CH6D_VISITOR_WHITELIST',
     allowed_questions:[
       '是否有包裹？',
       '是否有物流制服或公司標誌？',
@@ -817,12 +835,12 @@ app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   });
 });
 // ======================================================
-// End RT7_CH6C1_VISITOR_FALLBACK_FIX
+// End RT7_CH6D_VISITOR_WHITELIST
 // ======================================================
 
 
 // ======================================================
-// RT7_CH6C1_VISITOR_FALLBACK_FIX
+// RT7_CH6D_VISITOR_WHITELIST
 // 物流/外送/郵差/維修/一般訪客/可疑訪客偵測
 // New APIs:
 //   GET  /api/ch6/delivery/types
@@ -911,7 +929,7 @@ unknown          = 無法判斷
 app.get('/api/ch6/delivery/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH6C1_VISITOR_FALLBACK_FIX',
+    version:'RT7_CH6D_VISITOR_WHITELIST',
     visitor_types:[
       {id:'delivery_package',label:'📦 宅配員'},
       {id:'delivery_food',label:'🍔 外送員'},
@@ -1036,14 +1054,217 @@ app.post('/api/ch6/delivery/detect',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH6C1_VISITOR_FALLBACK_FIX
+// End RT7_CH6D_VISITOR_WHITELIST
+// ======================================================
+
+
+// ======================================================
+// RT7_CH6D_VISITOR_WHITELIST
+// 常客/保全/管委會/維修白名單
+// New APIs:
+//   GET  /api/ch6/whitelist
+//   POST /api/ch6/whitelist/add
+//   POST /api/ch6/whitelist/delete
+//   POST /api/ch6/whitelist/check
+// ======================================================
+
+ensureFile('visitor_whitelist.json',[]);
+
+function ch6dGetWhitelist(community_id){
+  return readJson('visitor_whitelist.json',[])
+    .filter(x=>!community_id || x.community_id===community_id);
+}
+
+function ch6dNormalizeText(s){
+  return String(s||'').trim().toLowerCase();
+}
+
+function ch6dMatchWhitelist(community_id, analysis){
+  const list=ch6dGetWhitelist(community_id).filter(x=>x.status!=='DISABLED');
+  const txt=[
+    analysis.visitor_type,
+    analysis.visitor_label,
+    analysis.delivery_company,
+    analysis.summary,
+    analysis.person_description,
+    analysis.push_body,
+    analysis.push_title
+  ].map(ch6dNormalizeText).join(' ');
+
+  for(const w of list){
+    const keywords=(w.keywords||[]).map(ch6dNormalizeText).filter(Boolean);
+    const hit=keywords.some(k=>txt.includes(k));
+    if(hit){
+      return {
+        matched:true,
+        whitelist_id:w.whitelist_id,
+        name:w.name,
+        type:w.type,
+        role_label:w.role_label,
+        allow_auto_open:!!w.allow_auto_open,
+        notify_only:!!w.notify_only,
+        reason:'KEYWORD_MATCH',
+        keywords
+      };
+    }
+  }
+
+  return {matched:false};
+}
+
+function ch6dApplyWhitelist(community, master_uid, analysis){
+  const hit=ch6dMatchWhitelist(community.community_id, analysis);
+  if(!hit.matched)return {analysis,whitelist:hit,command:null};
+
+  analysis.whitelist_matched=true;
+  analysis.whitelist_name=hit.name;
+  analysis.whitelist_type=hit.type;
+  analysis.whitelist_role=hit.role_label;
+  analysis.visitor_label=`${hit.role_label||'白名單'}：${hit.name}`;
+  analysis.push_title=`✅ ${community.name} ${analysis.visitor_label}`;
+  analysis.push_body=`白名單訪客到訪：${hit.name}`;
+  analysis.summary=`白名單訪客 ${hit.name} 到訪。`;
+  analysis.action_suggestion=hit.allow_auto_open?'ALLOW_OPTION':'NOTIFY_ONLY';
+
+  let command=null;
+  if(hit.allow_auto_open){
+    command=ch6QueueOpenDoor(
+      master_uid||community.master_uid,
+      community.community_id,
+      community.name,
+      'visitor_whitelist',
+      `WHITELIST_${hit.type||'VISITOR'}_${hit.name}`
+    );
+    analysis.auto_open_queued=true;
+  }
+
+  return {analysis,whitelist:hit,command};
+}
+
+app.get('/api/ch6/whitelist',(req,res)=>{
+  const community_id=req.query.community_id||'';
+  res.json({
+    ok:true,
+    total:ch6dGetWhitelist(community_id).length,
+    whitelist:ch6dGetWhitelist(community_id)
+  });
+});
+
+app.post('/api/ch6/whitelist/add',(req,res)=>{
+  try{
+    const {
+      community_id,
+      name,
+      type,
+      role_label,
+      keywords,
+      allow_auto_open,
+      notify_only
+    }=req.body||{};
+
+    if(!community_id||!name)return res.status(400).json({ok:false,error:'missing community_id/name'});
+    const community=ch6CommunityById(community_id);
+    if(!community)return res.status(404).json({ok:false,error:'community_not_found'});
+
+    const list=readJson('visitor_whitelist.json',[]);
+    const rec={
+      whitelist_id:id('wl'),
+      community_id,
+      community_name:community.name,
+      name,
+      type:type||'regular_visitor',
+      role_label:role_label||'常客',
+      keywords:Array.isArray(keywords)?keywords:String(keywords||name).split(',').map(s=>s.trim()).filter(Boolean),
+      allow_auto_open:!!allow_auto_open,
+      notify_only:notify_only!==false,
+      status:'ACTIVE',
+      created_at:nowIso()
+    };
+    list.push(rec);
+    writeJson('visitor_whitelist.json',list);
+    res.json({ok:true,record:rec});
+  }catch(e){res.status(500).json({ok:false,error:String(e.message||e)});}
+});
+
+app.post('/api/ch6/whitelist/delete',(req,res)=>{
+  const {whitelist_id}=req.body||{};
+  let list=readJson('visitor_whitelist.json',[]);
+  const before=list.length;
+  list=list.filter(x=>x.whitelist_id!==whitelist_id);
+  writeJson('visitor_whitelist.json',list);
+  res.json({ok:true,deleted:before-list.length});
+});
+
+app.post('/api/ch6/whitelist/check',async(req,res)=>{
+  const started=Date.now();
+  try{
+    const {community_id,master_uid,snapshot_file,image}=req.body||{};
+    let community=community_id?ch6CommunityById(community_id):null;
+    if(!community&&master_uid)community=ch6CommunityByMaster(master_uid);
+    if(!community)return res.status(404).json({ok:false,error:'community_not_found'});
+
+    let imagePath=null;
+    let file=snapshot_file||'';
+
+    if(image){
+      file='whitelist_'+Date.now()+'.jpg';
+      imagePath=path.join(CH6_UPLOAD_DIR,file);
+      fs.writeFileSync(imagePath,Buffer.from(ch6CleanBase64Image(image),'base64'));
+    }else if(snapshot_file){
+      imagePath=path.join(CH6_UPLOAD_DIR,snapshot_file);
+      if(!fs.existsSync(imagePath))return res.status(404).json({ok:false,error:'snapshot_not_found'});
+    }else{
+      const latest=ch6b1LatestVisitorImage(community.community_id);
+      if(!latest)return res.status(404).json({ok:false,error:'NO_VISITOR_EVENT_IMAGE'});
+      imagePath=latest.path;
+      file=latest.event.snapshot_file;
+    }
+
+    let analysis=await ch6cDetectDelivery(imagePath);
+    analysis=ch6c1NormalizeDeliveryAnalysis(analysis);
+    const applied=ch6dApplyWhitelist(community, master_uid||community.master_uid, analysis);
+
+    const push=await ch6PushCommunity(community.community_id,{
+      type:'visitor_whitelist',
+      title:applied.analysis.push_title || ch6cDeliveryTitle(community.name, applied.analysis),
+      body:applied.analysis.push_body || applied.analysis.summary || '白名單檢查完成',
+      url:'/rt7_ch6_ai_visitor',
+      tag:'rt7-visitor-whitelist',
+      community_id:community.community_id,
+      master_uid:master_uid||community.master_uid
+    });
+
+    const event=ch6SaveEvent({
+      time:nowIso(),
+      community_id:community.community_id,
+      community_name:community.name,
+      master_uid:master_uid||community.master_uid,
+      snapshot_file:file,
+      kind:'visitor_whitelist',
+      analysis:applied.analysis,
+      whitelist:applied.whitelist,
+      command:applied.command,
+      result:applied.whitelist.matched?'WHITELIST_MATCH':'NO_WHITELIST_MATCH',
+      push_status:push.status,
+      push_sent:push.sent||0,
+      elapsed_ms:Date.now()-started
+    });
+
+    res.json({ok:true,event,analysis:applied.analysis,whitelist:applied.whitelist,command:applied.command,push});
+  }catch(e){
+    const event=ch6SaveEvent({time:nowIso(),kind:'visitor_whitelist',result:'ERROR',error:String(e.message||e),elapsed_ms:Date.now()-started});
+    res.status(500).json({ok:false,event,error:String(e.message||e)});
+  }
+});
+// ======================================================
+// End RT7_CH6D_VISITOR_WHITELIST
 // ======================================================
 
 app.get('/api/ch6/visitor/log',(_,res)=>{
   res.json({ok:true,logs:readJson('visitor_events.json',[]).slice(0,100)});
 });
 // ======================================================
-// End RT7_CH6C1_VISITOR_FALLBACK_FIX
+// End RT7_CH6D_VISITOR_WHITELIST
 // ======================================================
 
-app.listen(PORT,()=>console.log('[RT7_CH6C1_VISITOR_FALLBACK_FIX] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
+app.listen(PORT,()=>console.log('[RT7_CH6D_VISITOR_WHITELIST] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));

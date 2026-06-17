@@ -1,6 +1,6 @@
 {
-  "name": "rt7-ch6c1-visitor-fallback-fix",
-  "version": "6.3.1",
+  "name": "rt7-ch6d-visitor-whitelist",
+  "version": "6.4.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
