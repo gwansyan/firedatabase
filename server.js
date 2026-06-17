@@ -22,7 +22,7 @@ function removeBadEndpoints(badEndpoints){if(!badEndpoints||!badEndpoints.length
 async function sendPushToSubs(subs,payload){const setup=setupWebPush(),logs=readJson('push_log.json',[]);if(!setup.ok){const item={time:nowIso(),ok:false,sent:0,total:subs.length,status:'SETUP_FAILED',failures:[{message:setup.error}],payload};logs.push(item);writeJson('push_log.json',logs.slice(-200));return item;}let sent=0,removed=0,failures=[],bad=[];for(const wrap of subs){const sub=wrap.subscription||wrap;try{await webpush.sendNotification(sub,JSON.stringify(payload),{TTL:60,urgency:'high'});sent++;}catch(e){const code=e.statusCode||e.status||0;const endpoint=sub.endpoint||wrap.endpoint||'';failures.push({code,endpoint:endpointShort(endpoint),message:String(e.body||e.message||e).slice(0,400)});if([400,403,404,410].includes(code)){removed++;if(endpoint)bad.push(endpoint);}}}const cleanup=removeBadEndpoints(bad);const item={time:nowIso(),ok:true,sent,total:subs.length,removed,status:sent>0?'SENT':(subs.length===0?'NO_SUBSCRIBERS':'FAILED'),failures,cleanup,payload};logs.push(item);writeJson('push_log.json',logs.slice(-200));return item;}
 ['master_registry.json','commands.json'].forEach(n=>ensureFile(n,{}));['communities.json','users.json','events.json','push_subscriptions.json','community_push_groups.json','push_log.json','door_access_log.json'].forEach(n=>ensureFile(n,[]));
 app.get('/',(_,res)=>res.redirect('/rt7_ch4_door_access'));
-app.get('/sw.js',(_,res)=>res.type('application/javascript').set('Service-Worker-Allowed','/').send(`self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{};}catch(x){};e.waitUntil(self.registration.showNotification(d.title||'RT7 門禁通知',{body:d.body||'收到通知',tag:d.tag||'rt7-door-access',renotify:true,data:{url:d.url||'/rt7_ch4_door_access'}}));});self.addEventListener('notificationclick',e=>{e.notification.close();const u=(e.notification.data&&e.notification.data.url)||'/rt7_ch4_door_access';e.waitUntil(clients.openWindow(u));});`));
+app.get('/sw.js',(_,res)=>res.type('application/javascript').send("\nself.addEventListener('install',e=>{self.skipWaiting();});\nself.addEventListener('activate',e=>{\n  e.waitUntil((async()=>{await self.clients.claim();})());\n});\nself.addEventListener('push',e=>{\n  let d={};\n  try{d=e.data?e.data.json():{};}catch(x){\n    try{d={title:'RT7 \u63a8\u64ad',body:e.data?e.data.text():'\u63a8\u64ad\u8a0a\u606f'};}catch(y){d={};}\n  }\n  const title=d.title||'RT7 \u63a8\u64ad\u901a\u77e5';\n  const options={\n    body:d.body||'\u6536\u5230\u63a8\u64ad\u8a0a\u606f',\n    tag:d.tag||'rt7-push',\n    renotify:true,\n    requireInteraction:!!d.requireInteraction,\n    data:{url:d.url||'/rt7_push_debug_panel',time:Date.now(),payload:d}\n  };\n  e.waitUntil((async()=>{\n    await self.registration.showNotification(title,options);\n    const all=await self.clients.matchAll({type:'window',includeUncontrolled:true});\n    all.forEach(c=>c.postMessage({type:'RT7_PUSH_RECEIVED',payload:d,time:Date.now()}));\n  })());\n});\nself.addEventListener('notificationclick',e=>{\n  e.notification.close();\n  const url=(e.notification.data&&e.notification.data.url)||'/rt7_push_debug_panel';\n  e.waitUntil((async()=>{\n    const all=await clients.matchAll({type:'window',includeUncontrolled:true});\n    for(const c of all){\n      if('focus' in c){c.focus(); c.postMessage({type:'RT7_NOTIFICATION_CLICK',url}); return;}\n    }\n    await clients.openWindow(url);\n  })());\n});\n"));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{};}catch(x){};e.waitUntil(self.registration.showNotification(d.title||'RT7 門禁通知',{body:d.body||'收到通知',tag:d.tag||'rt7-door-access',renotify:true,data:{url:d.url||'/rt7_ch4_door_access'}}));});self.addEventListener('notificationclick',e=>{e.notification.close();const u=(e.notification.data&&e.notification.data.url)||'/rt7_ch4_door_access';e.waitUntil(clients.openWindow(u));});`));
 app.get('/rt7_ch4_door_access',(_,res)=>res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH4 V4A</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1120px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}button{background:#0b9b5a;color:#fff;border:0}.blue{background:#0b78d0}.red{background:#c0392b}.gray{background:#64748b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;vertical-align:top}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap;min-height:50px}.ok{color:#079b50;font-weight:bold}.bad{color:#d33;font-weight:bold}.hint{color:#607080;font-size:14px;line-height:1.6}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 CH4 Push Group Auto Replace Subscription</h1><p>加入社區推播群組時，自動刪除同社區舊 endpoint，只保留最新手機 subscription。</p><div id="app">載入中...</div></div><script>
 window.addEventListener('error',e=>show({ok:false,where:'window.onerror',message:e.message,line:e.lineno}));window.addEventListener('unhandledrejection',e=>show({ok:false,where:'unhandledrejection',message:String(e.reason&&e.reason.message||e.reason)}));
 async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let t=await r.text();try{return JSON.parse(t)}catch{return{ok:false,status:r.status,text:t.slice(0,500)}}}async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)});}function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}function show(x){let e=document.getElementById('out'); if(e)e.textContent=JSON.stringify(x,null,2);}async function safe(fn){try{show({running:true,fn:fn.name});await fn();}catch(e){show({ok:false,error:String(e.message||e),stack:String(e.stack||'').slice(0,600)});}}
@@ -312,7 +312,7 @@ app.get('/api/ch5/face/log',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH7A1_PUSH_DEBUG_PANEL
+// RT7_CH7A2_FORCE_SW_REFRESH
 // 第6章：RT7 Community AI Visitor Assistant
 // New page:
 //   /rt7_ch6_ai_visitor
@@ -673,7 +673,7 @@ app.post('/api/ch6/visitor/classify',async(req,res)=>{
 app.get('/api/ch6/classifier/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7A1_PUSH_DEBUG_PANEL',
+    version:'RT7_CH7A2_FORCE_SW_REFRESH',
     visitor_types:[
       {id:'delivery_package',label:'包裹物流'},
       {id:'delivery_food',label:'外送員'},
@@ -691,7 +691,7 @@ app.get('/api/ch6/classifier/types',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH7A1_PUSH_DEBUG_PANEL
+// RT7_CH7A2_FORCE_SW_REFRESH
 // 安全訪客問答：只回答包裹、制服、外送箱、工作證、風險、人數。
 // 避免詢問「他是誰 / 是否為特定人物 / 是否住戶」。
 // ======================================================
@@ -830,7 +830,7 @@ app.post('/api/ch6/visitor/safe_qa',async(req,res)=>{
 app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7A1_PUSH_DEBUG_PANEL',
+    version:'RT7_CH7A2_FORCE_SW_REFRESH',
     allowed_questions:[
       '是否有包裹？',
       '是否有物流制服或公司標誌？',
@@ -853,12 +853,12 @@ app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   });
 });
 // ======================================================
-// End RT7_CH7A1_PUSH_DEBUG_PANEL
+// End RT7_CH7A2_FORCE_SW_REFRESH
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A1_PUSH_DEBUG_PANEL
+// RT7_CH7A2_FORCE_SW_REFRESH
 // 物流/外送/郵差/維修/一般訪客/可疑訪客偵測
 // New APIs:
 //   GET  /api/ch6/delivery/types
@@ -947,7 +947,7 @@ unknown          = 無法判斷
 app.get('/api/ch6/delivery/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7A1_PUSH_DEBUG_PANEL',
+    version:'RT7_CH7A2_FORCE_SW_REFRESH',
     visitor_types:[
       {id:'delivery_package',label:'📦 宅配員'},
       {id:'delivery_food',label:'🍔 外送員'},
@@ -1072,12 +1072,12 @@ app.post('/api/ch6/delivery/detect',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7A1_PUSH_DEBUG_PANEL
+// End RT7_CH7A2_FORCE_SW_REFRESH
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A1_PUSH_DEBUG_PANEL
+// RT7_CH7A2_FORCE_SW_REFRESH
 // 常客/保全/管委會/維修白名單
 // New APIs:
 //   GET  /api/ch6/whitelist
@@ -1275,12 +1275,12 @@ app.post('/api/ch6/whitelist/check',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7A1_PUSH_DEBUG_PANEL
+// End RT7_CH7A2_FORCE_SW_REFRESH
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A1_PUSH_DEBUG_PANEL
+// RT7_CH7A2_FORCE_SW_REFRESH
 // 訪客預約 / 邀請碼 / 時段驗證 / 自動放行
 // New APIs:
 //   GET  /api/ch6/appointments
@@ -1489,19 +1489,19 @@ app.post('/api/ch6/appointments/check',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7A1_PUSH_DEBUG_PANEL
+// End RT7_CH7A2_FORCE_SW_REFRESH
 // ======================================================
 
 app.get('/api/ch6/visitor/log',(_,res)=>{
   res.json({ok:true,logs:readJson('visitor_events.json',[]).slice(0,100)});
 });
 // ======================================================
-// End RT7_CH7A1_PUSH_DEBUG_PANEL
+// End RT7_CH7A2_FORCE_SW_REFRESH
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A1_PUSH_DEBUG_PANEL
+// RT7_CH7A2_FORCE_SW_REFRESH
 // 第7章：RT7 Community AI Security Guard - Intruder Detector
 // New page: /rt7_ch7_ai_security
 // New APIs:
@@ -1702,12 +1702,12 @@ app.post('/api/ch7/intruder/check',async(req,res)=>{
 
 app.get('/api/ch7/intruder/log',(_,res)=>res.json({ok:true,logs:readJson('intruder_events.json',[]).slice(0,100)}));
 // ======================================================
-// End RT7_CH7A1_PUSH_DEBUG_PANEL
+// End RT7_CH7A2_FORCE_SW_REFRESH
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A1_PUSH_DEBUG_PANEL
+// RT7_CH7A2_FORCE_SW_REFRESH
 // ======================================================
 function rt7PushDebugState(){
   const subs=readJson('push_subscriptions.json',[]);
@@ -1716,7 +1716,7 @@ function rt7PushDebugState(){
   const comms=readJson('communities.json',[]);
   return {
     ok:true,
-    version:'RT7_CH7A1_PUSH_DEBUG_PANEL',
+    version:'RT7_CH7A2_FORCE_SW_REFRESH',
     global_subscriptions:subs.length,
     community_group_total:groups.length,
     communities:comms.map(c=>({
@@ -1771,7 +1771,125 @@ async function testPush(){const cid=community.value;const r=await post('/api/rt7
 render();
 </script></body></html>`));
 // ======================================================
-// End RT7_CH7A1_PUSH_DEBUG_PANEL
+// End RT7_CH7A2_FORCE_SW_REFRESH
 // ======================================================
 
-app.listen(PORT,()=>console.log('[RT7_CH7A1_PUSH_DEBUG_PANEL] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
+
+// ======================================================
+// RT7_CH7A2_FORCE_SW_REFRESH
+// 強制刷新 Service Worker / 檢查 Notification Permission / 重新訂閱推播
+// New page: /rt7_sw_refresh
+// New APIs:
+//   GET  /api/rt7/sw/status
+//   POST /api/rt7/sw/test
+// ======================================================
+
+app.get('/api/rt7/sw/status',(_,res)=>{
+  res.json({
+    ok:true,
+    version:'RT7_CH7A2_FORCE_SW_REFRESH',
+    sw_url:'/sw.js?v=RT7_CH7A2_'+Date.now(),
+    push_debug:'/api/rt7/push/debug',
+    panel:'/rt7_sw_refresh',
+    time:nowIso(),
+    vapid_public_key:PUBLIC_VAPID_KEY||null
+  });
+});
+
+app.post('/api/rt7/sw/test',async(req,res)=>{
+  try{
+    const {community_id}=req.body||{};
+    if(!community_id)return res.status(400).json({ok:false,error:'missing community_id'});
+    const push=await ch7PushCommunity(community_id,{
+      type:'sw_refresh_test',
+      title:'RT7 CH7A2 SW刷新測試',
+      body:'如果手機收到，代表新的 Service Worker 已正常顯示通知。',
+      url:'/rt7_sw_refresh',
+      tag:'rt7-sw-refresh-test',
+      requireInteraction:true,
+      community_id
+    });
+    res.json({ok:true,push,debug:rt7PushDebugState()});
+  }catch(e){res.status(500).json({ok:false,error:String(e.message||e)});}
+});
+
+app.get('/rt7_sw_refresh',(_,res)=>res.type('html').send(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH7A2 Force SW Refresh</title><style>
+body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1100px;margin:18px auto;padding:14px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button,select{font-size:16px;padding:10px;margin:4px;border-radius:8px;border:1px solid #ccd6dc}button{background:#0b78d0;color:#fff;border:0}.green{background:#0b9b5a}.red{background:#c0392b}.gray{background:#64748b}.pill{display:inline-block;padding:3px 9px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}.bad{background:#fdecec;color:#a4261d}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}</style></head><body><div class="wrap"><h1>RT7 CH7A2 Force SW Refresh</h1><p>強制註銷舊 Service Worker、重新註冊新版 SW、重新訂閱推播、測試手機通知。</p><div id="app">載入中...</div></div><script>
+const VAPID_PUBLIC_KEY=${JSON.stringify(typeof PUBLIC_VAPID_KEY!=='undefined'?PUBLIC_VAPID_KEY:'')};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let t=await r.text();try{return JSON.parse(t)}catch{return{ok:false,status:r.status,text:t.slice(0,500)}}}
+async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)});}
+function u8(b64){const pad='='.repeat((4-b64.length%4)%4);const base=(b64+pad).replace(/-/g,'+').replace(/_/g,'/');const raw=atob(base);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));}
+function out(x){document.getElementById('out').textContent=typeof x==='string'?x:JSON.stringify(x,null,2);}
+async function getState(){
+ let regs=[]; try{regs=await navigator.serviceWorker.getRegistrations();}catch(e){}
+ let reg=await navigator.serviceWorker.getRegistration();
+ let sub=null; try{sub=reg&&reg.pushManager?await reg.pushManager.getSubscription():null;}catch(e){}
+ const dbg=await api('/api/rt7/push/debug');
+ return {
+   location:location.href,
+   isSecureContext,
+   notification_permission:window.Notification?Notification.permission:'NO_NOTIFICATION_API',
+   serviceWorker:'serviceWorker' in navigator,
+   pushManager:'PushManager' in window,
+   registrations:regs.map(r=>({scope:r.scope,active:!!r.active,active_script:r.active&&r.active.scriptURL,installing:!!r.installing,waiting:!!r.waiting})),
+   current_subscription:sub?{endpoint:sub.endpoint}:null,
+   push_debug:dbg
+ };
+}
+async function render(){
+ const st=await getState();
+ const comms=(st.push_debug&&st.push_debug.communities)||[];
+ let h='';
+ h+='<div class="card"><h2>1. 本機瀏覽器狀態</h2>';
+ h+='<p>Notification.permission：<span class="'+(st.notification_permission==='granted'?'pill':'pill bad')+'">'+esc(st.notification_permission)+'</span></p>';
+ h+='<p>ServiceWorker：<span class="'+(st.serviceWorker?'pill':'pill bad')+'">'+esc(st.serviceWorker)+'</span></p>';
+ h+='<p>PushManager：<span class="'+(st.pushManager?'pill':'pill bad')+'">'+esc(st.pushManager)+'</span></p></div>';
+ h+='<div class="card"><h2>2. 操作</h2><button class="red" onclick="forceRefresh()">① 註銷舊SW + 重新註冊新版SW</button><button class="green" onclick="subscribePush()">② 重新訂閱推播</button><button class="gray" onclick="render()">重新整理狀態</button></div>';
+ h+='<div class="card"><h2>3. 社區測試推播</h2><select id="community">';
+ comms.forEach(c=>h+='<option value="'+esc(c.community_id)+'">'+esc(c.name+' | groups='+c.group_count+' | '+c.community_id)+'</option>');
+ h+='</select><button class="green" onclick="testPush()">③ 測試 CH7A2 推播</button></div>';
+ h+='<div class="card"><h2>4. Debug JSON</h2><pre>'+esc(JSON.stringify(st,null,2))+'</pre></div><div class="card"><h2>5. 執行結果</h2><pre id="out">READY</pre></div>';
+ app.innerHTML=h;
+}
+async function forceRefresh(){
+ try{
+   const regs=await navigator.serviceWorker.getRegistrations();
+   for(const r of regs){await r.unregister();}
+   const reg=await navigator.serviceWorker.register('/sw.js?v=RT7_CH7A2_'+Date.now(),{scope:'/'});
+   await navigator.serviceWorker.ready;
+   out({ok:true,registered_scope:reg.scope,active:!!reg.active,message:'已註銷舊SW並重新註冊新版SW，請再按重新訂閱推播'});
+   setTimeout(render,1000);
+ }catch(e){out({ok:false,error:String(e)});}
+}
+async function subscribePush(){
+ try{
+   if(!('Notification' in window))throw new Error('NO_NOTIFICATION_API');
+   let perm=Notification.permission;
+   if(perm!=='granted')perm=await Notification.requestPermission();
+   if(perm!=='granted')throw new Error('NOTIFICATION_PERMISSION_'+perm);
+   const reg=await navigator.serviceWorker.ready;
+   let old=await reg.pushManager.getSubscription();
+   if(old)await old.unsubscribe();
+   const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(VAPID_PUBLIC_KEY)});
+   const body={subscription:sub,endpoint:sub.endpoint,created_at:new Date().toISOString()};
+   let r=await post('/api/rt7/push/subscribe',body);
+   if(!r.ok) r=await post('/api/push/subscribe',body);
+   out({ok:true,subscribe_api:r,endpoint:sub.endpoint});
+   setTimeout(render,1000);
+ }catch(e){out({ok:false,error:String(e)});}
+}
+async function testPush(){
+ const cid=community.value;
+ const r=await post('/api/rt7/sw/test',{community_id:cid});
+ out(r);
+ setTimeout(render,1000);
+}
+navigator.serviceWorker&&navigator.serviceWorker.addEventListener('message',e=>console.log('[RT7_SW_MESSAGE]',e.data));
+render();
+</script></body></html>`));
+// ======================================================
+// End RT7_CH7A2_FORCE_SW_REFRESH
+// ======================================================
+
+app.listen(PORT,()=>console.log('[RT7_CH7A2_FORCE_SW_REFRESH] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
