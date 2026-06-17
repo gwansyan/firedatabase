@@ -1,6 +1,6 @@
 {
-  "name": "rt7-ch6d-visitor-whitelist",
-  "version": "6.4.0",
+  "name": "rt7-ch6e-visitor-appointment",
+  "version": "6.5.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
