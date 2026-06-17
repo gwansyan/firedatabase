@@ -312,7 +312,7 @@ app.get('/api/ch5/face/log',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH6C_DELIVERY_DETECTOR
+// RT7_CH6C1_VISITOR_FALLBACK_FIX
 // 第6章：RT7 Community AI Visitor Assistant
 // New page:
 //   /rt7_ch6_ai_visitor
@@ -441,8 +441,8 @@ function ch6SaveEvent(event){
   return event;
 }
 
-app.get('/rt7_ch6_ai_visitor',(_,res)=>res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH6C Delivery Detector</title><style>
-body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:18px auto;padding:14px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button,textarea{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}textarea{width:95%;min-height:70px}button{background:#0b9b5a;color:#fff;border:0}.blue{background:#0b78d0}.red{background:#c0392b}.gray{background:#64748b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 CH6C Delivery Detector</h1><p>AI 訪客分類 + 安全問答 + Delivery Detector：自動判斷宅配員、外送員、郵差、維修人員與可疑訪客。</p><div id="app">載入中...</div></div><script>
+app.get('/rt7_ch6_ai_visitor',(_,res)=>res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH6C1 Visitor Fallback Fix</title><style>
+body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:18px auto;padding:14px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button,textarea{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}textarea{width:95%;min-height:70px}button{background:#0b9b5a;color:#fff;border:0}.blue{background:#0b78d0}.red{background:#c0392b}.gray{background:#64748b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 CH6C1 Visitor Fallback Fix</h1><p>AI 訪客分類 + Delivery Detector + Visitor Fallback：有人但無法分類時自動改為一般訪客。</p><div id="app">載入中...</div></div><script>
 async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let t=await r.text();try{return JSON.parse(t)}catch{return{ok:false,status:r.status,text:t.slice(0,500)}}}
 async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)});}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -637,7 +637,7 @@ app.post('/api/ch6/visitor/classify',async(req,res)=>{
 app.get('/api/ch6/classifier/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH6C_DELIVERY_DETECTOR',
+    version:'RT7_CH6C1_VISITOR_FALLBACK_FIX',
     visitor_types:[
       {id:'delivery_package',label:'包裹物流'},
       {id:'delivery_food',label:'外送員'},
@@ -655,7 +655,7 @@ app.get('/api/ch6/classifier/types',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH6C_DELIVERY_DETECTOR
+// RT7_CH6C1_VISITOR_FALLBACK_FIX
 // 安全訪客問答：只回答包裹、制服、外送箱、工作證、風險、人數。
 // 避免詢問「他是誰 / 是否為特定人物 / 是否住戶」。
 // ======================================================
@@ -794,7 +794,7 @@ app.post('/api/ch6/visitor/safe_qa',async(req,res)=>{
 app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH6C_DELIVERY_DETECTOR',
+    version:'RT7_CH6C1_VISITOR_FALLBACK_FIX',
     allowed_questions:[
       '是否有包裹？',
       '是否有物流制服或公司標誌？',
@@ -817,12 +817,12 @@ app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   });
 });
 // ======================================================
-// End RT7_CH6C_DELIVERY_DETECTOR
+// End RT7_CH6C1_VISITOR_FALLBACK_FIX
 // ======================================================
 
 
 // ======================================================
-// RT7_CH6C_DELIVERY_DETECTOR
+// RT7_CH6C1_VISITOR_FALLBACK_FIX
 // 物流/外送/郵差/維修/一般訪客/可疑訪客偵測
 // New APIs:
 //   GET  /api/ch6/delivery/types
@@ -911,7 +911,7 @@ unknown          = 無法判斷
 app.get('/api/ch6/delivery/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH6C_DELIVERY_DETECTOR',
+    version:'RT7_CH6C1_VISITOR_FALLBACK_FIX',
     visitor_types:[
       {id:'delivery_package',label:'📦 宅配員'},
       {id:'delivery_food',label:'🍔 外送員'},
@@ -924,6 +924,50 @@ app.get('/api/ch6/delivery/types',(_,res)=>{
     companies:['黑貓宅急便','郵局','新竹物流','宅配通','DHL','FedEx','UPS','UberEats','FoodPanda','Lalamove','none','unknown']
   });
 });
+
+
+function ch6c1NormalizeDeliveryAnalysis(analysis){
+  analysis = analysis || {};
+  const people = Number(analysis.people_count || 0);
+  const risk = String(analysis.risk || 'LOW').toUpperCase();
+
+  if(!analysis.visitor_type) analysis.visitor_type = 'unknown';
+  if(!analysis.visitor_label) analysis.visitor_label = '無法判斷';
+
+  // HIGH risk becomes suspicious unless already clear delivery/maintenance/postman.
+  if(
+    risk === 'HIGH' &&
+    !['delivery_package','delivery_food','postman','maintenance'].includes(analysis.visitor_type)
+  ){
+    analysis.visitor_type = 'suspicious';
+    analysis.visitor_label = '可疑訪客';
+    analysis.action_suggestion = 'SECURITY_ALERT';
+    if(!analysis.summary) analysis.summary = '偵測到高風險訪客，建議立即查看。';
+    if(!analysis.push_title) analysis.push_title = '⚠️ 可疑訪客';
+    if(!analysis.push_body) analysis.push_body = analysis.summary;
+    return analysis;
+  }
+
+  // CH6C1 fallback:
+  // If at least one person exists but no clear category is detected,
+  // classify as general visitor instead of unknown.
+  if(
+    (analysis.visitor_type === 'unknown' || analysis.visitor_label === '無法判斷') &&
+    people > 0
+  ){
+    analysis.visitor_type = 'visitor';
+    analysis.visitor_label = '一般訪客';
+    analysis.delivery_company = analysis.delivery_company || 'none';
+    analysis.action_suggestion = analysis.action_suggestion || 'ASK_VISITOR';
+    analysis.risk = analysis.risk || 'LOW';
+    analysis.risk_reason = analysis.risk_reason || '畫面中有人，但沒有明顯包裹、外送箱、制服、標誌或工具。';
+    analysis.summary = '有一般訪客到訪，建議詢問來意。';
+    analysis.push_title = '👤 一般訪客';
+    analysis.push_body = '有一般訪客到訪，建議詢問來意。';
+  }
+
+  return analysis;
+}
 
 app.post('/api/ch6/delivery/detect',async(req,res)=>{
   const started=Date.now();
@@ -950,7 +994,8 @@ app.post('/api/ch6/delivery/detect',async(req,res)=>{
       file=latest.event.snapshot_file;
     }
 
-    const analysis=await ch6cDetectDelivery(imagePath);
+    let analysis=await ch6cDetectDelivery(imagePath);
+    analysis=ch6c1NormalizeDeliveryAnalysis(analysis);
 
     const title=analysis.push_title || ch6cDeliveryTitle(community.name, analysis);
     const body=analysis.push_body || analysis.summary || `${analysis.visitor_label||analysis.visitor_type||'訪客'} / ${analysis.delivery_company||''} / confidence ${analysis.confidence||0}%`;
@@ -991,14 +1036,14 @@ app.post('/api/ch6/delivery/detect',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH6C_DELIVERY_DETECTOR
+// End RT7_CH6C1_VISITOR_FALLBACK_FIX
 // ======================================================
 
 app.get('/api/ch6/visitor/log',(_,res)=>{
   res.json({ok:true,logs:readJson('visitor_events.json',[]).slice(0,100)});
 });
 // ======================================================
-// End RT7_CH6C_DELIVERY_DETECTOR
+// End RT7_CH6C1_VISITOR_FALLBACK_FIX
 // ======================================================
 
-app.listen(PORT,()=>console.log('[RT7_CH6C_DELIVERY_DETECTOR] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
+app.listen(PORT,()=>console.log('[RT7_CH6C1_VISITOR_FALLBACK_FIX] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));

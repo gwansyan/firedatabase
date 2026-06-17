@@ -1,6 +1,6 @@
 {
-  "name": "rt7-ch6c-delivery-detector",
-  "version": "6.3.0",
+  "name": "rt7-ch6c1-visitor-fallback-fix",
+  "version": "6.3.1",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
