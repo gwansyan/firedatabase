@@ -1,6 +1,6 @@
 {
-  "name": "rt7-ch6b1-safe-visitor-qa",
-  "version": "6.2.1",
+  "name": "rt7-ch6c-delivery-detector",
+  "version": "6.3.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

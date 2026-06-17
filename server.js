@@ -312,7 +312,7 @@ app.get('/api/ch5/face/log',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH6B1_SAFE_VISITOR_QA
+// RT7_CH6C_DELIVERY_DETECTOR
 // 第6章：RT7 Community AI Visitor Assistant
 // New page:
 //   /rt7_ch6_ai_visitor
@@ -441,8 +441,8 @@ function ch6SaveEvent(event){
   return event;
 }
 
-app.get('/rt7_ch6_ai_visitor',(_,res)=>res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH6B1 Safe Visitor QA</title><style>
-body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:18px auto;padding:14px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button,textarea{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}textarea{width:95%;min-height:70px}button{background:#0b9b5a;color:#fff;border:0}.blue{background:#0b78d0}.red{background:#c0392b}.gray{background:#64748b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 CH6B1 Safe Visitor QA</h1><p>AI 訪客分類 + 安全問答：只分析包裹、制服、外送箱、工作證、人數與風險。</p><div id="app">載入中...</div></div><script>
+app.get('/rt7_ch6_ai_visitor',(_,res)=>res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH6C Delivery Detector</title><style>
+body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:18px auto;padding:14px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button,textarea{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}textarea{width:95%;min-height:70px}button{background:#0b9b5a;color:#fff;border:0}.blue{background:#0b78d0}.red{background:#c0392b}.gray{background:#64748b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 CH6C Delivery Detector</h1><p>AI 訪客分類 + 安全問答 + Delivery Detector：自動判斷宅配員、外送員、郵差、維修人員與可疑訪客。</p><div id="app">載入中...</div></div><script>
 async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let t=await r.text();try{return JSON.parse(t)}catch{return{ok:false,status:r.status,text:t.slice(0,500)}}}
 async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)});}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -458,9 +458,9 @@ async function render(){
  masters.forEach(m=>h+='<option value="'+esc(m.master_uid)+'">'+esc(m.master_uid+'</option>'));
  h+='</select></div><input id="visitor_photo" type="file" accept="image/*" capture="environment"><button class="blue" onclick="visitorCheck()">上傳 Snapshot + AI 分類</button></div>';
  h+='<div class="card"><h2>2. Safe Visitor QA 安全訪客問答</h2><p>只問包裹、制服、外送箱、工作證、人數與風險；不問人物身份。</p><select id="q"><option>是否有包裹？</option><option>是否有物流制服或公司標誌？</option><option>是否有外送箱？</option><option>是否有工作證？</option><option>是否有工具或維修用品？</option><option>現場有幾個人？</option><option>是否多人聚集？</option><option>是否有危險物品或可疑行為？</option><option>風險高不高？</option><option>建議住戶如何處理？</option></select><button onclick="safeQA()">詢問 AI Safe QA</button></div>';
- h+='<div class="card"><h2>3. 遠端允許進入</h2><button class="blue" onclick="visitorOpen()">允許進入 OPEN_DOOR</button></div>';
- h+='<div class="card"><h2>4. Visitor Event Log <span class="pill">'+esc((st.visitor_events||[]).length)+'</span></h2><pre>'+esc(JSON.stringify((st.visitor_events||[]).slice(0,20),null,2))+'</pre></div>';
- h+='<div class="card"><h2>5. 最新結果</h2><pre id="out">READY</pre></div>';
+ h+='<div class="card"><h2>3. Delivery Detector 物流偵測</h2><p>判斷宅配員、外送員、郵差、維修人員、一般訪客、可疑訪客。</p><button class="blue" onclick="deliveryDetect()">上傳 Snapshot + Delivery Detector</button></div>';h+='<div class="card"><h2>4. 遠端允許進入</h2><button class="blue" onclick="visitorOpen()">允許進入 OPEN_DOOR</button></div>';
+ h+='<div class="card"><h2>5. Visitor Event Log <span class="pill">'+esc((st.visitor_events||[]).length)+'</span></h2><pre>'+esc(JSON.stringify((st.visitor_events||[]).slice(0,20),null,2))+'</pre></div>';
+ h+='<div class="card"><h2>6. 最新結果</h2><pre id="out">READY</pre></div>';
  document.getElementById('app').innerHTML=h;
 }
 async function uploadSnapshot(){
@@ -480,6 +480,12 @@ async function safeQA(){
  show({snapshot:up,safe_qa:r}); setTimeout(render,1000);
 }
 async function visitorQuestion(){ return safeQA(); }
+async function deliveryDetect(){
+ const up=await uploadSnapshot();
+ if(!up.ok){show(up);return;}
+ const r=await post('/api/ch6/delivery/detect',{community_id:comm.value,master_uid:master.value,snapshot_file:up.file});
+ show({snapshot:up,delivery_detector:r}); setTimeout(render,1000);
+}
 async function visitorOpen(){
  show(await post('/api/ch6/visitor/open',{community_id:comm.value,master_uid:master.value,reason:'VISITOR_APPROVED_BY_USER'}));
  setTimeout(render,1000);
@@ -631,7 +637,7 @@ app.post('/api/ch6/visitor/classify',async(req,res)=>{
 app.get('/api/ch6/classifier/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH6B1_SAFE_VISITOR_QA',
+    version:'RT7_CH6C_DELIVERY_DETECTOR',
     visitor_types:[
       {id:'delivery_package',label:'包裹物流'},
       {id:'delivery_food',label:'外送員'},
@@ -649,7 +655,7 @@ app.get('/api/ch6/classifier/types',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH6B1_SAFE_VISITOR_QA
+// RT7_CH6C_DELIVERY_DETECTOR
 // 安全訪客問答：只回答包裹、制服、外送箱、工作證、風險、人數。
 // 避免詢問「他是誰 / 是否為特定人物 / 是否住戶」。
 // ======================================================
@@ -788,7 +794,7 @@ app.post('/api/ch6/visitor/safe_qa',async(req,res)=>{
 app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH6B1_SAFE_VISITOR_QA',
+    version:'RT7_CH6C_DELIVERY_DETECTOR',
     allowed_questions:[
       '是否有包裹？',
       '是否有物流制服或公司標誌？',
@@ -811,14 +817,188 @@ app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   });
 });
 // ======================================================
-// End RT7_CH6B1_SAFE_VISITOR_QA
+// End RT7_CH6C_DELIVERY_DETECTOR
+// ======================================================
+
+
+// ======================================================
+// RT7_CH6C_DELIVERY_DETECTOR
+// 物流/外送/郵差/維修/一般訪客/可疑訪客偵測
+// New APIs:
+//   GET  /api/ch6/delivery/types
+//   POST /api/ch6/delivery/detect
+// ======================================================
+
+function ch6cDeliveryIcon(visitorType, risk){
+  if(String(risk||'').toUpperCase()==='HIGH')return '⚠️';
+  if(visitorType==='delivery_package')return '📦';
+  if(visitorType==='delivery_food')return '🍔';
+  if(visitorType==='postman')return '📮';
+  if(visitorType==='maintenance')return '🔧';
+  if(visitorType==='suspicious')return '⚠️';
+  return '👤';
+}
+
+function ch6cDeliveryTitle(communityName, analysis){
+  const vt=analysis.visitor_type||'visitor';
+  const icon=ch6cDeliveryIcon(vt, analysis.risk);
+  const label=analysis.visitor_label||'一般訪客';
+  return `${icon} ${communityName} ${label}`;
+}
+
+async function ch6cDetectDelivery(imagePath){
+  const openai=ch6GetOpenAI();
+  if(!openai){
+    return {ok:false,error:'OPENAI_API_KEY_MISSING_OR_OPENAI_PACKAGE_MISSING'};
+  }
+
+  const img64=fs.readFileSync(imagePath).toString('base64');
+
+  const prompt=`你是 RT7 社區門禁 Delivery Detector。
+
+請依據門口照片，判斷訪客是否屬於以下類型：
+
+visitor_type 必須從以下選一個：
+delivery_package = 宅配/包裹物流，例如黑貓、郵局、新竹物流、宅配通、DHL、FedEx、UPS、Lalamove
+delivery_food    = 外送員，例如 UberEats、FoodPanda
+postman          = 郵差/郵務人員
+maintenance      = 維修/水電/清潔/工程人員
+visitor          = 一般訪客
+suspicious       = 可疑訪客
+unknown          = 無法判斷
+
+請只分析「可見物件與行為」，不要辨識人物身份，不要判斷是否為特定住戶。
+
+請輸出 JSON，不要 Markdown：
+{
+ "ok": true,
+ "visitor_type":"delivery_package|delivery_food|postman|maintenance|visitor|suspicious|unknown",
+ "visitor_label":"宅配員|外送員|郵差|維修人員|一般訪客|可疑訪客|無法判斷",
+ "delivery_company":"黑貓宅急便|郵局|新竹物流|宅配通|DHL|FedEx|UPS|UberEats|FoodPanda|Lalamove|none|unknown",
+ "package_detected":false,
+ "food_delivery_bag":false,
+ "uniform_detected":false,
+ "logo_detected":false,
+ "tool_detected":false,
+ "id_badge":false,
+ "people_count":1,
+ "risk":"LOW|MEDIUM|HIGH",
+ "risk_reason":"原因",
+ "confidence":85,
+ "push_title":"給手機推播的標題",
+ "push_body":"給手機推播的內容",
+ "action_suggestion":"NOTIFY_ONLY|ASK_VISITOR|ALLOW_OPTION|SECURITY_ALERT",
+ "summary":"繁體中文摘要"
+}`;
+
+  const r=await openai.chat.completions.create({
+    model:process.env.RT7_VISITOR_MODEL||'gpt-4o',
+    messages:[
+      {role:'system',content:'你是 RT7 Delivery Detector。只分析可見的包裹、外送箱、制服、標誌、工具、工作證、風險；不要辨識人物身份。只輸出 JSON。'},
+      {role:'user',content:[
+        {type:'text',text:prompt},
+        {type:'image_url',image_url:{url:`data:image/jpeg;base64,${img64}`}}
+      ]}
+    ],
+    temperature:0
+  });
+
+  const parsed=ch6SafeJsonParse(r.choices&&r.choices[0]&&r.choices[0].message&&r.choices[0].message.content);
+  parsed.ok=true;
+  return parsed;
+}
+
+app.get('/api/ch6/delivery/types',(_,res)=>{
+  res.json({
+    ok:true,
+    version:'RT7_CH6C_DELIVERY_DETECTOR',
+    visitor_types:[
+      {id:'delivery_package',label:'📦 宅配員'},
+      {id:'delivery_food',label:'🍔 外送員'},
+      {id:'postman',label:'📮 郵差'},
+      {id:'maintenance',label:'🔧 維修人員'},
+      {id:'visitor',label:'👤 一般訪客'},
+      {id:'suspicious',label:'⚠️ 可疑訪客'},
+      {id:'unknown',label:'❔ 無法判斷'}
+    ],
+    companies:['黑貓宅急便','郵局','新竹物流','宅配通','DHL','FedEx','UPS','UberEats','FoodPanda','Lalamove','none','unknown']
+  });
+});
+
+app.post('/api/ch6/delivery/detect',async(req,res)=>{
+  const started=Date.now();
+  try{
+    const {community_id,master_uid,snapshot_file,image}=req.body||{};
+    let community=community_id?ch6CommunityById(community_id):null;
+    if(!community&&master_uid)community=ch6CommunityByMaster(master_uid);
+    if(!community)return res.status(404).json({ok:false,error:'community_not_found'});
+
+    let imagePath=null;
+    let file=snapshot_file||'';
+
+    if(image){
+      file='delivery_'+Date.now()+'.jpg';
+      imagePath=path.join(CH6_UPLOAD_DIR,file);
+      fs.writeFileSync(imagePath,Buffer.from(ch6CleanBase64Image(image),'base64'));
+    }else if(snapshot_file){
+      imagePath=path.join(CH6_UPLOAD_DIR,snapshot_file);
+      if(!fs.existsSync(imagePath))return res.status(404).json({ok:false,error:'snapshot_not_found'});
+    }else{
+      const latest=ch6b1LatestVisitorImage(community.community_id);
+      if(!latest)return res.status(404).json({ok:false,error:'NO_VISITOR_EVENT_IMAGE'});
+      imagePath=latest.path;
+      file=latest.event.snapshot_file;
+    }
+
+    const analysis=await ch6cDetectDelivery(imagePath);
+
+    const title=analysis.push_title || ch6cDeliveryTitle(community.name, analysis);
+    const body=analysis.push_body || analysis.summary || `${analysis.visitor_label||analysis.visitor_type||'訪客'} / ${analysis.delivery_company||''} / confidence ${analysis.confidence||0}%`;
+
+    const push=await ch6PushCommunity(community.community_id,{
+      type:'delivery_detector',
+      title,
+      body,
+      url:'/rt7_ch6_ai_visitor',
+      tag:'rt7-delivery-detector',
+      community_id:community.community_id,
+      master_uid:master_uid||community.master_uid,
+      visitor_type:analysis.visitor_type,
+      visitor_label:analysis.visitor_label
+    });
+
+    const event=ch6SaveEvent({
+      time:nowIso(),
+      community_id:community.community_id,
+      community_name:community.name,
+      master_uid:master_uid||community.master_uid,
+      snapshot_file:file,
+      kind:'delivery_detector',
+      analysis,
+      result:'DETECTED',
+      visitor_type:analysis.visitor_type||'unknown',
+      visitor_label:analysis.visitor_label||'無法判斷',
+      delivery_company:analysis.delivery_company||'unknown',
+      push_status:push.status,
+      push_sent:push.sent||0,
+      elapsed_ms:Date.now()-started
+    });
+
+    res.json({ok:true,event,analysis,push});
+  }catch(e){
+    const event=ch6SaveEvent({time:nowIso(),kind:'delivery_detector',result:'ERROR',error:String(e.message||e),elapsed_ms:Date.now()-started});
+    res.status(500).json({ok:false,event,error:String(e.message||e)});
+  }
+});
+// ======================================================
+// End RT7_CH6C_DELIVERY_DETECTOR
 // ======================================================
 
 app.get('/api/ch6/visitor/log',(_,res)=>{
   res.json({ok:true,logs:readJson('visitor_events.json',[]).slice(0,100)});
 });
 // ======================================================
-// End RT7_CH6B1_SAFE_VISITOR_QA
+// End RT7_CH6C_DELIVERY_DETECTOR
 // ======================================================
 
-app.listen(PORT,()=>console.log('[RT7_CH6B1_SAFE_VISITOR_QA] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
+app.listen(PORT,()=>console.log('[RT7_CH6C_DELIVERY_DETECTOR] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
