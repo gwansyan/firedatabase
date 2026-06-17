@@ -1,6 +1,6 @@
 {
-  "name": "rt7-edu-test-v2b-android-push-button-diagnostic",
-  "version": "2.2.0",
+  "name": "rt7-community-management",
+  "version": "3.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
