@@ -1,6 +1,6 @@
 {
-  "name": "rt7-ch7a2-force-sw-refresh",
-  "version": "7.1.2",
+  "name": "rt7-ch7a1-push-debug-panel",
+  "version": "7.1.1",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
