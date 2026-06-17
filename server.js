@@ -2,6 +2,7 @@ const express=require('express');
 const cors=require('cors');
 const fs=require('fs');
 const path=require('path');
+let OpenAI=null;try{OpenAI=require('openai').OpenAI||require('openai');}catch(e){OpenAI=null;}
 let webpush=null;try{webpush=require('web-push');}catch(e){}
 const app=express();const PORT=process.env.PORT||3000;const DATA_DIR=path.join(__dirname,'data');
 app.use(cors());app.use(express.json({limit:'2mb'}));app.use(express.urlencoded({extended:true}));
@@ -52,4 +53,261 @@ app.post('/api/rt7/community/open',(req,res)=>{const{community_id,username,reaso
 app.get('/api/rt7/community/access_logs',(_,res)=>res.json({ok:true,logs:readJson('door_access_log.json',[]).slice(0,100)}));
 app.get('/api/rt7/device/command',(req,res)=>{const master_uid=String(req.query.master_uid||'');if(!master_uid)return res.status(400).json({ok:false,error:'missing master_uid'});const commands=readJson('commands.json',{}),q=commands[master_uid]||[],cmd=q.shift()||null;commands[master_uid]=q;writeJson('commands.json',commands);res.json({ok:true,command:cmd});});
 app.post('/edu/master/heartbeat',(req,res)=>{req.url='/api/rt7/master/heartbeat';app._router.handle(req,res,()=>{});});app.post('/edu/event/doorbell',(req,res)=>{req.url='/api/rt7/community/doorbell';app._router.handle(req,res,()=>{});});app.get('/edu/device/command',(req,res)=>{req.url='/api/rt7/device/command';app._router.handle(req,res,()=>{});});
+
+// ======================================================
+// RT7_CH5B_OPENAI_REAL_FACE_MATCH_SERVER_PATCH
+// Add-on for RT7_CH4_PUSH_GROUP_AUTO_REPLACE_SUBSCRIPTION
+// Requires Railway env: OPENAI_API_KEY
+// New pages:
+//   /rt7_ch5_face_register
+// New APIs:
+//   GET  /api/ch5/faces
+//   POST /api/ch5/face/register
+//   POST /api/ch5/snapshot
+//   POST /api/ch5/face/check
+//   GET  /api/ch5/face/log
+// ======================================================
+
+const CH5_UPLOAD_DIR=path.join(DATA_DIR,'uploads');
+if(!fs.existsSync(CH5_UPLOAD_DIR))fs.mkdirSync(CH5_UPLOAD_DIR,{recursive:true});
+ensureFile('faces.json',[]);
+ensureFile('face_access_log.json',[]);
+
+function ch5CleanBase64Image(image){
+  if(!image)return null;
+  return String(image).replace(/^data:image\/\w+;base64,/,'');
+}
+function ch5SafeJsonParse(txt){
+  const raw=String(txt||'').trim();
+  try{return JSON.parse(raw);}catch(e){}
+  const m=raw.match(/\{[\s\S]*\}/);
+  if(m){try{return JSON.parse(m[0]);}catch(e){}}
+  return {match:false,confidence:0,reason:'JSON_PARSE_FAILED',raw:raw.slice(0,500)};
+}
+function ch5GetOpenAI(){
+  if(!OpenAI)return null;
+  if(!process.env.OPENAI_API_KEY)return null;
+  return new OpenAI({apiKey:process.env.OPENAI_API_KEY});
+}
+function ch5CommunityName(community_id){
+  const c=readJson('communities.json',[]).find(x=>x.community_id===community_id);
+  return c?c.name:'';
+}
+async function ch5PushCommunity(community_id,payload){
+  const groups=readJson('community_push_groups.json',[]).filter(g=>g.community_id===community_id);
+  return await sendPushToSubs(groups,payload);
+}
+function ch5QueueOpenDoor(master_uid,community_id,community_name,username,confidence){
+  const commands=readJson('commands.json',{});
+  commands[master_uid]=commands[master_uid]||[];
+  const cmd={
+    time:nowIso(),
+    cmd:'OPEN_DOOR',
+    pin:40,
+    pulse_ms:800,
+    source:'face_recognition',
+    community_id,
+    community_name,
+    username,
+    confidence
+  };
+  commands[master_uid].push(cmd);
+  writeJson('commands.json',commands);
+  return cmd;
+}
+async function ch5OpenAiFaceMatch(registeredFile,snapshotFile){
+  const openai=ch5GetOpenAI();
+  if(!openai){
+    return {match:false,confidence:0,reason:'OPENAI_API_KEY_MISSING_OR_OPENAI_PACKAGE_MISSING'};
+  }
+  const reg64=fs.readFileSync(registeredFile).toString('base64');
+  const snap64=fs.readFileSync(snapshotFile).toString('base64');
+  const r=await openai.chat.completions.create({
+    model:process.env.RT7_FACE_MODEL||'gpt-4o',
+    messages:[
+      {
+        role:'system',
+        content:'你是社區門禁人臉辨識系統。比較兩張照片中的主要人臉是否為同一人。只輸出JSON，不要Markdown。格式：{"match":true,"confidence":95,"reason":"same person"}。confidence為0到100整數。若照片無清楚人臉，match=false，confidence低於50。'
+      },
+      {
+        role:'user',
+        content:[
+          {type:'text',text:'請比較第1張註冊照片與第2張即時門口照片是否同一人。'},
+          {type:'image_url',image_url:{url:`data:image/jpeg;base64,${reg64}`}},
+          {type:'image_url',image_url:{url:`data:image/jpeg;base64,${snap64}`}}
+        ]
+      }
+    ],
+    temperature:0
+  });
+  return ch5SafeJsonParse(r.choices&&r.choices[0]&&r.choices[0].message&&r.choices[0].message.content);
+}
+
+app.get('/rt7_ch5_face_register',(_,res)=>res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH5B Face Register</title><style>
+body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1000px;margin:18px auto;padding:14px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}button{background:#0b9b5a;color:#fff;border:0}.blue{background:#0b78d0}.red{background:#c0392b}.gray{background:#64748b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}img{max-width:100%;border-radius:10px;margin-top:8px}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 CH5B OpenAI Real Face Match</h1><p>手機註冊人臉、上傳 Snapshot、OpenAI 真實比對、自動開門。</p><div id="app">載入中...</div></div><script>
+async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let t=await r.text();try{return JSON.parse(t)}catch{return{ok:false,status:r.status,text:t.slice(0,500)}}}
+async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)});}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function show(x){document.getElementById('out').textContent=JSON.stringify(x,null,2);}
+function fileDataUrl(input){return new Promise((resolve,reject)=>{const f=input.files&&input.files[0];if(!f)return reject(new Error('NO_FILE'));const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(f);});}
+async function render(){
+ const st=await api('/api/ch4/state'); const faces=await api('/api/ch5/faces'); const logs=await api('/api/ch5/face/log');
+ const comms=st.communities||[]; const masters=Object.values(st.masters||{});
+ let h='';
+ h+='<div class="card"><h2>1. 人臉註冊 Face Register</h2><div class="grid"><select id="reg_comm"><option value="">選擇社區</option>';
+ comms.forEach(c=>h+='<option value="'+esc(c.community_id)+'">'+esc(c.name)+'</option>');
+ h+='</select><input id="reg_user" value="user01" placeholder="username"></div><input id="reg_photo" type="file" accept="image/*" capture="user"><button class="blue" onclick="registerFace()">上傳註冊人臉</button></div>';
+ h+='<div class="card"><h2>2. Snapshot 測試 / OpenAI Face Match</h2><div class="grid"><select id="chk_comm"><option value="">選擇社區</option>';
+ comms.forEach(c=>h+='<option value="'+esc(c.community_id)+'">'+esc(c.name)+'</option>');
+ h+='</select><select id="chk_master"><option value="">選擇 Master UID</option>';
+ masters.forEach(m=>h+='<option value="'+esc(m.master_uid)+'">'+esc(m.master_uid+'</option>'));
+ h+='</select></div><input id="snap_photo" type="file" accept="image/*" capture="environment"><button onclick="snapshotOnly()">只上傳 Snapshot</button><button class="blue" onclick="snapshotAndCheck()">上傳 Snapshot + OpenAI 比對</button></div>';
+ h+='<div class="card"><h2>3. Face DB <span class="pill">'+esc(faces.total||0)+'</span></h2><pre>'+esc(JSON.stringify(faces,null,2))+'</pre></div>';
+ h+='<div class="card"><h2>4. Face Access Log</h2><pre>'+esc(JSON.stringify((logs.logs||[]).slice(0,20),null,2))+'</pre></div>';
+ h+='<div class="card"><h2>5. 即時結果</h2><pre id="out">READY</pre></div>';
+ document.getElementById('app').innerHTML=h;
+}
+async function registerFace(){
+ const image=await fileDataUrl(document.getElementById('reg_photo'));
+ const r=await post('/api/ch5/face/register',{community_id:reg_comm.value,username:reg_user.value,image});
+ show(r); setTimeout(render,800);
+}
+async function snapshotOnly(){
+ const image=await fileDataUrl(document.getElementById('snap_photo'));
+ show(await post('/api/ch5/snapshot',{community_id:chk_comm.value,master_uid:chk_master.value,image}));
+}
+async function snapshotAndCheck(){
+ const image=await fileDataUrl(document.getElementById('snap_photo'));
+ const up=await post('/api/ch5/snapshot',{community_id:chk_comm.value,master_uid:chk_master.value,image});
+ if(!up.ok){show(up);return;}
+ const ck=await post('/api/ch5/face/check',{community_id:chk_comm.value,master_uid:chk_master.value,snapshot_file:up.file});
+ show({snapshot:up,check:ck}); setTimeout(render,1000);
+}
+render();
+</script></body></html>`));
+
+app.get('/api/ch5/faces',(_,res)=>{
+  const faces=readJson('faces.json',[]);
+  res.json({ok:true,total:faces.length,faces});
+});
+
+app.post('/api/ch5/face/register',(req,res)=>{
+  try{
+    const {community_id,username,image}=req.body||{};
+    if(!community_id||!username||!image)return res.status(400).json({ok:false,error:'missing community_id/username/image'});
+    const communities=readJson('communities.json',[]);
+    const c=communities.find(x=>x.community_id===community_id);
+    if(!c)return res.status(404).json({ok:false,error:'community_not_found'});
+    const users=readJson('users.json',[]);
+    const u=users.find(x=>x.community_id===community_id&&x.username===username);
+    if(!u)return res.status(404).json({ok:false,error:'user_not_found_in_community'});
+    const face_id=id('face');
+    const file=face_id+'.jpg';
+    fs.writeFileSync(path.join(CH5_UPLOAD_DIR,file),Buffer.from(ch5CleanBase64Image(image),'base64'));
+    const faces=readJson('faces.json',[]);
+    // Same user can update by adding multiple samples. Keep history for teaching.
+    const rec={face_id,community_id,community_name:c.name,username,file,status:'ACTIVE',created_at:nowIso()};
+    faces.push(rec);
+    writeJson('faces.json',faces);
+    res.json({ok:true,face:rec});
+  }catch(e){res.status(500).json({ok:false,error:String(e.message||e)});}
+});
+
+app.post('/api/ch5/face/delete',(req,res)=>{
+  const {face_id}=req.body||{};
+  let faces=readJson('faces.json',[]);
+  const target=faces.find(x=>x.face_id===face_id);
+  faces=faces.filter(x=>x.face_id!==face_id);
+  writeJson('faces.json',faces);
+  if(target&&target.file){
+    try{fs.unlinkSync(path.join(CH5_UPLOAD_DIR,target.file));}catch(e){}
+  }
+  res.json({ok:true,deleted:!!target});
+});
+
+app.post('/api/ch5/snapshot',(req,res)=>{
+  try{
+    const {master_uid,community_id,image}=req.body||{};
+    if(!image)return res.status(400).json({ok:false,error:'missing image'});
+    const file='snapshot_'+Date.now()+'.jpg';
+    fs.writeFileSync(path.join(CH5_UPLOAD_DIR,file),Buffer.from(ch5CleanBase64Image(image),'base64'));
+    res.json({ok:true,file,master_uid,community_id});
+  }catch(e){res.status(500).json({ok:false,error:String(e.message||e)});}
+});
+
+app.post('/api/ch5/face/check',async(req,res)=>{
+  const started=Date.now();
+  try{
+    const {master_uid,community_id,snapshot_file}=req.body||{};
+    if(!master_uid||!community_id||!snapshot_file)return res.status(400).json({ok:false,error:'missing master_uid/community_id/snapshot_file'});
+    const communities=readJson('communities.json',[]);
+    const community=communities.find(x=>x.community_id===community_id);
+    if(!community)return res.status(404).json({ok:false,error:'community_not_found'});
+    const snapshotPath=path.join(CH5_UPLOAD_DIR,snapshot_file);
+    if(!fs.existsSync(snapshotPath))return res.status(404).json({ok:false,error:'snapshot_not_found'});
+    const faces=readJson('faces.json',[]).filter(f=>f.community_id===community_id&&f.status!=='DISABLED');
+    if(!faces.length)return res.json({ok:true,match:false,confidence:0,result:'NO_FACE_DB',faces:0});
+
+    let best=null, checked=[];
+    for(const f of faces){
+      const regPath=path.join(CH5_UPLOAD_DIR,f.file);
+      if(!fs.existsSync(regPath))continue;
+      let r=await ch5OpenAiFaceMatch(regPath,snapshotPath);
+      r={match:!!r.match,confidence:Number(r.confidence||0),reason:r.reason||'',username:f.username,face_id:f.face_id,file:f.file};
+      checked.push(r);
+      if(!best||r.confidence>best.confidence)best=r;
+    }
+
+    const threshold=Number(process.env.RT7_FACE_THRESHOLD||85);
+    const accepted=!!(best&&best.match&&best.confidence>=threshold);
+    let command=null;
+    if(accepted){
+      command=ch5QueueOpenDoor(master_uid,community_id,community.name,best.username,best.confidence);
+    }
+
+    const faceLogs=readJson('face_access_log.json',[]);
+    const log={
+      time:nowIso(),
+      community_id,
+      community_name:community.name,
+      master_uid,
+      snapshot_file,
+      username:best&&best.username||'UNKNOWN',
+      face_id:best&&best.face_id||'',
+      match:!!(best&&best.match),
+      confidence:best&&best.confidence||0,
+      threshold,
+      result:accepted?'OPEN_DOOR':'DENY',
+      reason:best&&best.reason||'NO_MATCH',
+      elapsed_ms:Date.now()-started
+    };
+    faceLogs.unshift(log);
+    writeJson('face_access_log.json',faceLogs.slice(0,300));
+
+    await ch5PushCommunity(community_id,{
+      type:accepted?'face_match':'face_fail',
+      title:accepted?'🟢 '+community.name+' 人臉辨識成功':'🔴 '+community.name+' 人臉辨識失敗',
+      body:accepted?`${best.username} MATCH ${best.confidence}% 已自動開門`:`陌生人 / MATCH ${(best&&best.confidence)||0}% 拒絕進入`,
+      url:'/rt7_ch5_face_register',
+      tag:'rt7-face-recognition',
+      community_id,
+      master_uid
+    });
+
+    res.json({ok:true,accepted,match:!!(best&&best.match),username:best&&best.username||'',confidence:best&&best.confidence||0,threshold,result:log.result,command,checked});
+  }catch(e){
+    const logs=readJson('face_access_log.json',[]);
+    logs.unshift({time:nowIso(),result:'ERROR',error:String(e.message||e),elapsed_ms:Date.now()-started});
+    writeJson('face_access_log.json',logs.slice(0,300));
+    res.status(500).json({ok:false,error:String(e.message||e)});
+  }
+});
+
+app.get('/api/ch5/face/log',(_,res)=>{
+  res.json({ok:true,logs:readJson('face_access_log.json',[]).slice(0,100)});
+});
+// ======================================================
+// End RT7_CH5B_OPENAI_REAL_FACE_MATCH_SERVER_PATCH
+// ======================================================
+
 app.listen(PORT,()=>console.log('[RT7_CH4_PUSH_GROUP_AUTO_REPLACE_SUBSCRIPTION] http://localhost:'+PORT+'/rt7_ch4_door_access'));
