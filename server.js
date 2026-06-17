@@ -312,7 +312,7 @@ app.get('/api/ch5/face/log',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH6B_VISITOR_CLASSIFIER
+// RT7_CH6B1_SAFE_VISITOR_QA
 // 第6章：RT7 Community AI Visitor Assistant
 // New page:
 //   /rt7_ch6_ai_visitor
@@ -441,8 +441,8 @@ function ch6SaveEvent(event){
   return event;
 }
 
-app.get('/rt7_ch6_ai_visitor',(_,res)=>res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH6B Visitor Classifier</title><style>
-body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:18px auto;padding:14px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button,textarea{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}textarea{width:95%;min-height:70px}button{background:#0b9b5a;color:#fff;border:0}.blue{background:#0b78d0}.red{background:#c0392b}.gray{background:#64748b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 CH6B Visitor Classifier</h1><p>AI 訪客分類：包裹物流、外送員、維修人員、一般訪客、可疑訪客。</p><div id="app">載入中...</div></div><script>
+app.get('/rt7_ch6_ai_visitor',(_,res)=>res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH6B1 Safe Visitor QA</title><style>
+body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:18px auto;padding:14px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button,textarea{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}textarea{width:95%;min-height:70px}button{background:#0b9b5a;color:#fff;border:0}.blue{background:#0b78d0}.red{background:#c0392b}.gray{background:#64748b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 CH6B1 Safe Visitor QA</h1><p>AI 訪客分類 + 安全問答：只分析包裹、制服、外送箱、工作證、人數與風險。</p><div id="app">載入中...</div></div><script>
 async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let t=await r.text();try{return JSON.parse(t)}catch{return{ok:false,status:r.status,text:t.slice(0,500)}}}
 async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)});}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -457,7 +457,7 @@ async function render(){
  h+='</select><select id="master"><option value="">選擇 Master UID</option>';
  masters.forEach(m=>h+='<option value="'+esc(m.master_uid)+'">'+esc(m.master_uid+'</option>'));
  h+='</select></div><input id="visitor_photo" type="file" accept="image/*" capture="environment"><button class="blue" onclick="visitorCheck()">上傳 Snapshot + AI 分類</button></div>';
- h+='<div class="card"><h2>2. AI 問答</h2><textarea id="q">請問畫面中的訪客是否像物流人員？是否有包裹？風險高不高？</textarea><button onclick="visitorQuestion()">詢問 AI</button></div>';
+ h+='<div class="card"><h2>2. Safe Visitor QA 安全訪客問答</h2><p>只問包裹、制服、外送箱、工作證、人數與風險；不問人物身份。</p><select id="q"><option>是否有包裹？</option><option>是否有物流制服或公司標誌？</option><option>是否有外送箱？</option><option>是否有工作證？</option><option>是否有工具或維修用品？</option><option>現場有幾個人？</option><option>是否多人聚集？</option><option>是否有危險物品或可疑行為？</option><option>風險高不高？</option><option>建議住戶如何處理？</option></select><button onclick="safeQA()">詢問 AI Safe QA</button></div>';
  h+='<div class="card"><h2>3. 遠端允許進入</h2><button class="blue" onclick="visitorOpen()">允許進入 OPEN_DOOR</button></div>';
  h+='<div class="card"><h2>4. Visitor Event Log <span class="pill">'+esc((st.visitor_events||[]).length)+'</span></h2><pre>'+esc(JSON.stringify((st.visitor_events||[]).slice(0,20),null,2))+'</pre></div>';
  h+='<div class="card"><h2>5. 最新結果</h2><pre id="out">READY</pre></div>';
@@ -473,12 +473,13 @@ async function visitorCheck(){
  const ck=await post('/api/ch6/visitor/check',{community_id:comm.value,master_uid:master.value,snapshot_file:up.file});
  show({snapshot:up,check:ck}); setTimeout(render,1000);
 }
-async function visitorQuestion(){
+async function safeQA(){
  const up=await uploadSnapshot();
  if(!up.ok){show(up);return;}
- const r=await post('/api/ch6/visitor/question',{community_id:comm.value,master_uid:master.value,snapshot_file:up.file,question:q.value});
- show({snapshot:up,answer:r}); setTimeout(render,1000);
+ const r=await post('/api/ch6/visitor/safe_qa',{community_id:comm.value,master_uid:master.value,snapshot_file:up.file,question:q.value});
+ show({snapshot:up,safe_qa:r}); setTimeout(render,1000);
 }
+async function visitorQuestion(){ return safeQA(); }
 async function visitorOpen(){
  show(await post('/api/ch6/visitor/open',{community_id:comm.value,master_uid:master.value,reason:'VISITOR_APPROVED_BY_USER'}));
  setTimeout(render,1000);
@@ -630,7 +631,7 @@ app.post('/api/ch6/visitor/classify',async(req,res)=>{
 app.get('/api/ch6/classifier/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH6B_VISITOR_CLASSIFIER',
+    version:'RT7_CH6B1_SAFE_VISITOR_QA',
     visitor_types:[
       {id:'delivery_package',label:'包裹物流'},
       {id:'delivery_food',label:'外送員'},
@@ -646,11 +647,178 @@ app.get('/api/ch6/classifier/types',(_,res)=>{
   });
 });
 
+
+// ======================================================
+// RT7_CH6B1_SAFE_VISITOR_QA
+// 安全訪客問答：只回答包裹、制服、外送箱、工作證、風險、人數。
+// 避免詢問「他是誰 / 是否為特定人物 / 是否住戶」。
+// ======================================================
+
+function ch6b1LatestVisitorImage(community_id){
+  const logs=readJson('visitor_events.json',[]);
+  const ev=logs.find(x=>x.snapshot_file && (!community_id || x.community_id===community_id));
+  if(!ev)return null;
+  const fp=path.join(CH6_UPLOAD_DIR,ev.snapshot_file);
+  if(!fs.existsSync(fp))return null;
+  return {event:ev,path:fp};
+}
+
+function ch6b1SanitizeQuestion(q){
+  let s=String(q||'').trim();
+  const banned=[
+    '是誰','誰','姓名','名字','住戶','是不是住戶','user01','admin',
+    '王先生','李先生','張先生','某個人','認識','身份','身分',
+    '同一人','是不是同一人','臉','人臉','長相'
+  ];
+  for(const b of banned){
+    if(s.includes(b)){
+      return '請只分析畫面中是否有包裹、制服、外送箱、工作證、人數與安全風險，不要辨識人物身份。';
+    }
+  }
+  if(!s)s='是否有包裹、制服、外送箱、工作證？風險高不高？';
+  return s;
+}
+
+async function ch6b1SafeVisitorQA(imagePath,question){
+  const openai=ch6GetOpenAI();
+  if(!openai){
+    return {ok:false,error:'OPENAI_API_KEY_MISSING_OR_OPENAI_PACKAGE_MISSING'};
+  }
+  const img64=fs.readFileSync(imagePath).toString('base64');
+  const safeQuestion=ch6b1SanitizeQuestion(question);
+
+  const prompt=`你是 RT7 社區門禁「安全訪客問答」助理。
+
+重要規則：
+1. 不要辨識、猜測或確認畫面中人物的真實身份。
+2. 不要回答「他是誰」、「是否為某人」、「是否為住戶」、「是否為 user01/admin」。
+3. 只能根據畫面描述可見物件與安全狀態。
+4. 可以回答：包裹、制服、公司標誌、外送箱、工作證、工具、車輛、危險物品、人數、是否多人聚集、風險高低。
+5. 使用繁體中文。
+6. 只輸出 JSON，不要 Markdown。
+
+問題：
+${safeQuestion}
+
+輸出格式：
+{
+ "ok": true,
+ "question": "安全化後的問題",
+ "answer": "繁體中文回答",
+ "visible_items": ["包裹","制服","外送箱","工作證","工具","其他"],
+ "people_count": 1,
+ "package": false,
+ "uniform_or_logo": false,
+ "delivery_bag": false,
+ "id_badge": false,
+ "tools": false,
+ "risk": "LOW|MEDIUM|HIGH",
+ "risk_reason": "原因",
+ "suggestion": "NOTIFY_ONLY|ASK_VISITOR|ALLOW_OPTION|SECURITY_ALERT",
+ "confidence": 85
+}`;
+
+  const r=await openai.chat.completions.create({
+    model:process.env.RT7_VISITOR_MODEL||'gpt-4o',
+    messages:[
+      {role:'system',content:'你是安全訪客問答助理。你不辨識人物身份，只分析可見物件、行為與安全風險。只輸出 JSON。'},
+      {role:'user',content:[
+        {type:'text',text:prompt},
+        {type:'image_url',image_url:{url:`data:image/jpeg;base64,${img64}`}}
+      ]}
+    ],
+    temperature:0
+  });
+
+  const parsed=ch6SafeJsonParse(r.choices&&r.choices[0]&&r.choices[0].message&&r.choices[0].message.content);
+  parsed.ok=true;
+  parsed.question=safeQuestion;
+  return parsed;
+}
+
+app.post('/api/ch6/visitor/safe_qa',async(req,res)=>{
+  const started=Date.now();
+  try{
+    const {community_id,master_uid,question,snapshot_file,image}=req.body||{};
+    let community=community_id?ch6CommunityById(community_id):null;
+    if(!community&&master_uid)community=ch6CommunityByMaster(master_uid);
+    if(!community)return res.status(404).json({ok:false,error:'community_not_found'});
+
+    let imagePath=null;
+    let file=snapshot_file||'';
+
+    // 可選：直接上傳 image；若沒有 image，就使用 snapshot_file；若也沒有，就取最新 visitor event 圖片。
+    if(image){
+      file='safeqa_'+Date.now()+'.jpg';
+      imagePath=path.join(CH6_UPLOAD_DIR,file);
+      fs.writeFileSync(imagePath,Buffer.from(ch6CleanBase64Image(image),'base64'));
+    }else if(snapshot_file){
+      imagePath=path.join(CH6_UPLOAD_DIR,snapshot_file);
+      if(!fs.existsSync(imagePath))return res.status(404).json({ok:false,error:'snapshot_not_found'});
+    }else{
+      const latest=ch6b1LatestVisitorImage(community.community_id);
+      if(!latest)return res.status(404).json({ok:false,error:'NO_VISITOR_EVENT_IMAGE'});
+      imagePath=latest.path;
+      file=latest.event.snapshot_file;
+    }
+
+    const answer=await ch6b1SafeVisitorQA(imagePath,question);
+
+    const event=ch6SaveEvent({
+      time:nowIso(),
+      community_id:community.community_id,
+      community_name:community.name,
+      master_uid:master_uid||community.master_uid,
+      snapshot_file:file,
+      kind:'safe_qa',
+      question,
+      safe_question:answer.question,
+      analysis:answer,
+      result:'SAFE_QA_ANSWERED',
+      elapsed_ms:Date.now()-started
+    });
+
+    res.json({ok:true,event,answer});
+  }catch(e){
+    const event=ch6SaveEvent({time:nowIso(),kind:'safe_qa',result:'ERROR',error:String(e.message||e),elapsed_ms:Date.now()-started});
+    res.status(500).json({ok:false,event,error:String(e.message||e)});
+  }
+});
+
+app.get('/api/ch6/safe_qa/questions',(_,res)=>{
+  res.json({
+    ok:true,
+    version:'RT7_CH6B1_SAFE_VISITOR_QA',
+    allowed_questions:[
+      '是否有包裹？',
+      '是否有物流制服或公司標誌？',
+      '是否有外送箱？',
+      '是否有工作證？',
+      '是否有工具或維修用品？',
+      '現場有幾個人？',
+      '是否多人聚集？',
+      '是否有危險物品或可疑行為？',
+      '風險高不高？',
+      '建議住戶如何處理？'
+    ],
+    banned_examples:[
+      '他是誰？',
+      '是不是王先生？',
+      '是不是住戶？',
+      '是不是 user01？',
+      '是不是同一人？'
+    ]
+  });
+});
+// ======================================================
+// End RT7_CH6B1_SAFE_VISITOR_QA
+// ======================================================
+
 app.get('/api/ch6/visitor/log',(_,res)=>{
   res.json({ok:true,logs:readJson('visitor_events.json',[]).slice(0,100)});
 });
 // ======================================================
-// End RT7_CH6B_VISITOR_CLASSIFIER
+// End RT7_CH6B1_SAFE_VISITOR_QA
 // ======================================================
 
-app.listen(PORT,()=>console.log('[RT7_CH6B_VISITOR_CLASSIFIER] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
+app.listen(PORT,()=>console.log('[RT7_CH6B1_SAFE_VISITOR_QA] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));

@@ -1,6 +1,6 @@
 {
-  "name": "rt7-ch6b-visitor-classifier",
-  "version": "6.2.0",
+  "name": "rt7-ch6b1-safe-visitor-qa",
+  "version": "6.2.1",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
