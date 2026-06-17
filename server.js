@@ -312,7 +312,7 @@ app.get('/api/ch5/face/log',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH7A_INTRUDER_DETECTOR
+// RT7_CH7A1_PUSH_DEBUG_PANEL
 // 第6章：RT7 Community AI Visitor Assistant
 // New page:
 //   /rt7_ch6_ai_visitor
@@ -673,7 +673,7 @@ app.post('/api/ch6/visitor/classify',async(req,res)=>{
 app.get('/api/ch6/classifier/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7A_INTRUDER_DETECTOR',
+    version:'RT7_CH7A1_PUSH_DEBUG_PANEL',
     visitor_types:[
       {id:'delivery_package',label:'包裹物流'},
       {id:'delivery_food',label:'外送員'},
@@ -691,7 +691,7 @@ app.get('/api/ch6/classifier/types',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH7A_INTRUDER_DETECTOR
+// RT7_CH7A1_PUSH_DEBUG_PANEL
 // 安全訪客問答：只回答包裹、制服、外送箱、工作證、風險、人數。
 // 避免詢問「他是誰 / 是否為特定人物 / 是否住戶」。
 // ======================================================
@@ -830,7 +830,7 @@ app.post('/api/ch6/visitor/safe_qa',async(req,res)=>{
 app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7A_INTRUDER_DETECTOR',
+    version:'RT7_CH7A1_PUSH_DEBUG_PANEL',
     allowed_questions:[
       '是否有包裹？',
       '是否有物流制服或公司標誌？',
@@ -853,12 +853,12 @@ app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   });
 });
 // ======================================================
-// End RT7_CH7A_INTRUDER_DETECTOR
+// End RT7_CH7A1_PUSH_DEBUG_PANEL
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A_INTRUDER_DETECTOR
+// RT7_CH7A1_PUSH_DEBUG_PANEL
 // 物流/外送/郵差/維修/一般訪客/可疑訪客偵測
 // New APIs:
 //   GET  /api/ch6/delivery/types
@@ -947,7 +947,7 @@ unknown          = 無法判斷
 app.get('/api/ch6/delivery/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7A_INTRUDER_DETECTOR',
+    version:'RT7_CH7A1_PUSH_DEBUG_PANEL',
     visitor_types:[
       {id:'delivery_package',label:'📦 宅配員'},
       {id:'delivery_food',label:'🍔 外送員'},
@@ -1072,12 +1072,12 @@ app.post('/api/ch6/delivery/detect',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7A_INTRUDER_DETECTOR
+// End RT7_CH7A1_PUSH_DEBUG_PANEL
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A_INTRUDER_DETECTOR
+// RT7_CH7A1_PUSH_DEBUG_PANEL
 // 常客/保全/管委會/維修白名單
 // New APIs:
 //   GET  /api/ch6/whitelist
@@ -1275,12 +1275,12 @@ app.post('/api/ch6/whitelist/check',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7A_INTRUDER_DETECTOR
+// End RT7_CH7A1_PUSH_DEBUG_PANEL
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A_INTRUDER_DETECTOR
+// RT7_CH7A1_PUSH_DEBUG_PANEL
 // 訪客預約 / 邀請碼 / 時段驗證 / 自動放行
 // New APIs:
 //   GET  /api/ch6/appointments
@@ -1489,19 +1489,19 @@ app.post('/api/ch6/appointments/check',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7A_INTRUDER_DETECTOR
+// End RT7_CH7A1_PUSH_DEBUG_PANEL
 // ======================================================
 
 app.get('/api/ch6/visitor/log',(_,res)=>{
   res.json({ok:true,logs:readJson('visitor_events.json',[]).slice(0,100)});
 });
 // ======================================================
-// End RT7_CH7A_INTRUDER_DETECTOR
+// End RT7_CH7A1_PUSH_DEBUG_PANEL
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A_INTRUDER_DETECTOR
+// RT7_CH7A1_PUSH_DEBUG_PANEL
 // 第7章：RT7 Community AI Security Guard - Intruder Detector
 // New page: /rt7_ch7_ai_security
 // New APIs:
@@ -1702,7 +1702,76 @@ app.post('/api/ch7/intruder/check',async(req,res)=>{
 
 app.get('/api/ch7/intruder/log',(_,res)=>res.json({ok:true,logs:readJson('intruder_events.json',[]).slice(0,100)}));
 // ======================================================
-// End RT7_CH7A_INTRUDER_DETECTOR
+// End RT7_CH7A1_PUSH_DEBUG_PANEL
 // ======================================================
 
-app.listen(PORT,()=>console.log('[RT7_CH7A_INTRUDER_DETECTOR] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
+
+// ======================================================
+// RT7_CH7A1_PUSH_DEBUG_PANEL
+// ======================================================
+function rt7PushDebugState(){
+  const subs=readJson('push_subscriptions.json',[]);
+  const groups=readJson('community_push_groups.json',[]);
+  const logs=readJson('push_log.json',[]);
+  const comms=readJson('communities.json',[]);
+  return {
+    ok:true,
+    version:'RT7_CH7A1_PUSH_DEBUG_PANEL',
+    global_subscriptions:subs.length,
+    community_group_total:groups.length,
+    communities:comms.map(c=>({
+      community_id:c.community_id,
+      name:c.name,
+      master_uid:c.master_uid,
+      master_status:c.master_status||'',
+      group_count:groups.filter(g=>g.community_id===c.community_id).length
+    })),
+    last_push_log:logs[0]||null,
+    push_logs:logs.slice(0,20),
+    raw:{
+      subscriptions:subs.map(s=>({endpoint:String(s.endpoint||'').slice(0,100)+'...',created_at:s.created_at||s.time||''})),
+      groups:groups.map(g=>({community_id:g.community_id,endpoint:String(g.endpoint||'').slice(0,100)+'...',created_at:g.created_at||g.time||''}))
+    }
+  };
+}
+app.get('/api/rt7/push/debug',(_,res)=>res.json(rt7PushDebugState()));
+app.get('/api/rt7/push/groups',(_,res)=>res.json({ok:true,groups:readJson('community_push_groups.json',[]),subscriptions:readJson('push_subscriptions.json',[])}));
+app.get('/api/rt7/push/log',(_,res)=>res.json({ok:true,logs:readJson('push_log.json',[]).slice(0,100)}));
+app.post('/api/rt7/push/test',async(req,res)=>{
+  try{
+    const {community_id,title,body}=req.body||{};
+    if(!community_id)return res.status(400).json({ok:false,error:'missing community_id'});
+    const comm=readJson('communities.json',[]).find(c=>c.community_id===community_id);
+    const push=await ch7PushCommunity(community_id,{
+      type:'push_debug_test',
+      title:title||'RT7 CH7A1 推播偵錯測試',
+      body:body||((comm?comm.name:'社區')+' 推播功能測試'),
+      url:'/rt7_push_debug_panel',
+      tag:'rt7-push-debug',
+      community_id
+    });
+    res.json({ok:true,push,state:rt7PushDebugState()});
+  }catch(e){res.status(500).json({ok:false,error:String(e.message||e)});}
+});
+app.get('/rt7_push_debug_panel',(_,res)=>res.type('html').send(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 Push Debug</title><style>
+body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1100px;margin:18px auto;padding:14px}.card{background:white;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button,select{font-size:16px;padding:10px;margin:4px;border-radius:8px;border:1px solid #ccd6dc}button{background:#0b78d0;color:white;border:0}.green{background:#0b9b5a}.pill{display:inline-block;padding:3px 9px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}.bad{background:#fdecec;color:#a4261d}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}</style></head><body><div class="wrap"><h1>RT7 CH7A1 Push Debug Panel</h1><div id="app">載入中...</div></div><script>
+async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let t=await r.text();try{return JSON.parse(t)}catch{return{ok:false,status:r.status,text:t.slice(0,500)}}}
+async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)});}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function cls(n){return n>0?'pill':'pill bad'}
+async function render(){const st=await api('/api/rt7/push/debug');let h='';
+h+='<div class="card"><h2>1. Push 狀態摘要</h2><p>全域訂閱數：<span class="'+cls(st.global_subscriptions)+'">'+esc(st.global_subscriptions)+'</span></p><p>社區群組數：<span class="'+cls(st.community_group_total)+'">'+esc(st.community_group_total)+'</span></p></div>';
+h+='<div class="card"><h2>2. 社區群組</h2><select id="community">';
+(st.communities||[]).forEach(c=>h+='<option value="'+esc(c.community_id)+'">'+esc(c.name+' | groups='+c.group_count+' | '+c.community_id)+'</option>');
+h+='</select><button class="green" onclick="testPush()">測試選取社區推播</button><button onclick="render()">重新整理</button><pre>'+esc(JSON.stringify(st.communities,null,2))+'</pre></div>';
+h+='<div class="card"><h2>3. 最新 Push Log</h2><pre>'+esc(JSON.stringify(st.last_push_log,null,2))+'</pre></div>';
+h+='<div class="card"><h2>4. Raw Debug</h2><pre>'+esc(JSON.stringify(st.raw,null,2))+'</pre></div>';
+h+='<div class="card"><h2>5. 測試結果</h2><pre id="out">READY</pre></div>';app.innerHTML=h;}
+async function testPush(){const cid=community.value;const r=await post('/api/rt7/push/test',{community_id:cid,title:'RT7 CH7A1 推播偵錯測試',body:'如果手機收到，表示該社區推播群組正常。'});out.textContent=JSON.stringify(r,null,2);setTimeout(render,1200)}
+render();
+</script></body></html>`));
+// ======================================================
+// End RT7_CH7A1_PUSH_DEBUG_PANEL
+// ======================================================
+
+app.listen(PORT,()=>console.log('[RT7_CH7A1_PUSH_DEBUG_PANEL] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
