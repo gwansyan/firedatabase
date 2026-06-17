@@ -1,6 +1,6 @@
 {
-  "name": "rt7-ch5b-openai-real-face-match",
-  "version": "5.2.1",
+  "name": "rt7-ch6a-visitor-analyzer",
+  "version": "6.1.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

@@ -311,20 +311,295 @@ app.get('/api/ch5/face/log',(_,res)=>{
 // ======================================================
 
 
-app.get('/api/ch5/state',(_,res)=>{
+// ======================================================
+// RT7_CH6A_VISITOR_ANALYZER
+// 第6章：RT7 Community AI Visitor Assistant
+// New page:
+//   /rt7_ch6_ai_visitor
+// New APIs:
+//   GET  /api/ch6/state
+//   POST /api/ch6/visitor/snapshot
+//   POST /api/ch6/visitor/check
+//   POST /api/ch6/visitor/question
+//   POST /api/ch6/visitor/open
+//   GET  /api/ch6/visitor/log
+// ======================================================
+
+const CH6_UPLOAD_DIR=path.join(DATA_DIR,'visitor_uploads');
+if(!fs.existsSync(CH6_UPLOAD_DIR))fs.mkdirSync(CH6_UPLOAD_DIR,{recursive:true});
+ensureFile('visitor_events.json',[]);
+
+function ch6CleanBase64Image(image){
+  if(!image)return null;
+  return String(image).replace(/^data:image\/\w+;base64,/,'');
+}
+function ch6SafeJsonParse(txt){
+  const raw=String(txt||'').trim();
+  try{return JSON.parse(raw);}catch(e){}
+  const m=raw.match(/\{[\s\S]*\}/);
+  if(m){try{return JSON.parse(m[0]);}catch(e){}}
+  return {
+    visitor_type:'unknown',
+    people_count:0,
+    delivery:false,
+    carrier:'',
+    risk:'UNKNOWN',
+    confidence:0,
+    summary:'JSON_PARSE_FAILED',
+    raw:raw.slice(0,500)
+  };
+}
+function ch6GetOpenAI(){
+  if(!OpenAI)return null;
+  if(!process.env.OPENAI_API_KEY)return null;
+  return new OpenAI({apiKey:process.env.OPENAI_API_KEY});
+}
+function ch6CommunityById(community_id){
+  return readJson('communities.json',[]).find(x=>x.community_id===community_id)||null;
+}
+function ch6CommunityByMaster(master_uid){
+  return readJson('communities.json',[]).find(x=>x.master_uid===master_uid)||null;
+}
+async function ch6PushCommunity(community_id,payload){
+  const groups=readJson('community_push_groups.json',[]).filter(g=>g.community_id===community_id);
+  return await sendPushToSubs(groups,payload);
+}
+function ch6QueueOpenDoor(master_uid,community_id,community_name,source,reason){
+  const commands=readJson('commands.json',{});
+  commands[master_uid]=commands[master_uid]||[];
+  const cmd={
+    time:nowIso(),
+    cmd:'OPEN_DOOR',
+    pin:40,
+    pulse_ms:800,
+    source:source||'ai_visitor',
+    community_id,
+    community_name,
+    reason:reason||'VISITOR_APPROVED'
+  };
+  commands[master_uid].push(cmd);
+  writeJson('commands.json',commands);
+  return cmd;
+}
+async function ch6AnalyzeVisitorImage(imageFile,question){
+  const openai=ch6GetOpenAI();
+  if(!openai){
+    return {ok:false,error:'OPENAI_API_KEY_MISSING_OR_OPENAI_PACKAGE_MISSING'};
+  }
+  const img64=fs.readFileSync(imageFile).toString('base64');
+  const prompt = question || `請分析門口訪客畫面。只輸出 JSON，不要 Markdown。
+格式：
+{
+ "visitor_type":"delivery|resident|guest|unknown|suspicious",
+ "people_count":1,
+ "person_description":"簡短描述",
+ "delivery":true,
+ "carrier":"黑貓|郵局|新竹物流|FoodPanda|UberEats|unknown|none",
+ "package":true,
+ "risk":"LOW|MEDIUM|HIGH",
+ "risk_reason":"原因",
+ "confidence":92,
+ "summary":"給住戶看的繁體中文摘要"
+}`;
+  const r=await openai.chat.completions.create({
+    model:process.env.RT7_VISITOR_MODEL||'gpt-4o',
+    messages:[
+      {role:'system',content:'你是 RT7 社區門禁 AI 訪客助理。請根據單張門口照片判斷訪客類型、包裹、風險。不要做身份認定，只描述畫面與風險。只輸出 JSON。'},
+      {role:'user',content:[
+        {type:'text',text:prompt},
+        {type:'image_url',image_url:{url:`data:image/jpeg;base64,${img64}`}}
+      ]}
+    ],
+    temperature:0
+  });
+  const parsed=ch6SafeJsonParse(r.choices&&r.choices[0]&&r.choices[0].message&&r.choices[0].message.content);
+  parsed.ok=true;
+  return parsed;
+}
+function ch6SaveEvent(event){
+  const logs=readJson('visitor_events.json',[]);
+  logs.unshift(event);
+  writeJson('visitor_events.json',logs.slice(0,300));
+  return event;
+}
+
+app.get('/rt7_ch6_ai_visitor',(_,res)=>res.type('html').send(String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH6 AI Visitor Assistant</title><style>
+body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:18px auto;padding:14px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button,textarea{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}textarea{width:95%;min-height:70px}button{background:#0b9b5a;color:#fff;border:0}.blue{background:#0b78d0}.red{background:#c0392b}.gray{background:#64748b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 CH6 AI Visitor Assistant</h1><p>AI 訪客辨識、包裹分析、風險提示、推播通知、遠端開門。</p><div id="app">載入中...</div></div><script>
+async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let t=await r.text();try{return JSON.parse(t)}catch{return{ok:false,status:r.status,text:t.slice(0,500)}}}
+async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)});}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function show(x){document.getElementById('out').textContent=JSON.stringify(x,null,2);}
+function fileDataUrl(input){return new Promise((resolve,reject)=>{const f=input.files&&input.files[0];if(!f)return reject(new Error('NO_FILE'));const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(f);});}
+async function render(){
+ const st=await api('/api/ch6/state');
+ const comms=st.communities||[]; const masters=Object.values(st.masters||{});
+ let h='';
+ h+='<div class="card"><h2>1. AI 訪客分析</h2><div class="grid"><select id="comm"><option value="">選擇社區</option>';
+ comms.forEach(c=>h+='<option value="'+esc(c.community_id)+'">'+esc(c.name)+'</option>');
+ h+='</select><select id="master"><option value="">選擇 Master UID</option>';
+ masters.forEach(m=>h+='<option value="'+esc(m.master_uid)+'">'+esc(m.master_uid+'</option>'));
+ h+='</select></div><input id="visitor_photo" type="file" accept="image/*" capture="environment"><button class="blue" onclick="visitorCheck()">上傳 Snapshot + AI 分析</button></div>';
+ h+='<div class="card"><h2>2. AI 問答</h2><textarea id="q">請問畫面中的訪客是否像物流人員？是否有包裹？風險高不高？</textarea><button onclick="visitorQuestion()">詢問 AI</button></div>';
+ h+='<div class="card"><h2>3. 遠端允許進入</h2><button class="blue" onclick="visitorOpen()">允許進入 OPEN_DOOR</button></div>';
+ h+='<div class="card"><h2>4. Visitor Event Log <span class="pill">'+esc((st.visitor_events||[]).length)+'</span></h2><pre>'+esc(JSON.stringify((st.visitor_events||[]).slice(0,20),null,2))+'</pre></div>';
+ h+='<div class="card"><h2>5. 最新結果</h2><pre id="out">READY</pre></div>';
+ document.getElementById('app').innerHTML=h;
+}
+async function uploadSnapshot(){
+ const image=await fileDataUrl(document.getElementById('visitor_photo'));
+ return await post('/api/ch6/visitor/snapshot',{community_id:comm.value,master_uid:master.value,image});
+}
+async function visitorCheck(){
+ const up=await uploadSnapshot();
+ if(!up.ok){show(up);return;}
+ const ck=await post('/api/ch6/visitor/check',{community_id:comm.value,master_uid:master.value,snapshot_file:up.file});
+ show({snapshot:up,check:ck}); setTimeout(render,1000);
+}
+async function visitorQuestion(){
+ const up=await uploadSnapshot();
+ if(!up.ok){show(up);return;}
+ const r=await post('/api/ch6/visitor/question',{community_id:comm.value,master_uid:master.value,snapshot_file:up.file,question:q.value});
+ show({snapshot:up,answer:r}); setTimeout(render,1000);
+}
+async function visitorOpen(){
+ show(await post('/api/ch6/visitor/open',{community_id:comm.value,master_uid:master.value,reason:'VISITOR_APPROVED_BY_USER'}));
+ setTimeout(render,1000);
+}
+render();
+</script></body></html>`));
+
+app.get('/api/ch6/state',(_,res)=>{
+  const masters=readJson('master_registry.json',{});
+  Object.keys(masters).forEach(uid=>masters[uid].status=onlineStatus(masters[uid].last_heartbeat));
+  const communities=readJson('communities.json',[]).map(c=>({...c,master_status:masters[c.master_uid]?onlineStatus(masters[c.master_uid].last_heartbeat):'OFFLINE'}));
   res.json({
     ok:true,
-    ch5b:true,
+    ch6a:true,
     openai_package:!!OpenAI,
     openai_key:!!process.env.OPENAI_API_KEY,
-    face_model:process.env.RT7_FACE_MODEL||'gpt-4o',
-    threshold:Number(process.env.RT7_FACE_THRESHOLD||85),
-    upload_dir:CH5_UPLOAD_DIR,
-    faces:readJson('faces.json',[]).length,
-    face_logs:readJson('face_access_log.json',[]).length,
-    commands:Object.keys(readJson('commands.json',{})).length,
-    time:nowIso()
+    visitor_model:process.env.RT7_VISITOR_MODEL||'gpt-4o',
+    upload_dir:CH6_UPLOAD_DIR,
+    masters,
+    communities,
+    visitor_events:readJson('visitor_events.json',[]).slice(0,100),
+    push:{count:readJson('push_subscriptions.json',[]).length,groups:readJson('community_push_groups.json',[]).length}
   });
 });
 
-app.listen(PORT,()=>console.log('[RT7_CH5B_OPENAI_REAL_FACE_MATCH] http://localhost:'+PORT+'/rt7_ch5_face_register'));
+app.post('/api/ch6/visitor/snapshot',(req,res)=>{
+  try{
+    const {master_uid,community_id,image}=req.body||{};
+    if(!image)return res.status(400).json({ok:false,error:'missing image'});
+    const file='visitor_'+Date.now()+'.jpg';
+    fs.writeFileSync(path.join(CH6_UPLOAD_DIR,file),Buffer.from(ch6CleanBase64Image(image),'base64'));
+    res.json({ok:true,file,master_uid,community_id});
+  }catch(e){res.status(500).json({ok:false,error:String(e.message||e)});}
+});
+
+app.post('/api/ch6/visitor/check',async(req,res)=>{
+  const started=Date.now();
+  try{
+    const {master_uid,community_id,snapshot_file}=req.body||{};
+    if(!master_uid||!community_id||!snapshot_file)return res.status(400).json({ok:false,error:'missing master_uid/community_id/snapshot_file'});
+    const community=ch6CommunityById(community_id);
+    if(!community)return res.status(404).json({ok:false,error:'community_not_found'});
+    const fp=path.join(CH6_UPLOAD_DIR,snapshot_file);
+    if(!fs.existsSync(fp))return res.status(404).json({ok:false,error:'snapshot_not_found'});
+
+    const analysis=await ch6AnalyzeVisitorImage(fp);
+    const risk=String(analysis.risk||'UNKNOWN').toUpperCase();
+    const delivery=!!analysis.delivery;
+    const title = risk==='HIGH' ? '⚠️ '+community.name+' 可疑訪客' : (delivery ? '📦 '+community.name+' 疑似物流訪客' : '🔔 '+community.name+' AI訪客分析');
+    const body = analysis.summary || ((analysis.visitor_type||'unknown')+' / risk '+risk);
+
+    const push=await ch6PushCommunity(community_id,{
+      type:'visitor_analysis',
+      title,
+      body,
+      url:'/rt7_ch6_ai_visitor',
+      tag:'rt7-ai-visitor',
+      community_id,
+      master_uid
+    });
+
+    const event=ch6SaveEvent({
+      time:nowIso(),
+      community_id,
+      community_name:community.name,
+      master_uid,
+      snapshot_file,
+      kind:'visitor_check',
+      analysis,
+      risk,
+      delivery,
+      result:'ANALYZED',
+      push_status:push.status,
+      push_sent:push.sent||0,
+      elapsed_ms:Date.now()-started
+    });
+    res.json({ok:true,event});
+  }catch(e){
+    const event=ch6SaveEvent({time:nowIso(),kind:'visitor_check',result:'ERROR',error:String(e.message||e),elapsed_ms:Date.now()-started});
+    res.status(500).json({ok:false,event,error:String(e.message||e)});
+  }
+});
+
+app.post('/api/ch6/visitor/question',async(req,res)=>{
+  const started=Date.now();
+  try{
+    const {master_uid,community_id,snapshot_file,question}=req.body||{};
+    if(!community_id||!snapshot_file)return res.status(400).json({ok:false,error:'missing community_id/snapshot_file'});
+    const community=ch6CommunityById(community_id);
+    if(!community)return res.status(404).json({ok:false,error:'community_not_found'});
+    const fp=path.join(CH6_UPLOAD_DIR,snapshot_file);
+    if(!fs.existsSync(fp))return res.status(404).json({ok:false,error:'snapshot_not_found'});
+
+    const analysis=await ch6AnalyzeVisitorImage(fp,`請用繁體中文回答住戶問題：「${question||'請分析訪客'}」。只輸出 JSON，格式：{"answer":"回答內容","risk":"LOW|MEDIUM|HIGH","confidence":90,"summary":"摘要"}`);
+    const event=ch6SaveEvent({
+      time:nowIso(),
+      community_id,
+      community_name:community.name,
+      master_uid,
+      snapshot_file,
+      kind:'visitor_question',
+      question,
+      analysis,
+      result:'ANSWERED',
+      elapsed_ms:Date.now()-started
+    });
+    res.json({ok:true,event,answer:analysis.answer||analysis.summary||''});
+  }catch(e){
+    const event=ch6SaveEvent({time:nowIso(),kind:'visitor_question',result:'ERROR',error:String(e.message||e),elapsed_ms:Date.now()-started});
+    res.status(500).json({ok:false,event,error:String(e.message||e)});
+  }
+});
+
+app.post('/api/ch6/visitor/open',(req,res)=>{
+  try{
+    let {master_uid,community_id,reason}=req.body||{};
+    let community=community_id?ch6CommunityById(community_id):null;
+    if(!community&&master_uid)community=ch6CommunityByMaster(master_uid);
+    if(!community)return res.status(404).json({ok:false,error:'community_not_found'});
+    master_uid=master_uid||community.master_uid;
+    const cmd=ch6QueueOpenDoor(master_uid,community.community_id,community.name,'ai_visitor',reason||'VISITOR_APPROVED');
+    const event=ch6SaveEvent({
+      time:nowIso(),
+      community_id:community.community_id,
+      community_name:community.name,
+      master_uid,
+      kind:'visitor_open',
+      result:'OPEN_DOOR_QUEUED',
+      command:cmd
+    });
+    res.json({ok:true,event,command:cmd});
+  }catch(e){res.status(500).json({ok:false,error:String(e.message||e)});}
+});
+
+app.get('/api/ch6/visitor/log',(_,res)=>{
+  res.json({ok:true,logs:readJson('visitor_events.json',[]).slice(0,100)});
+});
+// ======================================================
+// End RT7_CH6A_VISITOR_ANALYZER
+// ======================================================
+
+app.listen(PORT,()=>console.log('[RT7_CH6A_VISITOR_ANALYZER] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
