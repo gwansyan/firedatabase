@@ -1,7 +1,7 @@
-// RT7_EDU_COMMUNITY_REGISTER_V2
+// RT7_EDU_COMMUNITY_REGISTER_V2AA
 // 第二堂課：社區註冊 / 主門禁 UID 綁定
 // 保留第一堂 Heartbeat，新增 Community Register
-// API: POST /edu/master/heartbeat, POST /edu/community/register, GET /edu/state, GET /edu
+// API: POST /edu/master/heartbeat, GET/POST /edu/community/register, GET /edu/state, GET /edu
 
 const express = require('express');
 const cors = require('cors');
@@ -74,12 +74,12 @@ ensureFile('communities.json', []);
 
 app.get('/', (_req, res) => res.redirect('/edu'));
 
-app.get('/health', (_req, res) => res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2', time: nowIso() }));
+app.get('/health', (_req, res) => res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2AA', time: nowIso() }));
 
 app.get('/edu/state', (_req, res) => {
   const masters = refreshMasters(readJson('master_registry.json', {}));
   const communities = readJson('communities.json', []);
-  res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2', masters, communities });
+  res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2AA', masters, communities });
 });
 
 app.post('/edu/master/heartbeat', (req, res) => {
@@ -97,7 +97,7 @@ app.post('/edu/master/heartbeat', (req, res) => {
     ip,
     mac,
     source,
-    lesson: body.lesson || 'COMMUNITY_REGISTER_V2',
+    lesson: body.lesson || 'COMMUNITY_REGISTER_V2A',
     last_heartbeat: nowIso(),
     status: 'ONLINE',
     uid_rule: mac ? 'MAC_REVERSE_PAIRS' : 'REQUEST_UID'
@@ -105,7 +105,7 @@ app.post('/edu/master/heartbeat', (req, res) => {
 
   writeJson('master_registry.json', masters);
   console.log('[EDU][V2][HEARTBEAT]', uid, ip, mac, source);
-  res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2', master: masters[uid] });
+  res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2AA', master: masters[uid] });
 });
 
 app.post('/edu/community/register', (req, res) => {
@@ -138,12 +138,12 @@ app.post('/edu/community/register', (req, res) => {
     master_mac: master.mac,
     master_status: master.status,
     created_at: nowIso(),
-    lesson: 'COMMUNITY_REGISTER_V2'
+    lesson: 'COMMUNITY_REGISTER_V2A'
   };
   communities.push(community);
   writeJson('communities.json', communities);
   console.log('[EDU][V2][COMMUNITY_REGISTER]', community.community_id, community.community_name, master_uid);
-  res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2', community });
+  res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2AA', community });
 });
 
 app.delete('/edu/community/:community_id', (req, res) => {
@@ -151,10 +151,10 @@ app.delete('/edu/community/:community_id', (req, res) => {
   const before = readJson('communities.json', []);
   const after = before.filter(c => c.community_id !== id);
   writeJson('communities.json', after);
-  res.json({ ok: true, deleted: before.length - after.length, version: 'RT7_EDU_COMMUNITY_REGISTER_V2' });
+  res.json({ ok: true, deleted: before.length - after.length, version: 'RT7_EDU_COMMUNITY_REGISTER_V2AA' });
 });
 
-app.get('/edu', (_req, res) => {
+app.get(['/edu', '/edu/community/register'], (_req, res) => {
   res.type('html').send(String.raw`<!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -204,9 +204,9 @@ async function registerCommunity(){
  out(await post('/edu/community/register',data)); await load();
 }
 async function deleteCommunity(id){out(await del('/edu/community/'+encodeURIComponent(id))); await load();}
-async function sendHeartbeat(){syncSimUid(); out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value,source:'SIM',lesson:'COMMUNITY_REGISTER_V2'})); await load();}
+async function sendHeartbeat(){syncSimUid(); out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value,source:'SIM',lesson:'COMMUNITY_REGISTER_V2A'})); await load();}
 load(); setInterval(function(){ if(!document.activeElement || document.activeElement.tagName!=='INPUT') load(); },10000);
 </script></body></html>`);
 });
 
-app.listen(PORT, () => console.log('[RT7_EDU_COMMUNITY_REGISTER_V2] http://localhost:' + PORT + '/edu'));
+app.listen(PORT, () => console.log('[RT7_EDU_COMMUNITY_REGISTER_V2AA] http://localhost:' + PORT + '/edu'));
