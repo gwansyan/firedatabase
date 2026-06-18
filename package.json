@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-test-v1c-real-uid-from-mac",
-  "version": "1.0.0",
-  "description": "RT7 EDU TEST V1C: real ESP32 UID generated from WiFi MAC",
+  "name": "rt7-edu-community-register-v2",
+  "version": "2.0.0",
+  "description": "RT7 EDU V2: heartbeat plus community registration and master UID binding",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
