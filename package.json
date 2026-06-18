@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-community-register-v2",
-  "version": "2.0.0",
-  "description": "RT7 EDU V2: heartbeat plus community registration and master UID binding",
+  "name": "rt7-edu-login-auth-v3a1",
+  "version": "3.1.0",
+  "description": "RT7 EDU V3A1: login auth with visible session status",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
