@@ -1,6 +1,6 @@
 {
-  "name": "rt7-ch7b-loitering-detector",
-  "version": "7.2.0",
+  "name": "rt7-ch7b1-realtime-loitering-tracker",
+  "version": "7.2.1",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
