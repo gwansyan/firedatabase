@@ -1,6 +1,6 @@
 {
-  "name": "rt7-ch7a3-auto-subscription-repair",
-  "version": "7.1.3",
+  "name": "rt7-ch7a3a-safe-auto-subscription-repair",
+  "version": "7.1.3a",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

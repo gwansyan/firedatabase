@@ -312,7 +312,7 @@ app.get('/api/ch5/face/log',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // 第6章：RT7 Community AI Visitor Assistant
 // New page:
 //   /rt7_ch6_ai_visitor
@@ -673,7 +673,7 @@ app.post('/api/ch6/visitor/classify',async(req,res)=>{
 app.get('/api/ch6/classifier/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR',
+    version:'RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR',
     visitor_types:[
       {id:'delivery_package',label:'包裹物流'},
       {id:'delivery_food',label:'外送員'},
@@ -691,7 +691,7 @@ app.get('/api/ch6/classifier/types',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // 安全訪客問答：只回答包裹、制服、外送箱、工作證、風險、人數。
 // 避免詢問「他是誰 / 是否為特定人物 / 是否住戶」。
 // ======================================================
@@ -830,7 +830,7 @@ app.post('/api/ch6/visitor/safe_qa',async(req,res)=>{
 app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR',
+    version:'RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR',
     allowed_questions:[
       '是否有包裹？',
       '是否有物流制服或公司標誌？',
@@ -853,12 +853,12 @@ app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   });
 });
 // ======================================================
-// End RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // 物流/外送/郵差/維修/一般訪客/可疑訪客偵測
 // New APIs:
 //   GET  /api/ch6/delivery/types
@@ -947,7 +947,7 @@ unknown          = 無法判斷
 app.get('/api/ch6/delivery/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR',
+    version:'RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR',
     visitor_types:[
       {id:'delivery_package',label:'📦 宅配員'},
       {id:'delivery_food',label:'🍔 外送員'},
@@ -1072,12 +1072,12 @@ app.post('/api/ch6/delivery/detect',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // 常客/保全/管委會/維修白名單
 // New APIs:
 //   GET  /api/ch6/whitelist
@@ -1275,12 +1275,12 @@ app.post('/api/ch6/whitelist/check',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // 訪客預約 / 邀請碼 / 時段驗證 / 自動放行
 // New APIs:
 //   GET  /api/ch6/appointments
@@ -1489,19 +1489,19 @@ app.post('/api/ch6/appointments/check',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // ======================================================
 
 app.get('/api/ch6/visitor/log',(_,res)=>{
   res.json({ok:true,logs:readJson('visitor_events.json',[]).slice(0,100)});
 });
 // ======================================================
-// End RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // 第7章：RT7 Community AI Security Guard - Intruder Detector
 // New page: /rt7_ch7_ai_security
 // New APIs:
@@ -1702,12 +1702,12 @@ app.post('/api/ch7/intruder/check',async(req,res)=>{
 
 app.get('/api/ch7/intruder/log',(_,res)=>res.json({ok:true,logs:readJson('intruder_events.json',[]).slice(0,100)}));
 // ======================================================
-// End RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // ======================================================
 function rt7PushDebugState(){
   const subs=readJson('push_subscriptions.json',[]);
@@ -1716,7 +1716,7 @@ function rt7PushDebugState(){
   const comms=readJson('communities.json',[]);
   return {
     ok:true,
-    version:'RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR',
+    version:'RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR',
     global_subscriptions:subs.length,
     community_group_total:groups.length,
     communities:comms.map(c=>({
@@ -1771,12 +1771,12 @@ async function testPush(){const cid=community.value;const r=await post('/api/rt7
 render();
 </script></body></html>`));
 // ======================================================
-// End RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // ======================================================
 app.get('/api/rt7/push/public-key',(_,res)=>{
   res.json({ok:true,publicKey:PUBLIC_VAPID_KEY||null,time:nowIso()});
@@ -1823,7 +1823,32 @@ async function testPush(){const r=await post('/api/rt7/push/test',{community_id:
 render();
 </script></body></html>`));
 // ======================================================
-// End RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
 // ======================================================
 
-app.listen(PORT,()=>console.log('[RT7_CH7A3_AUTO_SUBSCRIPTION_REPAIR] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
+
+// ======================================================
+// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// 修正 CH7A3：不先 unsubscribe，避免 YES 變 NO。
+// ======================================================
+app.get('/rt7_auto_push_repair_safe',(_,res)=>res.type('html').send(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH7A3A Safe Repair</title><style>
+body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:auto;padding:16px}.card{background:#fff;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button,select{font-size:16px;padding:10px;margin:4px;border-radius:8px;border:1px solid #ccd6dc}button{background:#0b78d0;color:#fff;border:0}.green{background:#0b9b5a}.red{background:#c0392b}.gray{background:#64748b}.pill{display:inline-block;padding:3px 9px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}.bad{background:#fdecec;color:#a4261d}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}</style></head><body><div class="wrap"><h1>RT7 CH7A3A Safe Auto Subscription Repair</h1><p>安全修正版：先使用現有 Subscription；只有沒有 Subscription 時才建立新的。</p><div id="app">載入中...</div></div><script>
+let VAPID='';
+async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let t=await r.text();try{return JSON.parse(t)}catch{return{ok:false,status:r.status,text:t.slice(0,500)}}}
+async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)});}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function u8(b64){const pad='='.repeat((4-b64.length%4)%4);const base=(b64+pad).replace(/-/g,'+').replace(/_/g,'/');const raw=atob(base);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));}
+function out(x){document.getElementById('out').textContent=JSON.stringify(x,null,2);}
+async function regSW(){let reg=await navigator.serviceWorker.getRegistration('/');if(!reg)reg=await navigator.serviceWorker.register('/sw.js?v=CH7A3A_'+Date.now(),{scope:'/'});await navigator.serviceWorker.ready;return await navigator.serviceWorker.getRegistration('/')||reg;}
+async function local(){let reg=null,sub=null;try{reg=await navigator.serviceWorker.getRegistration('/');sub=reg&&reg.pushManager?await reg.pushManager.getSubscription():null;}catch(e){}const dbg=await api('/api/rt7/push/debug');return{permission:Notification.permission,subscription:sub?{endpoint:sub.endpoint}:null,debug:dbg};}
+async function render(){const key=await api('/api/rt7/push/public-key');VAPID=key.publicKey||'';const st=await local();const comms=(st.debug&&st.debug.communities)||[];let h='';h+='<div class="card"><h2>1. 狀態</h2><p>Notification：<span class="'+(st.permission==='granted'?'pill':'pill bad')+'">'+esc(st.permission)+'</span></p><p>本機 Subscription：<span class="'+(st.subscription?'pill':'pill bad')+'">'+esc(st.subscription?'YES':'NO')+'</span></p></div>';h+='<div class="card"><h2>2. 安全自動修復</h2><select id="community">';comms.forEach(c=>h+='<option value="'+esc(c.community_id)+'">'+esc(c.name+' | groups='+c.group_count+' | '+c.community_id)+'</option>');h+='</select><button class="green" onclick="safeRepair()">安全修復：不先取消訂閱</button><button class="gray" onclick="render()">重新整理</button></div>';h+='<div class="card"><h2>3. 必要時重建</h2><button class="red" onclick="rebuild()">本機 Subscription 一直 NO 時才按</button></div>';h+='<div class="card"><h2>4. 測試推播</h2><button onclick="testPush()">測試社區推播</button></div><div class="card"><h2>5. Debug JSON</h2><pre>'+esc(JSON.stringify(st,null,2))+'</pre></div><div class="card"><h2>6. 執行結果</h2><pre id="out">READY</pre></div>';app.innerHTML=h;}
+async function safeRepair(){try{let p=Notification.permission;if(p!=='granted')p=await Notification.requestPermission();if(p!=='granted')throw new Error('permission '+p);const reg=await regSW();let sub=await reg.pushManager.getSubscription();if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(VAPID)});const r=await post('/api/rt7/push/auto-repair',{community_id:community.value,subscription:sub,endpoint:sub.endpoint,user_agent:navigator.userAgent});out({ok:true,mode:'safeRepair',r,endpoint:sub.endpoint});setTimeout(render,1000);}catch(e){out({ok:false,error:String(e)});}}
+async function rebuild(){try{let p=Notification.permission;if(p!=='granted')p=await Notification.requestPermission();if(p!=='granted')throw new Error('permission '+p);const reg=await regSW();let old=await reg.pushManager.getSubscription();if(old)await old.unsubscribe();const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(VAPID)});const r=await post('/api/rt7/push/auto-repair',{community_id:community.value,subscription:sub,endpoint:sub.endpoint,user_agent:navigator.userAgent});out({ok:true,mode:'rebuild',r,endpoint:sub.endpoint});setTimeout(render,1000);}catch(e){out({ok:false,error:String(e)});}}
+async function testPush(){const r=await post('/api/rt7/push/test',{community_id:community.value,title:'RT7 CH7A3A 安全修復測試',body:'如果手機收到，表示訂閱與社區群組正常。'});out(r);setTimeout(render,1000)}
+render();
+</script></body></html>`));
+// ======================================================
+// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// ======================================================
+
+app.listen(PORT,()=>console.log('[RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
