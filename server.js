@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_LOGIN_AUTH_V3A11';
+const VERSION = 'RT7_EDU_LOGIN_AUTH_V3A2';
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
@@ -241,7 +241,7 @@ return String.raw`<!doctype html>
 body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1120px;margin:20px auto;padding:16px}.card{background:white;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px;box-sizing:border-box}button{background:#0b9b5a;color:#fff;border:0;cursor:pointer}.danger{background:#c0392b}.blue{background:#0b6fa4}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.ok{color:#079b50;font-weight:bold}.bad{color:#d33;font-weight:bold}.hint{color:#64748b;font-size:14px;line-height:1.55}.uidbox{background:#f8fafc;font-family:ui-monospace,Consolas,monospace}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.warn{background:#fff8e1;border-left:5px solid #f2c94c}.step{font-weight:bold;color:#0b5f8a}.loginok{background:#effaf4;border-left:5px solid #0b9b5a}</style>
 </head>
 <body><div class="wrap">
-<h1>RT7 EDU LOGIN AUTH V3A1</h1>
+<h1>RT7 EDU LOGIN AUTH V3A2</h1>
 <p><span class="tag">第三堂課</span> Community ID / Admin Account / Password / Session</p>
 <div id="app">載入中...</div>
 </div>
@@ -249,6 +249,7 @@ body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;col
 async function api(path,opt){const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'}},opt||{}));let j={};try{j=await r.json();}catch(e){} if(!r.ok)j.http_status=r.status;return j;}
 async function post(path,data){return api(path,{method:'POST',body:JSON.stringify(data)});} async function del(path){return api(path,{method:'DELETE'});}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function shortToken(t){t=String(t||''); return t.length>12 ? t.substring(0,12)+'...' : t;}
 function out(x){var e=document.getElementById('out'); if(e)e.textContent=JSON.stringify(x,null,2);}
 function cleanMac(mac){return String(mac||'').toUpperCase().replace(/[^0-9A-F]/g,'').slice(-12);} function uidFromMac(mac){var h=cleanMac(mac); if(h.length!==12)return ''; var p=h.match(/.{2}/g); return 'RT7-MASTER-'+p.reverse().join('');}
 function syncSimUid(){var mac=document.getElementById('h_mac'), uid=document.getElementById('h_uid'); if(mac&&uid){uid.value=uidFromMac(mac.value)||'RT7-MASTER-UNKNOWN';}}
@@ -271,18 +272,22 @@ async function load(){
  if(!users.length){h+='<tr><td colspan="6" class="hint">尚未建立帳號。</td></tr>';}
  users.forEach(function(u){h+='<tr><td>'+esc(u.community_id)+'</td><td><b>'+esc(u.account)+'</b></td><td>'+esc(u.display_name)+'</td><td>'+esc(u.role)+'</td><td>'+esc(u.created_at)+'</td><td>'+esc(u.last_login||'')+'</td></tr>';});
  h+='</table></div>';
- h+='<div class="card"><h2>6. Sessions</h2><table><tr><th>Status</th><th>Community</th><th>Account</th><th>Role</th><th>Login At</th><th>Expires At</th><th>Session Token</th></tr>';
+ h+='<div class="card loginok"><h2>6. 目前登入使用者</h2>';
+ if(!sessions.length){h+='<p class="hint">目前沒有 ACTIVE session。請先完成登入驗證。</p>'; }
+ sessions.slice(0,1).forEach(function(x){h+='<div class="grid"><div><b>Community</b><br>'+esc(x.community_name)+'<br><span class="hint">'+esc(x.community_id)+'</span></div><div><b>Account</b><br>'+esc(x.account)+'</div><div><b>Role</b><br>'+esc(x.role)+'</div><div><b>Status</b><br><span class="ok">ACTIVE</span></div></div>';});
+ h+='</div>';
+ h+='<div class="card"><h2>7. Sessions</h2><table><tr><th>Status</th><th>Community</th><th>Account</th><th>Role</th><th>Login At</th><th>Expires At</th><th>Session Token</th></tr>';
  if(!sessions.length){h+='<tr><td colspan="7" class="hint">尚未登入，或 session 已過期。</td></tr>';}
- sessions.forEach(function(x){h+='<tr><td class="ok">ACTIVE</td><td>'+esc(x.community_name)+'<br><span class="hint">'+esc(x.community_id)+'</span></td><td><b>'+esc(x.account)+'</b></td><td>'+esc(x.role)+'</td><td>'+esc(x.login_at)+'</td><td>'+esc(x.expires_at)+'</td><td><span class="uidbox">'+esc(x.token)+'</span></td></tr>';});
- h+='</table></div>';
- h+='<div class="card warn"><h2>7. 第三堂課觀察重點</h2><pre>Community ID\n↓\nAdmin Account\n↓\nPassword Hash\n↓\nLogin Success\n↓\nSession ACTIVE</pre><p class="hint">第四堂才加入：門鈴事件。第五堂才加入：開門控制。</p></div>';
- h+='<div class="card"><h2>8. Heartbeat 模擬測試</h2><p class="hint">沒有 ESP32 時，可先用模擬 heartbeat 產生一台設備。</p><div class="grid"><input id="h_mac" value="14:C1:9F:29:F2:68" oninput="syncSimUid()" placeholder="MAC"><input id="h_uid" class="uidbox" readonly><input id="h_ip" value="192.168.0.179"></div><button onclick="sendHeartbeat()">送出模擬 Heartbeat</button></div>';
+ sessions.forEach(function(x){h+='<tr><td class="ok">ACTIVE</td><td>'+esc(x.community_name)+'<br><span class="hint">'+esc(x.community_id)+'</span></td><td><b>'+esc(x.account)+'</b></td><td>'+esc(x.role)+'</td><td>'+esc(x.login_at)+'</td><td>'+esc(x.expires_at)+'</td><td><span class="uidbox">'+esc(shortToken(x.token))+'</span></td></tr>';});
+ h+='</table><p class="hint">教學顯示只保留前段 Session Token；後端仍保存完整 token。</p></div>';
+ h+='<div class="card warn"><h2>8. 第三堂課觀察重點</h2><pre>Community ID\n↓\nAdmin Account\n↓\nPassword Hash\n↓\nLogin Success\n↓\nSession ACTIVE</pre><p class="hint">第四堂才加入：門鈴事件。第五堂才加入：開門控制。</p></div>';
+ h+='<div class="card"><h2>9. Heartbeat 模擬測試</h2><p class="hint">沒有 ESP32 時，可先用模擬 heartbeat 產生一台設備。</p><div class="grid"><input id="h_mac" value="14:C1:9F:29:F2:68" oninput="syncSimUid()" placeholder="MAC"><input id="h_uid" class="uidbox" readonly><input id="h_ip" value="192.168.0.179"></div><button onclick="sendHeartbeat()">送出模擬 Heartbeat</button></div>';
  h+='<div class="card"><h2>回應</h2><pre id="out">READY</pre></div>';
  document.getElementById('app').innerHTML=h; syncSimUid();
 }
 async function registerUser(){const data={community_id:document.getElementById('r_community').value,account:document.getElementById('r_account').value,display_name:document.getElementById('r_name').value,password:document.getElementById('r_pass').value}; out(await post('/edu/auth/register',data)); await load();}
 async function loginUser(){const data={community_id:document.getElementById('l_community').value,account:document.getElementById('l_account').value,password:document.getElementById('l_pass').value}; const r=await post('/edu/auth/login',data); out(r); await load();}
-async function sendHeartbeat(){syncSimUid(); out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value,source:'SIM',lesson:'LOGIN_AUTH_V3A'})); await load();}
+async function sendHeartbeat(){syncSimUid(); out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value,source:'SIM',lesson:'LOGIN_AUTH_V3A2'})); await load();}
 load(); setInterval(function(){ if(!document.activeElement || document.activeElement.tagName!=='INPUT') load(); },10000);
 </script></body></html>`;
 }
@@ -311,6 +316,7 @@ body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;col
 async function api(path,opt){const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'}},opt||{}));let j={};try{j=await r.json();}catch(e){} if(!r.ok)j.http_status=r.status;return j;}
 async function post(path,data){return api(path,{method:'POST',body:JSON.stringify(data)});} async function del(path){return api(path,{method:'DELETE'});}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function shortToken(t){t=String(t||''); return t.length>12 ? t.substring(0,12)+'...' : t;}
 function out(x){var e=document.getElementById('out'); if(e)e.textContent=JSON.stringify(x,null,2);}
 function cleanMac(mac){return String(mac||'').toUpperCase().replace(/[^0-9A-F]/g,'').slice(-12);} function uidFromMac(mac){var h=cleanMac(mac); if(h.length!==12)return ''; var p=h.match(/.{2}/g); return 'RT7-MASTER-'+p.reverse().join('');}
 function syncSimUid(){var mac=document.getElementById('h_mac'), uid=document.getElementById('h_uid'); if(mac&&uid){uid.value=uidFromMac(mac.value)||'RT7-MASTER-UNKNOWN';}}
