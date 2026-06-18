@@ -1,15 +1,13 @@
 {
-  "name": "rt7-ch7b2-face-recognition-security-guard",
-  "version": "7.2.2",
+  "name": "rt7-edu-test-v1c-real-uid-from-mac",
+  "version": "1.0.0",
+  "description": "RT7 EDU TEST V1C: real ESP32 UID generated from WiFi MAC",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "ws": "^8.16.0",
-    "jpeg-js": "^0.4.4",
-    "sql.js": "^1.10.3",
-    "web-push": "^3.6.7"
+    "cors": "latest",
+    "express": "latest"
   }
 }
