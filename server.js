@@ -1,4 +1,4 @@
-// RT7_EDU_COMMUNITY_REGISTER_V2AA
+// RT7_EDU_COMMUNITY_REGISTER_V2A111
 // 第二堂課：社區註冊 / 主門禁 UID 綁定
 // 保留第一堂 Heartbeat，新增 Community Register
 // API: POST /edu/master/heartbeat, GET/POST /edu/community/register, GET /edu/state, GET /edu
@@ -74,12 +74,12 @@ ensureFile('communities.json', []);
 
 app.get('/', (_req, res) => res.redirect('/edu'));
 
-app.get('/health', (_req, res) => res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2AA', time: nowIso() }));
+app.get('/health', (_req, res) => res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2A111', time: nowIso() }));
 
 app.get('/edu/state', (_req, res) => {
   const masters = refreshMasters(readJson('master_registry.json', {}));
   const communities = readJson('communities.json', []);
-  res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2AA', masters, communities });
+  res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2A111', masters, communities });
 });
 
 app.post('/edu/master/heartbeat', (req, res) => {
@@ -97,7 +97,7 @@ app.post('/edu/master/heartbeat', (req, res) => {
     ip,
     mac,
     source,
-    lesson: body.lesson || 'COMMUNITY_REGISTER_V2A',
+    lesson: body.lesson || 'COMMUNITY_REGISTER_V2A1',
     last_heartbeat: nowIso(),
     status: 'ONLINE',
     uid_rule: mac ? 'MAC_REVERSE_PAIRS' : 'REQUEST_UID'
@@ -105,7 +105,7 @@ app.post('/edu/master/heartbeat', (req, res) => {
 
   writeJson('master_registry.json', masters);
   console.log('[EDU][V2][HEARTBEAT]', uid, ip, mac, source);
-  res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2AA', master: masters[uid] });
+  res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2A111', master: masters[uid] });
 });
 
 app.post('/edu/community/register', (req, res) => {
@@ -138,12 +138,12 @@ app.post('/edu/community/register', (req, res) => {
     master_mac: master.mac,
     master_status: master.status,
     created_at: nowIso(),
-    lesson: 'COMMUNITY_REGISTER_V2A'
+    lesson: 'COMMUNITY_REGISTER_V2A1'
   };
   communities.push(community);
   writeJson('communities.json', communities);
   console.log('[EDU][V2][COMMUNITY_REGISTER]', community.community_id, community.community_name, master_uid);
-  res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2AA', community });
+  res.json({ ok: true, version: 'RT7_EDU_COMMUNITY_REGISTER_V2A111', community });
 });
 
 app.delete('/edu/community/:community_id', (req, res) => {
@@ -151,7 +151,7 @@ app.delete('/edu/community/:community_id', (req, res) => {
   const before = readJson('communities.json', []);
   const after = before.filter(c => c.community_id !== id);
   writeJson('communities.json', after);
-  res.json({ ok: true, deleted: before.length - after.length, version: 'RT7_EDU_COMMUNITY_REGISTER_V2AA' });
+  res.json({ ok: true, deleted: before.length - after.length, version: 'RT7_EDU_COMMUNITY_REGISTER_V2A111' });
 });
 
 app.get(['/edu', '/edu/community/register'], (_req, res) => {
@@ -190,9 +190,9 @@ async function load(){
  if(!masters.length){h+='<option value="">請先讓 ESP32 heartbeat 上線</option>';}
  masters.forEach(function(m){h+='<option value="'+esc(m.master_uid)+'">'+esc(m.master_uid)+' | '+esc(m.status)+' | '+esc(m.ip||'')+'</option>';});
  h+='</select></div><button onclick="registerCommunity()">註冊社區並綁定 UID</button></div>';
- h+='<div class="card"><h2>3. Communities</h2><table><tr><th>社區</th><th>管理員</th><th>綁定 UID</th><th>Master IP</th><th>建立時間</th><th>操作</th></tr>';
+ h+='<div class="card"><h2>3. Communities</h2><table><tr><th>Community ID</th><th>社區</th><th>管理員</th><th>綁定 UID</th><th>Master IP</th><th>建立時間</th><th>操作</th></tr>';
  if(!communities.length){h+='<tr><td colspan="6" class="hint">尚未註冊社區。</td></tr>';}
- communities.forEach(function(c){h+='<tr><td>'+esc(c.community_name)+'<br><span class="hint">'+esc(c.community_id)+'</span></td><td>'+esc(c.admin_name)+'<br><span class="hint">'+esc(c.admin_email||'')+'</span></td><td>'+esc(c.master_uid)+'</td><td>'+esc(c.master_ip||'')+'</td><td>'+esc(c.created_at)+'</td><td><button class="danger" onclick="deleteCommunity(\''+esc(c.community_id)+'\')">刪除</button></td></tr>';});
+ communities.forEach(function(c){h+='<tr><td><b>'+esc(c.community_id)+'</b></td><td>'+esc(c.community_name)+'</td><td>'+esc(c.admin_name)+'<br><span class="hint">'+esc(c.admin_email||'')+'</span></td><td>'+esc(c.master_uid)+'</td><td>'+esc(c.master_ip||'')+'</td><td>'+esc(c.created_at)+'</td><td><button class="danger" onclick="deleteCommunity(\''+esc(c.community_id)+'\')">刪除</button></td></tr>';});
  h+='</table></div>';
  h+='<div class="card warn"><h2>4. 第二堂課觀察重點</h2><pre>Heartbeat 讓設備出現在 Master Registry\n↓\n選擇一台 Master UID\n↓\n建立社區 Community\n↓\n社區綁定這台主門禁 UID</pre><p class="hint">下一堂才加入：登入驗證。第四堂才加入：門鈴事件。</p></div>';
  h+='<div class="card"><h2>5. Heartbeat 模擬測試</h2><p class="hint">沒有 ESP32 時，可先用模擬 heartbeat 產生一台設備。</p><div class="grid"><input id="h_mac" value="14:C1:9F:29:F2:68" oninput="syncSimUid()" placeholder="MAC"><input id="h_uid" class="uidbox" readonly><input id="h_ip" value="192.168.0.179"></div><button onclick="sendHeartbeat()">送出模擬 Heartbeat</button></div>';
@@ -204,9 +204,9 @@ async function registerCommunity(){
  out(await post('/edu/community/register',data)); await load();
 }
 async function deleteCommunity(id){out(await del('/edu/community/'+encodeURIComponent(id))); await load();}
-async function sendHeartbeat(){syncSimUid(); out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value,source:'SIM',lesson:'COMMUNITY_REGISTER_V2A'})); await load();}
+async function sendHeartbeat(){syncSimUid(); out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value,source:'SIM',lesson:'COMMUNITY_REGISTER_V2A1'})); await load();}
 load(); setInterval(function(){ if(!document.activeElement || document.activeElement.tagName!=='INPUT') load(); },10000);
 </script></body></html>`);
 });
 
-app.listen(PORT, () => console.log('[RT7_EDU_COMMUNITY_REGISTER_V2AA] http://localhost:' + PORT + '/edu'));
+app.listen(PORT, () => console.log('[RT7_EDU_COMMUNITY_REGISTER_V2A111] http://localhost:' + PORT + '/edu'));
