@@ -1,7 +1,7 @@
-// RT7_EDU_LOGIN_AUTH_V3A11
-// 第三堂課：登入驗證 / Community ID / Admin Account / Password / Session
-// 保留第一堂 Heartbeat、第二堂 Community Register
-// API: POST /edu/master/heartbeat, GET/POST /edu/community/register, GET/POST /edu/login, POST /edu/auth/register, POST /edu/auth/login
+// RT7_EDU_DOORBELL_EVENT_V4
+// 第四堂課：門鈴事件 / Doorbell Event Queue
+// 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
+// 新增 API: POST /edu/event/doorbell, GET /edu/events/doorbell, DELETE /edu/events/doorbell
 
 const express = require('express');
 const cors = require('cors');
@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_LOGIN_AUTH_V3A2';
+const VERSION = 'RT7_EDU_DOORBELL_EVENT_V4';
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
@@ -76,6 +76,7 @@ ensureFile('master_registry.json', {});
 ensureFile('communities.json', []);
 ensureFile('users.json', []);
 ensureFile('sessions.json', []);
+ensureFile('doorbell_events.json', []);
 
 app.get('/', (_req, res) => res.redirect('/edu'));
 app.get('/health', (_req, res) => res.json({ ok: true, version: VERSION, time: nowIso() }));
@@ -94,7 +95,8 @@ app.get('/edu/state', (_req, res) => {
   }));
   const sessions = readJson('sessions.json', []).filter(s => Date.now() < new Date(s.expires_at).getTime());
   if (sessions.length !== readJson('sessions.json', []).length) writeJson('sessions.json', sessions);
-  res.json({ ok: true, version: VERSION, masters, communities, users, sessions, sessions_count: sessions.length });
+  const doorbell_events = readJson('doorbell_events.json', []);
+  res.json({ ok: true, version: VERSION, masters, communities, users, sessions, sessions_count: sessions.length, doorbell_events, doorbell_count: doorbell_events.length });
 });
 
 app.post('/edu/master/heartbeat', (req, res) => {
@@ -223,6 +225,47 @@ app.post('/edu/auth/login', (req, res) => {
   res.json({ ok: true, version: VERSION, login: { token: session.token, community_id, community_name: community.community_name, account: user.account, role: user.role, login_at: session.login_at, expires_at: session.expires_at } });
 });
 
+
+// 第四堂：門鈴事件。ESP32 按 GPIO38 後 POST 到這裡。
+app.post('/edu/event/doorbell', (req, res) => {
+  const body = req.body || {};
+  const master_uid = normalizeUid(body.master_uid);
+  if (!master_uid) return res.status(400).json({ ok: false, error: 'missing master_uid' });
+  const masters = refreshMasters(readJson('master_registry.json', {}));
+  const master = masters[master_uid] || { master_uid, ip: body.ip || req.ip, mac: formatMac(body.mac || ''), status: 'UNKNOWN' };
+  const communities = readJson('communities.json', []);
+  const community = communities.find(c => c.master_uid === master_uid) || null;
+  let events = readJson('doorbell_events.json', []);
+  const event = {
+    event_id: 'BELL-' + Date.now().toString(36).toUpperCase(),
+    type: 'DOORBELL',
+    message: '有人按門鈴',
+    community_id: community ? community.community_id : '',
+    community_name: community ? community.community_name : '',
+    master_uid,
+    master_ip: master.ip || body.ip || req.ip,
+    master_mac: master.mac || formatMac(body.mac || ''),
+    source: String(body.source || 'ESP32').toUpperCase(),
+    created_at: nowIso(),
+    lesson: VERSION
+  };
+  events.unshift(event);
+  events = events.slice(0, 50);
+  writeJson('doorbell_events.json', events);
+  console.log('[EDU][V4][DOORBELL]', event.event_id, event.community_name || '-', master_uid);
+  res.json({ ok: true, version: VERSION, event, count: events.length });
+});
+
+app.get('/edu/events/doorbell', (_req, res) => {
+  res.json({ ok: true, version: VERSION, events: readJson('doorbell_events.json', []) });
+});
+
+app.delete('/edu/events/doorbell', (_req, res) => {
+  const before = readJson('doorbell_events.json', []);
+  writeJson('doorbell_events.json', []);
+  res.json({ ok: true, version: VERSION, deleted: before.length });
+});
+
 app.post('/edu/auth/logout', (req, res) => {
   const token = String((req.body || {}).token || '');
   const before = readJson('sessions.json', []);
@@ -236,13 +279,14 @@ return String.raw`<!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RT7 EDU Login Auth V3A1</title>
+<title>RT7 EDU Doorbell Event V4</title>
 <style>
 body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1120px;margin:20px auto;padding:16px}.card{background:white;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px;box-sizing:border-box}button{background:#0b9b5a;color:#fff;border:0;cursor:pointer}.danger{background:#c0392b}.blue{background:#0b6fa4}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.ok{color:#079b50;font-weight:bold}.bad{color:#d33;font-weight:bold}.hint{color:#64748b;font-size:14px;line-height:1.55}.uidbox{background:#f8fafc;font-family:ui-monospace,Consolas,monospace}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.warn{background:#fff8e1;border-left:5px solid #f2c94c}.step{font-weight:bold;color:#0b5f8a}.loginok{background:#effaf4;border-left:5px solid #0b9b5a}</style>
 </head>
 <body><div class="wrap">
-<h1>RT7 EDU LOGIN AUTH V3A2</h1>
-<p><span class="tag">第三堂課</span> Community ID / Admin Account / Password / Session</p>
+<h1>RT7 EDU DOORBELL EVENT V4</h1>
+<p><span class="tag">第四堂課</span> Doorbell Event / Railway Event Queue / Doorbell Log</p>
+<p><button class="blue" onclick="location.href='/edu/community/register'">第二堂社區註冊</button> <button class="blue" onclick="location.href='/edu/login'">第三堂登入驗證</button> <button class="blue" onclick="location.href='/edu/doorbell'">第四堂門鈴事件</button></p>
 <div id="app">載入中...</div>
 </div>
 <script>
@@ -280,19 +324,25 @@ async function load(){
  if(!sessions.length){h+='<tr><td colspan="7" class="hint">尚未登入，或 session 已過期。</td></tr>';}
  sessions.forEach(function(x){h+='<tr><td class="ok">ACTIVE</td><td>'+esc(x.community_name)+'<br><span class="hint">'+esc(x.community_id)+'</span></td><td><b>'+esc(x.account)+'</b></td><td>'+esc(x.role)+'</td><td>'+esc(x.login_at)+'</td><td>'+esc(x.expires_at)+'</td><td><span class="uidbox">'+esc(shortToken(x.token))+'</span></td></tr>';});
  h+='</table><p class="hint">教學顯示只保留前段 Session Token；後端仍保存完整 token。</p></div>';
- h+='<div class="card warn"><h2>8. 第三堂課觀察重點</h2><pre>Community ID\n↓\nAdmin Account\n↓\nPassword Hash\n↓\nLogin Success\n↓\nSession ACTIVE</pre><p class="hint">第四堂才加入：門鈴事件。第五堂才加入：開門控制。</p></div>';
- h+='<div class="card"><h2>9. Heartbeat 模擬測試</h2><p class="hint">沒有 ESP32 時，可先用模擬 heartbeat 產生一台設備。</p><div class="grid"><input id="h_mac" value="14:C1:9F:29:F2:68" oninput="syncSimUid()" placeholder="MAC"><input id="h_uid" class="uidbox" readonly><input id="h_ip" value="192.168.0.179"></div><button onclick="sendHeartbeat()">送出模擬 Heartbeat</button></div>';
+ h+='<div class="card"><h2>8. Doorbell Events</h2><p class="hint">ESP32 GPIO38 按下後，POST /edu/event/doorbell，Railway 將事件寫入 doorbell_events.json。</p><p><button onclick="simulateDoorbell()">模擬按門鈴</button> <button class="danger" onclick="clearDoorbells()">清除門鈴事件</button></p><table><tr><th>Event ID</th><th>訊息</th><th>Community</th><th>Master UID</th><th>來源</th><th>時間</th></tr>';
+ if(!(s.doorbell_events||[]).length){h+='<tr><td colspan="6" class="hint">尚未收到門鈴事件。</td></tr>';}
+ (s.doorbell_events||[]).forEach(function(e){h+='<tr><td><b>'+esc(e.event_id)+'</b></td><td>'+esc(e.message)+'</td><td>'+esc(e.community_name||'未綁定')+'<br><span class="hint">'+esc(e.community_id||'')+'</span></td><td>'+esc(e.master_uid)+'</td><td>'+esc(e.source)+'</td><td>'+esc(e.created_at)+'</td></tr>';});
+ h+='</table></div>';
+ h+='<div class="card warn"><h2>9. 第四堂課觀察重點</h2><pre>登入成功\n↓\nESP32 GPIO38 門鈴按鍵\n↓\nPOST /edu/event/doorbell\n↓\nRailway Doorbell Event Queue\n↓\ndoorbell_events.json\n↓\n網頁顯示門鈴事件</pre><p class="hint">第五堂才加入：OPEN_DOOR / Command Queue / GPIO40 開門控制。</p></div>';
+ h+='<div class="card"><h2>10. Heartbeat 模擬測試</h2><p class="hint">沒有 ESP32 時，可先用模擬 heartbeat 產生一台設備。</p><div class="grid"><input id="h_mac" value="14:C1:9F:29:F2:68" oninput="syncSimUid()" placeholder="MAC"><input id="h_uid" class="uidbox" readonly><input id="h_ip" value="192.168.0.179"></div><button onclick="sendHeartbeat()">送出模擬 Heartbeat</button></div>';
  h+='<div class="card"><h2>回應</h2><pre id="out">READY</pre></div>';
  document.getElementById('app').innerHTML=h; syncSimUid();
 }
 async function registerUser(){const data={community_id:document.getElementById('r_community').value,account:document.getElementById('r_account').value,display_name:document.getElementById('r_name').value,password:document.getElementById('r_pass').value}; out(await post('/edu/auth/register',data)); await load();}
 async function loginUser(){const data={community_id:document.getElementById('l_community').value,account:document.getElementById('l_account').value,password:document.getElementById('l_pass').value}; const r=await post('/edu/auth/login',data); out(r); await load();}
-async function sendHeartbeat(){syncSimUid(); out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value,source:'SIM',lesson:'LOGIN_AUTH_V3A2'})); await load();}
+async function sendHeartbeat(){syncSimUid(); out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value,source:'SIM',lesson:'DOORBELL_EVENT_V4'})); await load();}
+async function simulateDoorbell(){var masters=Object.values((STATE&&STATE.masters)||{}); var uid=masters[0]?masters[0].master_uid:''; if(!uid){out({ok:false,error:'請先送出 heartbeat'});return;} out(await post('/edu/event/doorbell',{master_uid:uid,source:'SIM'})); await load();}
+async function clearDoorbells(){out(await del('/edu/events/doorbell')); await load();}
 load(); setInterval(function(){ if(!document.activeElement || document.activeElement.tagName!=='INPUT') load(); },10000);
 </script></body></html>`;
 }
 
-app.get(['/edu', '/edu/login'], (_req, res) => { res.type('html').send(renderEduPage()); });
+app.get(['/edu', '/edu/doorbell', '/edu/login'], (_req, res) => { res.type('html').send(renderEduPage()); });
 
 
 // 第二堂頁面保留：/edu/community/register 必須顯示第二堂社區註冊頁，不可變成第三堂登入頁。
@@ -347,4 +397,4 @@ load(); setInterval(function(){ if(!document.activeElement || document.activeEle
 }
 app.get('/edu/community/register', (_req, res) => { res.type('html').send(renderCommunityRegisterPage()); });
 
-app.listen(PORT, () => console.log('[' + VERSION + '] http://localhost:' + PORT + '/edu'));
+app.listen(PORT, () => console.log('[' + VERSION + '] http://localhost:' + PORT + '/edu/doorbell'));

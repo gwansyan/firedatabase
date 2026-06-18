@@ -1,13 +1,8 @@
 {
-  "name": "rt7-edu-login-auth-v3a1",
-  "version": "3.1.0",
-  "description": "RT7 EDU V3A1: login auth with visible session status",
+  "name": "rt7-edu-doorbell-event-v4",
+  "version": "4.0.0",
+  "description": "RT7 EDU V4: doorbell event queue with preserved heartbeat, community register, and login auth",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "cors": "latest",
-    "express": "latest"
-  }
+  "scripts": {"start": "node server.js"},
+  "dependencies": {"cors": "latest", "express": "latest"}
 }
