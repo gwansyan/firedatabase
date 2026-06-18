@@ -1,14 +1,15 @@
 {
-  "name": "rt7-ch7b2a-face-region-fingerprint",
-  "version": "7.2.2a",
+  "name": "rt7-ch7b2-face-recognition-security-guard",
+  "version": "7.2.2",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "cors": "latest",
-    "express": "latest",
-    "web-push": "latest",
-    "openai": "^4.104.0"
+    "express": "^4.18.2",
+    "ws": "^8.16.0",
+    "jpeg-js": "^0.4.4",
+    "sql.js": "^1.10.3",
+    "web-push": "^3.6.7"
   }
 }
