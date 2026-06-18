@@ -312,7 +312,7 @@ app.get('/api/ch5/face/log',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // 第6章：RT7 Community AI Visitor Assistant
 // New page:
 //   /rt7_ch6_ai_visitor
@@ -673,7 +673,7 @@ app.post('/api/ch6/visitor/classify',async(req,res)=>{
 app.get('/api/ch6/classifier/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER',
+    version:'RT7_CH7B2A_FACE_REGION_FINGERPRINT',
     visitor_types:[
       {id:'delivery_package',label:'包裹物流'},
       {id:'delivery_food',label:'外送員'},
@@ -691,7 +691,7 @@ app.get('/api/ch6/classifier/types',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // 安全訪客問答：只回答包裹、制服、外送箱、工作證、風險、人數。
 // 避免詢問「他是誰 / 是否為特定人物 / 是否住戶」。
 // ======================================================
@@ -830,7 +830,7 @@ app.post('/api/ch6/visitor/safe_qa',async(req,res)=>{
 app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER',
+    version:'RT7_CH7B2A_FACE_REGION_FINGERPRINT',
     allowed_questions:[
       '是否有包裹？',
       '是否有物流制服或公司標誌？',
@@ -853,12 +853,12 @@ app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   });
 });
 // ======================================================
-// End RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// End RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // 物流/外送/郵差/維修/一般訪客/可疑訪客偵測
 // New APIs:
 //   GET  /api/ch6/delivery/types
@@ -947,7 +947,7 @@ unknown          = 無法判斷
 app.get('/api/ch6/delivery/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER',
+    version:'RT7_CH7B2A_FACE_REGION_FINGERPRINT',
     visitor_types:[
       {id:'delivery_package',label:'📦 宅配員'},
       {id:'delivery_food',label:'🍔 外送員'},
@@ -1072,12 +1072,12 @@ app.post('/api/ch6/delivery/detect',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// End RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // 常客/保全/管委會/維修白名單
 // New APIs:
 //   GET  /api/ch6/whitelist
@@ -1275,12 +1275,12 @@ app.post('/api/ch6/whitelist/check',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// End RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // 訪客預約 / 邀請碼 / 時段驗證 / 自動放行
 // New APIs:
 //   GET  /api/ch6/appointments
@@ -1489,19 +1489,19 @@ app.post('/api/ch6/appointments/check',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// End RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ======================================================
 
 app.get('/api/ch6/visitor/log',(_,res)=>{
   res.json({ok:true,logs:readJson('visitor_events.json',[]).slice(0,100)});
 });
 // ======================================================
-// End RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// End RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // 第7章：RT7 Community AI Security Guard - Intruder Detector
 // New page: /rt7_ch7_ai_security
 // New APIs:
@@ -1702,12 +1702,12 @@ app.post('/api/ch7/intruder/check',async(req,res)=>{
 
 app.get('/api/ch7/intruder/log',(_,res)=>res.json({ok:true,logs:readJson('intruder_events.json',[]).slice(0,100)}));
 // ======================================================
-// End RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// End RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ======================================================
 function rt7PushDebugState(){
   const subs=readJson('push_subscriptions.json',[]);
@@ -1716,7 +1716,7 @@ function rt7PushDebugState(){
   const comms=readJson('communities.json',[]);
   return {
     ok:true,
-    version:'RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER',
+    version:'RT7_CH7B2A_FACE_REGION_FINGERPRINT',
     global_subscriptions:subs.length,
     community_group_total:groups.length,
     communities:comms.map(c=>({
@@ -1771,12 +1771,12 @@ async function testPush(){const cid=community.value;const r=await post('/api/rt7
 render();
 </script></body></html>`));
 // ======================================================
-// End RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// End RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ======================================================
 app.get('/api/rt7/push/public-key',(_,res)=>{
   res.json({ok:true,publicKey:PUBLIC_VAPID_KEY||null,time:nowIso()});
@@ -1823,12 +1823,12 @@ async function testPush(){const r=await post('/api/rt7/push/test',{community_id:
 render();
 </script></body></html>`));
 // ======================================================
-// End RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// End RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // 修正 CH7A3：不先 unsubscribe，避免 YES 變 NO。
 // ======================================================
 app.get('/rt7_auto_push_repair_safe',(_,res)=>res.type('html').send(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH7A3A Safe Repair</title><style>
@@ -1848,12 +1848,12 @@ async function testPush(){const r=await post('/api/rt7/push/test',{community_id:
 render();
 </script></body></html>`));
 // ======================================================
-// End RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// End RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // 可疑逗留偵測：連續 Snapshot 累積 Session，超過門檻推播
 // New page:
 //   /rt7_ch7_loitering
@@ -2118,12 +2118,12 @@ async function reset(){
 render();
 </script></body></html>`));
 // ======================================================
-// End RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// End RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // 真實時間逗留追蹤器：ESP32/手機週期性送 Snapshot，Railway 累積 Session
 // New page:
 //   /rt7_ch7_loitering_realtime
@@ -2299,12 +2299,12 @@ async function reset(){
 render();
 </script></body></html>`));
 // ======================================================
-// End RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// End RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ESP32 Snapshot → Railway → 人物特徵比對 → 同一人追蹤 → 60/180/300秒推播
 // ======================================================
 ensureFile('person_tracker_sessions.json',{});
@@ -2398,7 +2398,49 @@ async function sendOnce(){const image=await getImage();const r=await post('/api/
 function startAuto(){stopAuto();timer=setInterval(()=>sendOnce().catch(e=>out({ok:false,error:String(e)})),30000);out({ok:true,message:'已啟動每30秒自動送出 Snapshot'});}function stopAuto(){if(timer){clearInterval(timer);timer=null;}out({ok:true,message:'已停止自動送出'});}async function reset(){const r=await post('/api/ch7/person-tracker/reset',{community_id:comm.value});out(r);setTimeout(render,800);}render();
 </script></body></html>`));
 // ======================================================
-// End RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER
+// End RT7_CH7B2A_FACE_REGION_FINGERPRINT
 // ======================================================
 
-app.listen(PORT,()=>console.log('[RT7_CH7B2_ESP32_REALTIME_LOITERING_PERSON_TRACKER] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
+
+// ======================================================
+// RT7_CH7B2A_FACE_REGION_FINGERPRINT
+// V2: face_region + body_box + clothing colors + door_zone fingerprint
+// ======================================================
+ensureFile('person_tracker_v2_sessions.json',{});
+ensureFile('person_tracker_v2_events.json',[]);
+const CH7B2A_LEVEL1_SEC=Number(process.env.CH7B2A_LEVEL1_SEC||60);
+const CH7B2A_LEVEL2_SEC=Number(process.env.CH7B2A_LEVEL2_SEC||180);
+const CH7B2A_LEVEL3_SEC=Number(process.env.CH7B2A_LEVEL3_SEC||300);
+const CH7B2A_RESET_SEC=Number(process.env.CH7B2A_RESET_SEC||180);
+const CH7B2A_MATCH_MIN_SCORE=Number(process.env.CH7B2A_MATCH_MIN_SCORE||7);
+function ch7b2aSessions(){return readJson('person_tracker_v2_sessions.json',{});}
+function ch7b2aWriteSessions(x){writeJson('person_tracker_v2_sessions.json',x||{});}
+function ch7b2aSaveEvent(e){const a=readJson('person_tracker_v2_events.json',[]);a.unshift(e);writeJson('person_tracker_v2_events.json',a.slice(0,500));return e;}
+function ch7b2aNum(v){v=Number(v);return Number.isFinite(v)?v:0;}
+function ch7b2aBucket(v,step){return Math.round(ch7b2aNum(v)/(step||10))*(step||10);}
+function ch7b2aBoxKey(b){b=b||{};return [ch7b2aBucket(b.x,10),ch7b2aBucket(b.y,10),ch7b2aBucket(b.w,10),ch7b2aBucket(b.h,10)].join('_');}
+function ch7b2aFp(p){p=p||{};const f=p.feature||{},g=p.geometry||{};return 'P2_'+ch7b2Hash([ch7b2Norm(f.gender),ch7b2Norm(f.age_range),ch7b2Norm(f.upper_clothing),ch7b2Norm(f.upper_color),ch7b2Norm(f.lower_clothing),ch7b2Norm(f.lower_color),ch7b2Norm(f.bag),ch7b2Norm(f.hat),f.mask?'mask':'nomask',ch7b2Norm(g.body_position),ch7b2Norm(g.door_zone),ch7b2aBoxKey(g.body_box),ch7b2aBoxKey(p.face_region),ch7b2aBucket(g.height_ratio,5)].join('|'));}
+function ch7b2aIoU(a,b){a=a||{};b=b||{};const ax1=ch7b2aNum(a.x),ay1=ch7b2aNum(a.y),ax2=ax1+ch7b2aNum(a.w),ay2=ay1+ch7b2aNum(a.h);const bx1=ch7b2aNum(b.x),by1=ch7b2aNum(b.y),bx2=bx1+ch7b2aNum(b.w),by2=by1+ch7b2aNum(b.h);const ix=Math.max(0,Math.min(ax2,bx2)-Math.max(ax1,bx1));const iy=Math.max(0,Math.min(ay2,by2)-Math.max(ay1,by1));const inter=ix*iy;const aa=Math.max(1,(ax2-ax1)*(ay2-ay1));const ba=Math.max(1,(bx2-bx1)*(by2-by1));return inter/(aa+ba-inter);}
+function ch7b2aScore(a,b){let s=0;a=a||{};b=b||{};const af=a.feature||{},bf=b.feature||{},ag=a.geometry||{},bg=b.geometry||{};for(const [k,w] of [['gender',1],['age_range',1],['upper_clothing',1],['upper_color',2],['lower_clothing',1],['lower_color',2],['bag',1],['hat',1],['mask',1]]){const av=typeof af[k]==='boolean'?af[k]:ch7b2Norm(af[k]);const bv=typeof bf[k]==='boolean'?bf[k]:ch7b2Norm(bf[k]);if(av===bv&&av!=='unknown')s+=w;}if(ch7b2Norm(ag.body_position)===ch7b2Norm(bg.body_position)&&ch7b2Norm(ag.body_position)!=='unknown')s++;if(ch7b2Norm(ag.door_zone)===ch7b2Norm(bg.door_zone)&&ch7b2Norm(ag.door_zone)!=='unknown')s++;const bi=ch7b2aIoU(ag.body_box,bg.body_box);if(bi>.45)s+=3;else if(bi>.25)s+=2;else if(bi>.1)s++;const fi=ch7b2aIoU(a.face_region,b.face_region);if(fi>.35)s+=2;else if(fi>.15)s++;if(Math.abs(ch7b2aNum(ag.height_ratio)-ch7b2aNum(bg.height_ratio))<=8)s++;return s;}
+function ch7b2aLevel(sec){if(sec>=CH7B2A_LEVEL3_SEC)return{risk:'HIGH',result:'SECURITY_ALERT',level:'LEVEL3',title:'🚨 同一人物長時間逗留'};if(sec>=CH7B2A_LEVEL2_SEC)return{risk:'HIGH',result:'HIGH_LOITERING',level:'LEVEL2',title:'⚠️ 同一人物高風險逗留'};if(sec>=CH7B2A_LEVEL1_SEC)return{risk:'MEDIUM',result:'LOITERING',level:'LEVEL1',title:'⚠️ 同一人物可疑逗留'};return{risk:'LOW',result:'WATCHING',level:'WATCH',title:'🛡️ 人物追蹤中'};}
+function ch7b2aFind(cid,uid,person){const ss=ch7b2aSessions(),now=Date.now();let best=null;for(const [k,x] of Object.entries(ss)){if(!x.active||x.community_id!==cid||x.master_uid!==uid)continue;if(Math.round((now-new Date(x.last_seen).getTime())/1000)>CH7B2A_RESET_SEC)continue;const sc=ch7b2aScore(x.person,person);if(sc>=CH7B2A_MATCH_MIN_SCORE&&(!best||sc>best.score))best={key:k,session:x,score:sc};}return best;}
+function ch7b2aUpdate(community,uid,analysis){const now=nowIso(),ss=ch7b2aSessions(),p=(analysis.people||[])[0];if(!p||!p.person_visible)return{session:null,duration_sec:0,result:'NO_PERSON'};const fp=ch7b2aFp(p),m=ch7b2aFind(community.community_id,uid,p);let key,s,matched=false,score=0;if(m){key=m.key;s=m.session;matched=true;score=m.score;s.last_seen=now;s.count=(s.count||0)+1;s.last_person=p;s.match_score=score;}else{key=community.community_id+'__'+uid+'__'+fp+'__'+Date.now();s={key,community_id:community.community_id,community_name:community.name,master_uid:uid,person_fp_v2:fp,person:p,first_seen:now,last_seen:now,count:1,active:true,alerted_levels:{}};}const duration_sec=ch7bSec(s.first_seen,s.last_seen);ss[key]=s;ch7b2aWriteSessions(ss);return{person:p,person_fp_v2:fp,session:s,duration_sec,matched,match_score:score,result:'TRACKING'};}
+async function ch7b2aAnalyze(imagePath){const openai=ch7GetOpenAI();if(!openai)return{ok:false,error:'OPENAI_API_KEY_MISSING',people:[]};const img64=fs.readFileSync(imagePath).toString('base64');const prompt=`你是RT7社區AI保全人物追蹤V2。請用可見特徵與畫面位置追蹤同一人，不可辨識身份。座標百分比0-100。只輸出JSON：
+{"ok":true,"people_count":1,"people":[{"person_visible":true,"near_door":true,"standing":true,"walking_away":false,"entering":false,"feature":{"gender":"male|female|unknown","age_range":"child|teen|20-30|30-40|40-50|50-60|60+|unknown","upper_clothing":"shirt|jacket|coat|tshirt|unknown","upper_color":"black|white|gray|blue|red|green|yellow|brown|unknown","lower_clothing":"pants|shorts|skirt|unknown","lower_color":"black|white|gray|blue|red|green|brown|unknown","bag":"none|backpack|handbag|box|unknown","hat":"none|cap|helmet|hat|unknown","mask":false},"geometry":{"body_box":{"x":40,"y":15,"w":25,"h":75},"body_position":"left|center|right|unknown","height_ratio":75,"door_zone":"inside_gate|outside_gate|near_door|far|unknown"},"face_region":{"x":46,"y":17,"w":8,"h":10},"description":"繁體中文描述"}],"risk":"LOW|MEDIUM|HIGH","reason":"繁體中文原因","confidence":85,"summary":"繁體中文摘要"}`;const r=await openai.chat.completions.create({model:process.env.RT7_SECURITY_MODEL||process.env.RT7_VISITOR_MODEL||'gpt-4o',messages:[{role:'system',content:'只輸出JSON。不做身份辨識。'},{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:`data:image/jpeg;base64,${img64}`}}]}],temperature:0});const p=ch7SafeJsonParse(r.choices&&r.choices[0]&&r.choices[0].message&&r.choices[0].message.content);p.ok=true;p.people_count=Number(p.people_count||((p.people||[]).length));p.people=(p.people||[]).map(x=>{x.person_visible=!!(x.person_visible||x.standing||x.near_door);x.feature=x.feature||{};x.geometry=x.geometry||{};x.geometry.body_box=x.geometry.body_box||{};x.face_region=x.face_region||{};x.feature.gender=ch7b2Norm(x.feature.gender);x.feature.age_range=ch7b2Norm(x.feature.age_range||x.feature.age);x.feature.upper_clothing=ch7b2Norm(x.feature.upper_clothing);x.feature.upper_color=ch7b2Norm(x.feature.upper_color);x.feature.lower_clothing=ch7b2Norm(x.feature.lower_clothing);x.feature.lower_color=ch7b2Norm(x.feature.lower_color);x.feature.bag=ch7b2Norm(x.feature.bag);x.feature.hat=ch7b2Norm(x.feature.hat);x.feature.mask=!!x.feature.mask;x.geometry.body_position=ch7b2Norm(x.geometry.body_position);x.geometry.door_zone=ch7b2Norm(x.geometry.door_zone);x.geometry.height_ratio=ch7b2aNum(x.geometry.height_ratio);['x','y','w','h'].forEach(k=>{x.geometry.body_box[k]=ch7b2aNum(x.geometry.body_box[k]);x.face_region[k]=ch7b2aNum(x.face_region[k]);});x.person_fp_v2=ch7b2aFp(x);return x;});return p;}
+
+app.get('/api/ch7/person-tracker-v2/state',(_,res)=>res.json({ok:true,ch7b2a:true,thresholds:{level1_sec:CH7B2A_LEVEL1_SEC,level2_sec:CH7B2A_LEVEL2_SEC,level3_sec:CH7B2A_LEVEL3_SEC,reset_sec:CH7B2A_RESET_SEC,match_min_score:CH7B2A_MATCH_MIN_SCORE},sessions:ch7b2aSessions(),logs:readJson('person_tracker_v2_events.json',[]).slice(0,100),communities:readJson('communities.json',[])}));
+app.get('/api/ch7/person-tracker-v2/log',(_,res)=>res.json({ok:true,logs:readJson('person_tracker_v2_events.json',[]).slice(0,100)}));
+app.post('/api/ch7/person-tracker-v2/reset',(req,res)=>{const{community_id,master_uid}=req.body||{},ss=ch7b2aSessions();Object.keys(ss).forEach(k=>{const s=ss[k];if((!community_id||s.community_id===community_id)&&(!master_uid||s.master_uid===master_uid))delete ss[k];});ch7b2aWriteSessions(ss);res.json({ok:true,sessions:ch7b2aSessions()});});
+app.post('/api/ch7/person-tracker-v2/snapshot',async(req,res)=>{const started=Date.now();try{const{community_id,master_uid,image,snapshot_file,source}=req.body||{};let community=community_id?ch7CommunityById(community_id):null;if(!community&&master_uid)community=ch7CommunityByMaster(master_uid);if(!community)return res.status(404).json({ok:false,error:'community_not_found'});const uid=master_uid||community.master_uid;let imagePath=null,file=snapshot_file||'';if(image){file='person_v2_'+Date.now()+'.jpg';imagePath=path.join(CH7_UPLOAD_DIR,file);fs.writeFileSync(imagePath,Buffer.from(ch7CleanBase64Image(image),'base64'));}else if(snapshot_file){imagePath=path.join(CH7_UPLOAD_DIR,snapshot_file);if(!fs.existsSync(imagePath))return res.status(404).json({ok:false,error:'snapshot_not_found'});}else return res.status(400).json({ok:false,error:'missing image_or_snapshot_file'});const analysis=await ch7b2aAnalyze(imagePath);analysis.snapshot_file=file;const track=ch7b2aUpdate(community,uid,analysis);const level=ch7b2aLevel(track.duration_sec||0);let push={sent:0,total:0,status:'SKIPPED_'+level.level};if(track.session&&level.level!=='WATCH'&&!(track.session.alerted_levels||{})[level.level]){push=await ch7PushCommunity(community.community_id,{type:'person_region_tracker',title:level.title+' '+community.name,body:'同一人物停留 '+track.duration_sec+' 秒，狀態：'+level.result,url:'/rt7_ch7_person_tracker_v2',tag:'rt7-person-region-tracker-'+level.level,community_id:community.community_id,master_uid:uid,person_fp_v2:track.person_fp_v2,duration_sec:track.duration_sec,level:level.level,result:level.result});const ss=ch7b2aSessions();if(ss[track.session.key]){ss[track.session.key].alerted_levels=ss[track.session.key].alerted_levels||{};ss[track.session.key].alerted_levels[level.level]=nowIso();ch7b2aWriteSessions(ss);track.session=ss[track.session.key];}}const event=ch7b2aSaveEvent({time:nowIso(),community_id:community.community_id,community_name:community.name,master_uid:uid,snapshot_file:file,kind:'person_tracker_v2_snapshot',source:source||'esp32_or_web',analysis,person_fp_v2:track.person_fp_v2||null,matched:!!track.matched,match_score:track.match_score||0,session:track.session,duration_sec:track.duration_sec||0,risk:level.risk,level:level.level,result:level.result,push_status:push.status,push_sent:push.sent||0,elapsed_ms:Date.now()-started});res.json({ok:true,event,analysis,track,level,push});}catch(e){const event=ch7b2aSaveEvent({time:nowIso(),kind:'person_tracker_v2_snapshot',result:'ERROR',error:String(e.message||e),elapsed_ms:Date.now()-started});res.status(500).json({ok:false,event,error:String(e.message||e)});}});
+
+app.get('/rt7_ch7_person_tracker_v2',(_,res)=>res.type('html').send(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH7B2A</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:auto;padding:16px}.card{background:#fff;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button,select,input{font-size:16px;padding:10px;margin:4px;border-radius:8px;border:1px solid #ccd6dc}button{background:#0b78d0;color:#fff;border:0}.green{background:#0b9b5a}.red{background:#c0392b}.gray{background:#64748b}.pill{display:inline-block;padding:3px 9px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}</style></head><body><div class="wrap"><h1>RT7 CH7B2A Face Region Fingerprint</h1><p>V2：臉部區域、人體框、衣服顏色、門口區域與身高比例。</p><div id="app">載入中...</div></div><script>
+let timer=null,lastImage=null;async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let t=await r.text();try{return JSON.parse(t)}catch{return{ok:false,status:r.status,text:t.slice(0,500)}}}async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)});}function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}function out(x){document.getElementById('out').textContent=JSON.stringify(x,null,2);}function fileDataUrl(input){return new Promise((resolve,reject)=>{const f=input.files&&input.files[0];if(!f)return reject(new Error('NO_FILE'));const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(f);});}
+async function render(){const st=await api('/api/ch7/person-tracker-v2/state');let h='<div class="card"><h2>1. Person Tracker V2</h2><select id="comm">';(st.communities||[]).forEach(c=>h+='<option value="'+esc(c.community_id)+'">'+esc(c.name+' | '+c.master_uid)+'</option>');h+='</select><input id="photo" type="file" accept="image/*" capture="environment"><button class="green" onclick="sendOnce()">送出一次 Snapshot</button><button onclick="startAuto()">每30秒自動送出</button><button class="gray" onclick="stopAuto()">停止自動</button><button class="red" onclick="reset()">清除 V2 Sessions</button></div>';h+='<div class="card"><h2>2. V2 Sessions</h2><pre>'+esc(JSON.stringify(st.sessions,null,2))+'</pre></div>';h+='<div class="card"><h2>3. V2 Event Log <span class="pill">'+esc((st.logs||[]).length)+'</span></h2><pre>'+esc(JSON.stringify((st.logs||[]).slice(0,20),null,2))+'</pre></div><div class="card"><h2>4. 最新結果</h2><pre id="out">READY</pre></div>';app.innerHTML=h;}
+async function getImage(){if(photo.files&&photo.files[0]){lastImage=await fileDataUrl(photo);return lastImage;}if(lastImage)return lastImage;throw new Error('NO_IMAGE');}
+async function sendOnce(){const image=await getImage();const r=await post('/api/ch7/person-tracker-v2/snapshot',{community_id:comm.value,image,source:'web_person_tracker_v2'});out(r);setTimeout(render,1000);}function startAuto(){stopAuto();timer=setInterval(()=>sendOnce().catch(e=>out({ok:false,error:String(e)})),30000);out({ok:true,message:'已啟動每30秒自動送出 Snapshot'});}function stopAuto(){if(timer){clearInterval(timer);timer=null;}out({ok:true,message:'已停止自動送出'});}async function reset(){const r=await post('/api/ch7/person-tracker-v2/reset',{community_id:comm.value});out(r);setTimeout(render,800);}render();
+</script></body></html>`));
+// ======================================================
+// End RT7_CH7B2A_FACE_REGION_FINGERPRINT
+// ======================================================
+
+app.listen(PORT,()=>console.log('[RT7_CH7B2A_FACE_REGION_FINGERPRINT] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));

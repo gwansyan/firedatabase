@@ -1,6 +1,6 @@
 {
-  "name": "rt7-ch7b2-esp32-realtime-loitering-person-tracker",
-  "version": "7.2.2",
+  "name": "rt7-ch7b2a-face-region-fingerprint",
+  "version": "7.2.2a",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
