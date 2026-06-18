@@ -1,6 +1,6 @@
 {
-  "name": "rt7-ch7a3a-safe-auto-subscription-repair",
-  "version": "7.1.3a",
+  "name": "rt7-ch7b-loitering-detector",
+  "version": "7.2.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

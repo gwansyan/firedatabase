@@ -312,7 +312,7 @@ app.get('/api/ch5/face/log',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7B_LOITERING_DETECTOR
 // 第6章：RT7 Community AI Visitor Assistant
 // New page:
 //   /rt7_ch6_ai_visitor
@@ -673,7 +673,7 @@ app.post('/api/ch6/visitor/classify',async(req,res)=>{
 app.get('/api/ch6/classifier/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR',
+    version:'RT7_CH7B_LOITERING_DETECTOR',
     visitor_types:[
       {id:'delivery_package',label:'包裹物流'},
       {id:'delivery_food',label:'外送員'},
@@ -691,7 +691,7 @@ app.get('/api/ch6/classifier/types',(_,res)=>{
 
 
 // ======================================================
-// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7B_LOITERING_DETECTOR
 // 安全訪客問答：只回答包裹、制服、外送箱、工作證、風險、人數。
 // 避免詢問「他是誰 / 是否為特定人物 / 是否住戶」。
 // ======================================================
@@ -830,7 +830,7 @@ app.post('/api/ch6/visitor/safe_qa',async(req,res)=>{
 app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR',
+    version:'RT7_CH7B_LOITERING_DETECTOR',
     allowed_questions:[
       '是否有包裹？',
       '是否有物流制服或公司標誌？',
@@ -853,12 +853,12 @@ app.get('/api/ch6/safe_qa/questions',(_,res)=>{
   });
 });
 // ======================================================
-// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7B_LOITERING_DETECTOR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7B_LOITERING_DETECTOR
 // 物流/外送/郵差/維修/一般訪客/可疑訪客偵測
 // New APIs:
 //   GET  /api/ch6/delivery/types
@@ -947,7 +947,7 @@ unknown          = 無法判斷
 app.get('/api/ch6/delivery/types',(_,res)=>{
   res.json({
     ok:true,
-    version:'RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR',
+    version:'RT7_CH7B_LOITERING_DETECTOR',
     visitor_types:[
       {id:'delivery_package',label:'📦 宅配員'},
       {id:'delivery_food',label:'🍔 外送員'},
@@ -1072,12 +1072,12 @@ app.post('/api/ch6/delivery/detect',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7B_LOITERING_DETECTOR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7B_LOITERING_DETECTOR
 // 常客/保全/管委會/維修白名單
 // New APIs:
 //   GET  /api/ch6/whitelist
@@ -1275,12 +1275,12 @@ app.post('/api/ch6/whitelist/check',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7B_LOITERING_DETECTOR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7B_LOITERING_DETECTOR
 // 訪客預約 / 邀請碼 / 時段驗證 / 自動放行
 // New APIs:
 //   GET  /api/ch6/appointments
@@ -1489,19 +1489,19 @@ app.post('/api/ch6/appointments/check',async(req,res)=>{
   }
 });
 // ======================================================
-// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7B_LOITERING_DETECTOR
 // ======================================================
 
 app.get('/api/ch6/visitor/log',(_,res)=>{
   res.json({ok:true,logs:readJson('visitor_events.json',[]).slice(0,100)});
 });
 // ======================================================
-// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7B_LOITERING_DETECTOR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7B_LOITERING_DETECTOR
 // 第7章：RT7 Community AI Security Guard - Intruder Detector
 // New page: /rt7_ch7_ai_security
 // New APIs:
@@ -1702,12 +1702,12 @@ app.post('/api/ch7/intruder/check',async(req,res)=>{
 
 app.get('/api/ch7/intruder/log',(_,res)=>res.json({ok:true,logs:readJson('intruder_events.json',[]).slice(0,100)}));
 // ======================================================
-// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7B_LOITERING_DETECTOR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7B_LOITERING_DETECTOR
 // ======================================================
 function rt7PushDebugState(){
   const subs=readJson('push_subscriptions.json',[]);
@@ -1716,7 +1716,7 @@ function rt7PushDebugState(){
   const comms=readJson('communities.json',[]);
   return {
     ok:true,
-    version:'RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR',
+    version:'RT7_CH7B_LOITERING_DETECTOR',
     global_subscriptions:subs.length,
     community_group_total:groups.length,
     communities:comms.map(c=>({
@@ -1771,12 +1771,12 @@ async function testPush(){const cid=community.value;const r=await post('/api/rt7
 render();
 </script></body></html>`));
 // ======================================================
-// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7B_LOITERING_DETECTOR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7B_LOITERING_DETECTOR
 // ======================================================
 app.get('/api/rt7/push/public-key',(_,res)=>{
   res.json({ok:true,publicKey:PUBLIC_VAPID_KEY||null,time:nowIso()});
@@ -1823,12 +1823,12 @@ async function testPush(){const r=await post('/api/rt7/push/test',{community_id:
 render();
 </script></body></html>`));
 // ======================================================
-// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7B_LOITERING_DETECTOR
 // ======================================================
 
 
 // ======================================================
-// RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// RT7_CH7B_LOITERING_DETECTOR
 // 修正 CH7A3：不先 unsubscribe，避免 YES 變 NO。
 // ======================================================
 app.get('/rt7_auto_push_repair_safe',(_,res)=>res.type('html').send(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH7A3A Safe Repair</title><style>
@@ -1848,7 +1848,277 @@ async function testPush(){const r=await post('/api/rt7/push/test',{community_id:
 render();
 </script></body></html>`));
 // ======================================================
-// End RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR
+// End RT7_CH7B_LOITERING_DETECTOR
 // ======================================================
 
-app.listen(PORT,()=>console.log('[RT7_CH7A3A_SAFE_AUTO_SUBSCRIPTION_REPAIR] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
+
+// ======================================================
+// RT7_CH7B_LOITERING_DETECTOR
+// 可疑逗留偵測：連續 Snapshot 累積 Session，超過門檻推播
+// New page:
+//   /rt7_ch7_loitering
+// New APIs:
+//   GET  /api/ch7/loitering/state
+//   POST /api/ch7/loitering/check
+//   POST /api/ch7/loitering/reset
+//   GET  /api/ch7/loitering/log
+// ======================================================
+
+ensureFile('loitering_events.json',[]);
+ensureFile('loitering_sessions.json',{});
+
+const CH7B_LOITERING_THRESHOLD_SEC = Number(process.env.CH7B_LOITERING_THRESHOLD_SEC || 60);
+const CH7B_LOITERING_RESET_SEC = Number(process.env.CH7B_LOITERING_RESET_SEC || 180);
+
+function ch7bReadSessions(){ return readJson('loitering_sessions.json',{}); }
+function ch7bWriteSessions(v){ writeJson('loitering_sessions.json',v||{}); }
+function ch7bSessionKey(community_id, master_uid){ return String(community_id||'unknown')+'__'+String(master_uid||'unknown'); }
+function ch7bSec(a,b){ return Math.max(0, Math.round((new Date(b).getTime()-new Date(a).getTime())/1000)); }
+
+function ch7bSaveLog(event){
+  const logs=readJson('loitering_events.json',[]);
+  logs.unshift(event);
+  writeJson('loitering_events.json',logs.slice(0,500));
+  return event;
+}
+
+function ch7bNormalize(ai){
+  ai=ai||{};
+  const people=Number(ai.people_count||0);
+  ai.person_visible = !!(ai.person_visible || ai.standing || people>0);
+  ai.people_count = people;
+  ai.standing = ai.standing!==false && ai.person_visible;
+  ai.walking_away = !!ai.walking_away;
+  ai.entering = !!ai.entering;
+  ai.risk = ai.risk || 'LOW';
+  ai.summary = ai.summary || (ai.person_visible?'畫面中有人停留或出現。':'畫面中未偵測到人。');
+  return ai;
+}
+
+async function ch7bAnalyzeLoiteringImage(imagePath){
+  const openai=ch7GetOpenAI();
+  if(!openai){
+    return {ok:false,error:'OPENAI_API_KEY_MISSING',person_visible:false,people_count:0,risk:'LOW'};
+  }
+  const img64=fs.readFileSync(imagePath).toString('base64');
+  const prompt=`你是 RT7 社區 AI 保全。請分析門口畫面是否有人正在停留。
+
+只分析可見畫面，不要辨識身份，不要說像誰。
+
+請只輸出 JSON：
+{
+ "ok": true,
+ "people_count": 0,
+ "person_visible": false,
+ "standing": false,
+ "walking_away": false,
+ "entering": false,
+ "sitting": false,
+ "near_door": false,
+ "suspicious": false,
+ "person_description": "繁體中文描述",
+ "risk": "LOW|MEDIUM|HIGH",
+ "reason": "繁體中文原因",
+ "confidence": 85,
+ "summary": "給保全看的繁體中文摘要"
+}`;
+
+  const r=await openai.chat.completions.create({
+    model:process.env.RT7_SECURITY_MODEL||process.env.RT7_VISITOR_MODEL||'gpt-4o',
+    messages:[
+      {role:'system',content:'你是社區 AI 保全，只分析畫面中是否有人停留、是否正在離開或進入。只輸出 JSON。'},
+      {role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:`data:image/jpeg;base64,${img64}`}}]}
+    ],
+    temperature:0
+  });
+  const parsed=ch7SafeJsonParse(r.choices&&r.choices[0]&&r.choices[0].message&&r.choices[0].message.content);
+  parsed.ok=true;
+  return ch7bNormalize(parsed);
+}
+
+function ch7bUpdateSession(community, master_uid, ai){
+  const now=nowIso();
+  const sessions=ch7bReadSessions();
+  const key=ch7bSessionKey(community.community_id, master_uid||community.master_uid);
+  let s=sessions[key];
+
+  if(!ai.person_visible || ai.walking_away || ai.entering){
+    if(s){
+      s.active=false;
+      s.last_seen=now;
+      s.closed_reason=ai.walking_away?'WALKING_AWAY':(ai.entering?'ENTERING':'NO_PERSON');
+      sessions[key]=s;
+      ch7bWriteSessions(sessions);
+    }
+    return {session:s||null,duration_sec:0,loitering:false,reset:true};
+  }
+
+  if(!s || !s.active || ch7bSec(s.last_seen, now)>CH7B_LOITERING_RESET_SEC){
+    s={
+      key,
+      community_id:community.community_id,
+      community_name:community.name,
+      master_uid:master_uid||community.master_uid,
+      first_seen:now,
+      last_seen:now,
+      count:1,
+      active:true,
+      alerted:false
+    };
+  }else{
+    s.last_seen=now;
+    s.count=(s.count||0)+1;
+  }
+
+  const duration=ch7bSec(s.first_seen, s.last_seen);
+  const loitering=duration>=CH7B_LOITERING_THRESHOLD_SEC && (s.count||0)>=2;
+  sessions[key]=s;
+  ch7bWriteSessions(sessions);
+  return {session:s,duration_sec:duration,loitering,reset:false};
+}
+
+app.get('/api/ch7/loitering/state',(_,res)=>{
+  res.json({
+    ok:true,
+    ch7b:true,
+    threshold_sec:CH7B_LOITERING_THRESHOLD_SEC,
+    reset_sec:CH7B_LOITERING_RESET_SEC,
+    sessions:ch7bReadSessions(),
+    logs:readJson('loitering_events.json',[]).slice(0,100),
+    communities:readJson('communities.json',[])
+  });
+});
+
+app.post('/api/ch7/loitering/reset',(req,res)=>{
+  const {community_id,master_uid}=req.body||{};
+  if(community_id||master_uid){
+    const sessions=ch7bReadSessions();
+    Object.keys(sessions).forEach(k=>{
+      const s=sessions[k];
+      if((!community_id||s.community_id===community_id)&&(!master_uid||s.master_uid===master_uid))delete sessions[k];
+    });
+    ch7bWriteSessions(sessions);
+  }else{
+    ch7bWriteSessions({});
+  }
+  res.json({ok:true,sessions:ch7bReadSessions()});
+});
+
+app.get('/api/ch7/loitering/log',(_,res)=>res.json({ok:true,logs:readJson('loitering_events.json',[]).slice(0,100)}));
+
+app.post('/api/ch7/loitering/check',async(req,res)=>{
+  const started=Date.now();
+  try{
+    const {community_id,master_uid,image,snapshot_file,simulate_sec}=req.body||{};
+    let community=community_id?ch7CommunityById(community_id):null;
+    if(!community&&master_uid)community=ch7CommunityByMaster(master_uid);
+    if(!community)return res.status(404).json({ok:false,error:'community_not_found'});
+
+    let imagePath=null,file=snapshot_file||'';
+    if(image){
+      file='loitering_'+Date.now()+'.jpg';
+      imagePath=path.join(CH7_UPLOAD_DIR,file);
+      fs.writeFileSync(imagePath,Buffer.from(ch7CleanBase64Image(image),'base64'));
+    }else if(snapshot_file){
+      imagePath=path.join(CH7_UPLOAD_DIR,snapshot_file);
+      if(!fs.existsSync(imagePath))return res.status(404).json({ok:false,error:'snapshot_not_found'});
+    }else return res.status(400).json({ok:false,error:'missing image_or_snapshot_file'});
+
+    const ai=await ch7bAnalyzeLoiteringImage(imagePath);
+    let track=ch7bUpdateSession(community,master_uid||community.master_uid,ai);
+
+    if(simulate_sec && track.session){
+      const back=new Date(Date.now()-Number(simulate_sec)*1000).toISOString();
+      track.session.first_seen=back;
+      const sessions=ch7bReadSessions();
+      sessions[track.session.key]=track.session;
+      ch7bWriteSessions(sessions);
+      track.duration_sec=Number(simulate_sec);
+      track.loitering=Number(simulate_sec)>=CH7B_LOITERING_THRESHOLD_SEC;
+    }
+
+    const risk=track.loitering?'MEDIUM':(ai.risk||'LOW');
+    let push={sent:0,total:0,status:'SKIPPED_NOT_LOITERING'};
+
+    if(track.loitering && track.session && !track.session.alerted){
+      push=await ch7PushCommunity(community.community_id,{
+        type:'loitering_alert',
+        title:'⚠️ '+community.name+' 可疑逗留',
+        body:'門口有人停留超過 '+track.duration_sec+' 秒，請注意安全。',
+        url:'/rt7_ch7_loitering',
+        tag:'rt7-loitering-alert',
+        community_id:community.community_id,
+        master_uid:master_uid||community.master_uid,
+        duration_sec:track.duration_sec
+      });
+      const sessions=ch7bReadSessions();
+      if(sessions[track.session.key]){
+        sessions[track.session.key].alerted=true;
+        sessions[track.session.key].alert_time=nowIso();
+        ch7bWriteSessions(sessions);
+        track.session=sessions[track.session.key];
+      }
+    }else if(track.loitering){
+      push={sent:0,total:0,status:'ALREADY_ALERTED'};
+    }
+
+    const event=ch7bSaveLog({
+      time:nowIso(),
+      community_id:community.community_id,
+      community_name:community.name,
+      master_uid:master_uid||community.master_uid,
+      snapshot_file:file,
+      kind:'loitering_check',
+      analysis:ai,
+      session:track.session,
+      duration_sec:track.duration_sec,
+      loitering:track.loitering,
+      risk,
+      result:track.loitering?'LOITERING':'WATCHING',
+      push_status:push.status,
+      push_sent:push.sent||0,
+      elapsed_ms:Date.now()-started
+    });
+
+    res.json({ok:true,event,analysis:ai,track,push});
+  }catch(e){
+    const event=ch7bSaveLog({time:nowIso(),kind:'loitering_check',result:'ERROR',error:String(e.message||e),elapsed_ms:Date.now()-started});
+    res.status(500).json({ok:false,event,error:String(e.message||e)});
+  }
+});
+
+app.get('/rt7_ch7_loitering',(_,res)=>res.type('html').send(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 CH7B Loitering Detector</title><style>
+body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1050px;margin:auto;padding:16px}.card{background:#fff;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button,select,input{font-size:16px;padding:10px;margin:4px;border-radius:8px;border:1px solid #ccd6dc}button{background:#0b78d0;color:#fff;border:0}.green{background:#0b9b5a}.red{background:#c0392b}.gray{background:#64748b}.pill{display:inline-block;padding:3px 9px;border-radius:999px;background:#e9f7ef;color:#0b7a43;font-weight:bold}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}</style></head><body><div class="wrap"><h1>RT7 CH7B Loitering Detector</h1><p>連續 Snapshot 追蹤門口是否有人逗留，超過門檻自動推播。</p><div id="app">載入中...</div></div><script>
+async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let t=await r.text();try{return JSON.parse(t)}catch{return{ok:false,status:r.status,text:t.slice(0,500)}}}
+async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)});}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function out(x){document.getElementById('out').textContent=JSON.stringify(x,null,2);}
+function fileDataUrl(input){return new Promise((resolve,reject)=>{const f=input.files&&input.files[0];if(!f)return reject(new Error('NO_FILE'));const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(f);});}
+async function render(){
+ const st=await api('/api/ch7/loitering/state');
+ let comms=st.communities||[];
+ let h='';
+ h+='<div class="card"><h2>1. 逗留偵測</h2><p>門檻：<span class="pill">'+esc(st.threshold_sec)+' 秒</span></p><select id="comm">';
+ comms.forEach(c=>h+='<option value="'+esc(c.community_id)+'">'+esc(c.name+' | '+c.master_uid)+'</option>');
+ h+='</select><input id="photo" type="file" accept="image/*" capture="environment"><input id="simulate" placeholder="測試用：模擬秒數，例如70"><button class="green" onclick="check()">上傳 Snapshot + 逗留偵測</button><button class="red" onclick="reset()">清除 Loitering Session</button></div>';
+ h+='<div class="card"><h2>2. Loitering Sessions</h2><pre>'+esc(JSON.stringify(st.sessions,null,2))+'</pre></div>';
+ h+='<div class="card"><h2>3. Loitering Event Log <span class="pill">'+esc((st.logs||[]).length)+'</span></h2><pre>'+esc(JSON.stringify((st.logs||[]).slice(0,20),null,2))+'</pre></div>';
+ h+='<div class="card"><h2>4. 最新結果</h2><pre id="out">READY</pre></div>';
+ app.innerHTML=h;
+}
+async function check(){
+ const image=await fileDataUrl(photo);
+ const r=await post('/api/ch7/loitering/check',{community_id:comm.value,image,simulate_sec:simulate.value});
+ out(r); setTimeout(render,1200);
+}
+async function reset(){
+ const r=await post('/api/ch7/loitering/reset',{community_id:comm.value});
+ out(r); setTimeout(render,800);
+}
+render();
+</script></body></html>`));
+// ======================================================
+// End RT7_CH7B_LOITERING_DETECTOR
+// ======================================================
+
+app.listen(PORT,()=>console.log('[RT7_CH7B_LOITERING_DETECTOR] http://localhost:'+PORT+'/rt7_ch6_ai_visitor'));
