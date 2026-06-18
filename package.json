@@ -1,6 +1,6 @@
 {
-  "name": "rt7-ch7b1-realtime-loitering-tracker",
-  "version": "7.2.1",
+  "name": "rt7-ch7b2-esp32-realtime-loitering-person-tracker",
+  "version": "7.2.2",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
