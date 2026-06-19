@@ -1,4 +1,4 @@
-// RT7_EDU_OPEN_DOOR_V5
+// RT7_EDU_OPEN_DOOR_V5A
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_OPEN_DOOR_V5';
+const VERSION = 'RT7_EDU_OPEN_DOOR_V5A';
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
@@ -359,7 +359,7 @@ return String.raw`<!doctype html>
 body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1120px;margin:20px auto;padding:16px}.card{background:white;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px;box-sizing:border-box}button{background:#0b9b5a;color:#fff;border:0;cursor:pointer}.danger{background:#c0392b}.blue{background:#0b6fa4}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.ok{color:#079b50;font-weight:bold}.bad{color:#d33;font-weight:bold}.hint{color:#64748b;font-size:14px;line-height:1.55}.uidbox{background:#f8fafc;font-family:ui-monospace,Consolas,monospace}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.warn{background:#fff8e1;border-left:5px solid #f2c94c}.step{font-weight:bold;color:#0b5f8a}.loginok{background:#effaf4;border-left:5px solid #0b9b5a}</style>
 </head>
 <body><div class="wrap">
-<h1>RT7 EDU OPEN DOOR V5</h1>
+<h1>RT7 EDU OPEN DOOR V5A</h1>
 <p><span class="tag">第五堂課</span> Open Door / Command Queue / ESP32 GPIO40 Relay</p>
 <p><button class="blue" onclick="location.href='/edu/community/register'">第二堂社區註冊</button> <button class="blue" onclick="location.href='/edu/login'">第三堂登入驗證</button> <button class="blue" onclick="location.href='/edu/doorbell'">第四堂門鈴事件</button> <button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button></p>
 <div id="app">載入中...</div>
@@ -407,28 +407,14 @@ async function load(){
  if(!(s.commands||[]).length){h+='<tr><td colspan="9" class="hint">尚未建立開門命令。</td></tr>';}
  (s.commands||[]).forEach(function(c){h+='<tr><td><b>'+esc(c.command_id)+'</b></td><td>'+esc(c.command)+'</td><td class="'+(c.status==='DONE'?'ok':(c.status==='PENDING'?'bad':''))+'">'+esc(c.status)+'</td><td>'+esc(c.community_name||'未綁定')+'<br><span class="hint">'+esc(c.community_id||'')+'</span></td><td>'+esc(c.master_uid)+'</td><td>GPIO'+esc(c.relay_pin)+' / '+esc(c.pulse_ms)+'ms</td><td>'+esc(c.created_at)+'</td><td>'+esc(c.delivered_at||'')+'</td><td>'+esc(c.ack_at||'')+'</td></tr>';});
  h+='</table></div>';
- h+='<div class="card warn"><h2>10. 第五堂課觀察重點</h2><pre>登入成功
-↓
-網頁按「送出開門命令」
-↓
-POST /edu/command/open-door
-↓
-Railway Command Queue
-↓
-ESP32 GET /edu/master/command
-↓
-收到 OPEN_DOOR
-↓
-GPIO40 relay pulse 800ms
-↓
-POST /edu/master/command/ack</pre><p class="hint">這堂只做開門控制；AI Face Match / Liveness 留到正式版 RT7 展示。</p></div>';
- h+='<div class="card"><h2>10. Heartbeat 模擬測試</h2><p class="hint">沒有 ESP32 時，可先用模擬 heartbeat 產生一台設備。</p><div class="grid"><input id="h_mac" value="14:C1:9F:29:F2:68" oninput="syncSimUid()" placeholder="MAC"><input id="h_uid" class="uidbox" readonly><input id="h_ip" value="192.168.0.179"></div><button onclick="sendHeartbeat()">送出模擬 Heartbeat</button></div>';
+ h+='<div class="card warn"><h2>10. 第五堂課觀察重點</h2><pre>'+esc(['登入成功','↓','網頁按「送出開門命令」','↓','POST /edu/command/open-door','↓','Railway Command Queue','↓','ESP32 GET /edu/master/command','↓','收到 OPEN_DOOR','↓','GPIO40 relay pulse 800ms','↓','POST /edu/master/command/ack'].join('\n'))+'</pre><p class="hint">這堂只做開門控制；AI Face Match / Liveness 留到正式版 RT7 展示。</p></div>';
+ h+='<div class="card"><h2>11. Heartbeat 模擬測試</h2><p class="hint">沒有 ESP32 時，可先用模擬 heartbeat 產生一台設備。</p><div class="grid"><input id="h_mac" value="14:C1:9F:29:F2:68" oninput="syncSimUid()" placeholder="MAC"><input id="h_uid" class="uidbox" readonly><input id="h_ip" value="192.168.0.179"></div><button onclick="sendHeartbeat()">送出模擬 Heartbeat</button></div>';
  h+='<div class="card"><h2>回應</h2><pre id="out">READY</pre></div>';
  document.getElementById('app').innerHTML=h; syncSimUid();
 }
 async function registerUser(){const data={community_id:document.getElementById('r_community').value,account:document.getElementById('r_account').value,display_name:document.getElementById('r_name').value,password:document.getElementById('r_pass').value}; out(await post('/edu/auth/register',data)); await load();}
 async function loginUser(){const data={community_id:document.getElementById('l_community').value,account:document.getElementById('l_account').value,password:document.getElementById('l_pass').value}; const r=await post('/edu/auth/login',data); out(r); await load();}
-async function sendHeartbeat(){syncSimUid(); out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value,source:'SIM',lesson:'DOORBELL_EVENT_V4'})); await load();}
+async function sendHeartbeat(){syncSimUid(); out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value,source:'SIM',lesson:'OPEN_DOOR_V5A'})); await load();}
 async function simulateDoorbell(){var masters=Object.values((STATE&&STATE.masters)||{}); var uid=masters[0]?masters[0].master_uid:''; if(!uid){out({ok:false,error:'請先送出 heartbeat'});return;} out(await post('/edu/event/doorbell',{master_uid:uid,source:'SIM'})); await load();}
 async function clearDoorbells(){out(await del('/edu/events/doorbell')); await load();}
 async function openDoorCmd(){var communities=(STATE&&STATE.communities)||[]; var c=communities[0]; if(!c){out({ok:false,error:'請先完成第二堂社區註冊'});return;} out(await post('/edu/command/open-door',{community_id:c.community_id,source:'WEB'})); await load();}
