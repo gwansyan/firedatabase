@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-doorbell-event-v4",
-  "version": "4.0.0",
-  "description": "RT7 EDU V4: doorbell event queue with preserved heartbeat, community register, and login auth",
+  "name": "rt7-edu-open-door-v5",
+  "version": "5.0.0",
+  "description": "RT7 EDU V5: open door command queue with heartbeat, community, login, and doorbell event",
   "main": "server.js",
   "scripts": {"start": "node server.js"},
   "dependencies": {"cors": "latest", "express": "latest"}

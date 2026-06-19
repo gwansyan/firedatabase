@@ -1,7 +1,7 @@
-// RT7_EDU_DOORBELL_EVENT_V4
-// 第四堂課：門鈴事件 / Doorbell Event Queue
+// RT7_EDU_OPEN_DOOR_V5
+// 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
-// 新增 API: POST /edu/event/doorbell, GET /edu/events/doorbell, DELETE /edu/events/doorbell
+// 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
 
 const express = require('express');
 const cors = require('cors');
@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_DOORBELL_EVENT_V4';
+const VERSION = 'RT7_EDU_OPEN_DOOR_V5';
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
@@ -77,6 +77,7 @@ ensureFile('communities.json', []);
 ensureFile('users.json', []);
 ensureFile('sessions.json', []);
 ensureFile('doorbell_events.json', []);
+ensureFile('commands.json', []);
 
 app.get('/', (_req, res) => res.redirect('/edu'));
 app.get('/health', (_req, res) => res.json({ ok: true, version: VERSION, time: nowIso() }));
@@ -96,7 +97,8 @@ app.get('/edu/state', (_req, res) => {
   const sessions = readJson('sessions.json', []).filter(s => Date.now() < new Date(s.expires_at).getTime());
   if (sessions.length !== readJson('sessions.json', []).length) writeJson('sessions.json', sessions);
   const doorbell_events = readJson('doorbell_events.json', []);
-  res.json({ ok: true, version: VERSION, masters, communities, users, sessions, sessions_count: sessions.length, doorbell_events, doorbell_count: doorbell_events.length });
+  const commands = readJson('commands.json', []);
+  res.json({ ok: true, version: VERSION, masters, communities, users, sessions, sessions_count: sessions.length, doorbell_events, doorbell_count: doorbell_events.length, commands, command_count: commands.length });
 });
 
 app.post('/edu/master/heartbeat', (req, res) => {
@@ -260,6 +262,79 @@ app.get('/edu/events/doorbell', (_req, res) => {
   res.json({ ok: true, version: VERSION, events: readJson('doorbell_events.json', []) });
 });
 
+// 第五堂：開門控制。網頁送出 OPEN_DOOR command，ESP32 輪詢後 GPIO40 pulse 800ms。
+app.post('/edu/command/open-door', (req, res) => {
+  const body = req.body || {};
+  let community_id = safeText(body.community_id, 120);
+  let master_uid = normalizeUid(body.master_uid);
+  const communities = readJson('communities.json', []);
+  let community = community_id ? communities.find(c => c.community_id === community_id) : null;
+  if (!community && master_uid) community = communities.find(c => c.master_uid === master_uid) || null;
+  if (!community) return res.status(404).json({ ok: false, error: 'community not found. Please register community first.' });
+  master_uid = normalizeUid(community.master_uid || master_uid);
+  if (!master_uid) return res.status(400).json({ ok: false, error: 'missing master_uid' });
+  let commands = readJson('commands.json', []);
+  const cmd = {
+    command_id: 'CMD-' + Date.now().toString(36).toUpperCase(),
+    command: 'OPEN_DOOR',
+    status: 'PENDING',
+    community_id: community.community_id,
+    community_name: community.community_name,
+    master_uid,
+    relay_pin: 40,
+    pulse_ms: 800,
+    source: safeText(body.source || 'WEB', 20).toUpperCase(),
+    created_at: nowIso(),
+    delivered_at: '',
+    ack_at: '',
+    lesson: VERSION
+  };
+  commands.unshift(cmd);
+  commands = commands.slice(0, 50);
+  writeJson('commands.json', commands);
+  console.log('[EDU][V5][OPEN_DOOR_QUEUED]', cmd.command_id, cmd.community_name, master_uid);
+  res.json({ ok: true, version: VERSION, command: cmd, count: commands.length });
+});
+
+app.get('/edu/master/command', (req, res) => {
+  const master_uid = normalizeUid(req.query.master_uid || req.query.uid || '');
+  if (!master_uid) return res.status(400).json({ ok: false, error: 'missing master_uid' });
+  let commands = readJson('commands.json', []);
+  const cmd = commands.find(c => c.master_uid === master_uid && c.status === 'PENDING');
+  if (!cmd) return res.json({ ok: true, version: VERSION, command: 'NONE' });
+  cmd.status = 'DELIVERED';
+  cmd.delivered_at = nowIso();
+  writeJson('commands.json', commands);
+  console.log('[EDU][V5][CMD_DELIVER]', cmd.command_id, master_uid, cmd.command);
+  res.json({ ok: true, version: VERSION, command: cmd.command, command_id: cmd.command_id, relay_pin: cmd.relay_pin, pulse_ms: cmd.pulse_ms });
+});
+
+app.post('/edu/master/command/ack', (req, res) => {
+  const body = req.body || {};
+  const command_id = safeText(body.command_id, 80);
+  const status = safeText(body.status || 'DONE', 20).toUpperCase();
+  let commands = readJson('commands.json', []);
+  const cmd = commands.find(c => c.command_id === command_id);
+  if (!cmd) return res.status(404).json({ ok: false, error: 'command_id not found' });
+  cmd.status = status;
+  cmd.ack_at = nowIso();
+  cmd.ack_note = safeText(body.note || '', 120);
+  writeJson('commands.json', commands);
+  console.log('[EDU][V5][CMD_ACK]', command_id, status);
+  res.json({ ok: true, version: VERSION, command: cmd });
+});
+
+app.get('/edu/commands', (_req, res) => {
+  res.json({ ok: true, version: VERSION, commands: readJson('commands.json', []) });
+});
+
+app.delete('/edu/commands', (_req, res) => {
+  const before = readJson('commands.json', []);
+  writeJson('commands.json', []);
+  res.json({ ok: true, version: VERSION, deleted: before.length });
+});
+
+
 app.delete('/edu/events/doorbell', (_req, res) => {
   const before = readJson('doorbell_events.json', []);
   writeJson('doorbell_events.json', []);
@@ -279,14 +354,14 @@ return String.raw`<!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RT7 EDU Doorbell Event V4</title>
+<title>RT7 EDU Open Door V5</title>
 <style>
 body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1120px;margin:20px auto;padding:16px}.card{background:white;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px;box-sizing:border-box}button{background:#0b9b5a;color:#fff;border:0;cursor:pointer}.danger{background:#c0392b}.blue{background:#0b6fa4}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.ok{color:#079b50;font-weight:bold}.bad{color:#d33;font-weight:bold}.hint{color:#64748b;font-size:14px;line-height:1.55}.uidbox{background:#f8fafc;font-family:ui-monospace,Consolas,monospace}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.warn{background:#fff8e1;border-left:5px solid #f2c94c}.step{font-weight:bold;color:#0b5f8a}.loginok{background:#effaf4;border-left:5px solid #0b9b5a}</style>
 </head>
 <body><div class="wrap">
-<h1>RT7 EDU DOORBELL EVENT V4</h1>
-<p><span class="tag">第四堂課</span> Doorbell Event / Railway Event Queue / Doorbell Log</p>
-<p><button class="blue" onclick="location.href='/edu/community/register'">第二堂社區註冊</button> <button class="blue" onclick="location.href='/edu/login'">第三堂登入驗證</button> <button class="blue" onclick="location.href='/edu/doorbell'">第四堂門鈴事件</button></p>
+<h1>RT7 EDU OPEN DOOR V5</h1>
+<p><span class="tag">第五堂課</span> Open Door / Command Queue / ESP32 GPIO40 Relay</p>
+<p><button class="blue" onclick="location.href='/edu/community/register'">第二堂社區註冊</button> <button class="blue" onclick="location.href='/edu/login'">第三堂登入驗證</button> <button class="blue" onclick="location.href='/edu/doorbell'">第四堂門鈴事件</button> <button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button></p>
 <div id="app">載入中...</div>
 </div>
 <script>
@@ -328,7 +403,25 @@ async function load(){
  if(!(s.doorbell_events||[]).length){h+='<tr><td colspan="6" class="hint">尚未收到門鈴事件。</td></tr>';}
  (s.doorbell_events||[]).forEach(function(e){h+='<tr><td><b>'+esc(e.event_id)+'</b></td><td>'+esc(e.message)+'</td><td>'+esc(e.community_name||'未綁定')+'<br><span class="hint">'+esc(e.community_id||'')+'</span></td><td>'+esc(e.master_uid)+'</td><td>'+esc(e.source)+'</td><td>'+esc(e.created_at)+'</td></tr>';});
  h+='</table></div>';
- h+='<div class="card warn"><h2>9. 第四堂課觀察重點</h2><pre>登入成功\n↓\nESP32 GPIO38 門鈴按鍵\n↓\nPOST /edu/event/doorbell\n↓\nRailway Doorbell Event Queue\n↓\ndoorbell_events.json\n↓\n網頁顯示門鈴事件</pre><p class="hint">第五堂才加入：OPEN_DOOR / Command Queue / GPIO40 開門控制。</p></div>';
+ h+='<div class="card"><h2>9. Open Door Commands</h2><p class="hint">第五堂：網頁送出 OPEN_DOOR，Railway 寫入 commands.json；ESP32 每 1~2 秒輪詢 /edu/master/command，收到後 GPIO40 pulse 800ms，最後 ACK。</p><p><button onclick="openDoorCmd()">送出開門命令</button> <button class="danger" onclick="clearCommands()">清除命令</button></p><table><tr><th>Command ID</th><th>Command</th><th>Status</th><th>Community</th><th>Master UID</th><th>GPIO</th><th>Created</th><th>Delivered</th><th>ACK</th></tr>';
+ if(!(s.commands||[]).length){h+='<tr><td colspan="9" class="hint">尚未建立開門命令。</td></tr>';}
+ (s.commands||[]).forEach(function(c){h+='<tr><td><b>'+esc(c.command_id)+'</b></td><td>'+esc(c.command)+'</td><td class="'+(c.status==='DONE'?'ok':(c.status==='PENDING'?'bad':''))+'">'+esc(c.status)+'</td><td>'+esc(c.community_name||'未綁定')+'<br><span class="hint">'+esc(c.community_id||'')+'</span></td><td>'+esc(c.master_uid)+'</td><td>GPIO'+esc(c.relay_pin)+' / '+esc(c.pulse_ms)+'ms</td><td>'+esc(c.created_at)+'</td><td>'+esc(c.delivered_at||'')+'</td><td>'+esc(c.ack_at||'')+'</td></tr>';});
+ h+='</table></div>';
+ h+='<div class="card warn"><h2>10. 第五堂課觀察重點</h2><pre>登入成功
+↓
+網頁按「送出開門命令」
+↓
+POST /edu/command/open-door
+↓
+Railway Command Queue
+↓
+ESP32 GET /edu/master/command
+↓
+收到 OPEN_DOOR
+↓
+GPIO40 relay pulse 800ms
+↓
+POST /edu/master/command/ack</pre><p class="hint">這堂只做開門控制；AI Face Match / Liveness 留到正式版 RT7 展示。</p></div>';
  h+='<div class="card"><h2>10. Heartbeat 模擬測試</h2><p class="hint">沒有 ESP32 時，可先用模擬 heartbeat 產生一台設備。</p><div class="grid"><input id="h_mac" value="14:C1:9F:29:F2:68" oninput="syncSimUid()" placeholder="MAC"><input id="h_uid" class="uidbox" readonly><input id="h_ip" value="192.168.0.179"></div><button onclick="sendHeartbeat()">送出模擬 Heartbeat</button></div>';
  h+='<div class="card"><h2>回應</h2><pre id="out">READY</pre></div>';
  document.getElementById('app').innerHTML=h; syncSimUid();
@@ -338,11 +431,13 @@ async function loginUser(){const data={community_id:document.getElementById('l_c
 async function sendHeartbeat(){syncSimUid(); out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value,source:'SIM',lesson:'DOORBELL_EVENT_V4'})); await load();}
 async function simulateDoorbell(){var masters=Object.values((STATE&&STATE.masters)||{}); var uid=masters[0]?masters[0].master_uid:''; if(!uid){out({ok:false,error:'請先送出 heartbeat'});return;} out(await post('/edu/event/doorbell',{master_uid:uid,source:'SIM'})); await load();}
 async function clearDoorbells(){out(await del('/edu/events/doorbell')); await load();}
+async function openDoorCmd(){var communities=(STATE&&STATE.communities)||[]; var c=communities[0]; if(!c){out({ok:false,error:'請先完成第二堂社區註冊'});return;} out(await post('/edu/command/open-door',{community_id:c.community_id,source:'WEB'})); await load();}
+async function clearCommands(){out(await del('/edu/commands')); await load();}
 load(); setInterval(function(){ if(!document.activeElement || document.activeElement.tagName!=='INPUT') load(); },10000);
 </script></body></html>`;
 }
 
-app.get(['/edu', '/edu/doorbell', '/edu/login'], (_req, res) => { res.type('html').send(renderEduPage()); });
+app.get(['/edu', '/edu/doorbell', '/edu/login', '/edu/open-door'], (_req, res) => { res.type('html').send(renderEduPage()); });
 
 
 // 第二堂頁面保留：/edu/community/register 必須顯示第二堂社區註冊頁，不可變成第三堂登入頁。
@@ -397,4 +492,4 @@ load(); setInterval(function(){ if(!document.activeElement || document.activeEle
 }
 app.get('/edu/community/register', (_req, res) => { res.type('html').send(renderCommunityRegisterPage()); });
 
-app.listen(PORT, () => console.log('[' + VERSION + '] http://localhost:' + PORT + '/edu/doorbell'));
+app.listen(PORT, () => console.log('[' + VERSION + '] http://localhost:' + PORT + '/edu/open-door'));
