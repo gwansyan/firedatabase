@@ -1,4 +1,4 @@
-// RT7_EDU_FACE_RECOGNITION_V9A1_INPUT_FOCUS_AUTO_REFRESH_FIX
+// RT7_EDU_FACE_RECOGNITION_V9B_PREVIEW_MANUAL_CAPTURE
 // 第九堂進階：Realtime Snapshot -> Auto Face Match -> Push -> OPEN_DOOR
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
@@ -14,7 +14,7 @@ const webPush = require('web-push');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_FACE_RECOGNITION_V9A1_INPUT_FOCUS_AUTO_REFRESH_FIX';
+const VERSION = 'RT7_EDU_FACE_RECOGNITION_V9B_PREVIEW_MANUAL_CAPTURE';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:teacher@example.com';
 let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
@@ -301,7 +301,7 @@ async function sendFaceMatchPush(result) {
     title: result.allow_open ? 'RT7 EDU 人臉辨識成功' : 'RT7 EDU 人臉辨識未通過',
     body: (result.best_name || '未知') + '｜Score ' + (result.match_score || 0) + '%｜Liveness ' + (result.liveness || 'UNKNOWN') + '｜' + (result.allow_open ? '門已開啟' : '門保持上鎖'),
     tag: result.match_id,
-    url: '/edu/face-realtime',
+    url: '/edu/face-preview',
     match_id: result.match_id,
     best_name: result.best_name,
     match_score: result.match_score,
@@ -395,6 +395,38 @@ app.post('/edu/command/open-door', (req, res) => {
   commands = commands.slice(0, 50);
   writeJson('commands.json', commands);
   console.log('[EDU][V5][OPEN_DOOR_QUEUED]', cmd.command_id, cmd.community_name, master_uid);
+  res.json({ ok: true, version: VERSION, command: cmd, count: commands.length });
+});
+
+// V9B: 手動拍照命令。手機頁面送出 SNAPSHOT_NOW，ESP32 輪詢後拍一張照片上傳；不上自動辨識。
+app.post('/edu/face/capture-command', (req, res) => {
+  const body = req.body || {};
+  let community_id = safeText(body.community_id, 120);
+  let master_uid = normalizeUid(body.master_uid);
+  const communities = readJson('communities.json', []);
+  let community = community_id ? communities.find(c => c.community_id === community_id) : null;
+  if (!community && master_uid) community = communities.find(c => c.master_uid === master_uid) || null;
+  if (!community && communities[0]) community = communities[0];
+  if (!community) return res.status(404).json({ ok: false, error: 'community not found. Please register community first.' });
+  master_uid = normalizeUid(community.master_uid || master_uid);
+  let commands = readJson('commands.json', []);
+  const cmd = {
+    command_id: 'CMD-' + Date.now().toString(36).toUpperCase(),
+    command: 'SNAPSHOT_NOW',
+    status: 'PENDING',
+    community_id: community.community_id,
+    community_name: community.community_name,
+    master_uid,
+    source: safeText(body.source || 'WEB', 20).toUpperCase(),
+    created_at: nowIso(),
+    delivered_at: '',
+    ack_at: '',
+    lesson: VERSION
+  };
+  commands.unshift(cmd);
+  commands = commands.slice(0, 50);
+  writeJson('commands.json', commands);
+  console.log('[EDU][V9B][SNAPSHOT_NOW_QUEUED]', cmd.command_id, cmd.community_name, master_uid);
   res.json({ ok: true, version: VERSION, command: cmd, count: commands.length });
 });
 
@@ -688,9 +720,9 @@ app.delete('/edu/face/db', (_req,res)=>{const before=readJson('face_db.json',[])
 app.get('/edu/face/results', (_req,res)=>res.json({ok:true,version:VERSION,results:readJson('face_match_results.json',[])}));
 
 app.get('/edu/face-recognition', (_req,res)=>res.send(renderFaceRecognitionPage()));
-app.get('/edu/face-realtime', (_req,res)=>res.send(renderFaceRealtimePage()));
+app.get('/edu/face-preview', (_req,res)=>res.send(renderFaceRealtimePage()));
 app.get('/edu/face/events', (_req,res)=>res.json({ok:true,version:VERSION,events:readJson('face_match_events.json',[])}));
-function renderFaceRecognitionPage(){return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU FACE RECOGNITION V9A</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1040px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button,input,select{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}button{background:#0b9b5a;color:white;border:0}.blue{background:#0b6fa4}.danger{background:#c0392b}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.hint{color:#64748b;line-height:1.6}.ok{color:#079b50;font-weight:bold}.bad{color:#c0392b;font-weight:bold}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}img.snap{width:100%;max-width:640px;border-radius:12px;border:1px solid #d8e1e7;background:#f8fafc}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.warn{background:#fff8e1;border-left:5px solid #f2c94c}</style></head><body><div class="wrap"><h1>RT7 EDU FACE RECOGNITION V9A1 INPUT FOCUS FIX</h1><p><span class="tag">第九堂進階</span> Realtime Snapshot / Auto Face Match / Push / OPEN_DOOR</p><p><button class="blue" onclick="location.href='/edu/face-realtime'">Realtime Monitor</button></p><p><button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 Snapshot</button><button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button></p><div id="app">載入中...</div></div><script>
+function renderFaceRecognitionPage(){return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU FACE RECOGNITION V9A</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1040px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button,input,select{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}button{background:#0b9b5a;color:white;border:0}.blue{background:#0b6fa4}.danger{background:#c0392b}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.hint{color:#64748b;line-height:1.6}.ok{color:#079b50;font-weight:bold}.bad{color:#c0392b;font-weight:bold}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}img.snap{width:100%;max-width:640px;border-radius:12px;border:1px solid #d8e1e7;background:#f8fafc}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.warn{background:#fff8e1;border-left:5px solid #f2c94c}</style></head><body><div class="wrap"><h1>RT7 EDU FACE RECOGNITION V9B PREVIEW MANUAL CAPTURE</h1><p><span class="tag">第九堂進階</span> Preview / Manual Capture / Manual Face Match / OPEN_DOOR</p><p><button class="blue" onclick="location.href='/edu/face-preview'">手動預覽監看</button><button class="blue" onclick="captureNow()">請 ESP32 拍照</button></p><p><button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 Snapshot</button><button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button></p><div id="app">載入中...</div></div><script>
 async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let j={};try{j=await r.json()}catch(e){} if(!r.ok)j.http_status=r.status;return j} async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)})} async function del(p){return api(p,{method:'DELETE'})} function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function opts(cs){return (cs||[]).map(c=>'<option value="'+esc(c.master_uid)+'">'+esc(c.community_name)+' | '+esc(c.master_uid)+'</option>').join('')||'<option value="">請先完成第二堂</option>'}
 async function load(){const st=await api('/edu/state'), snaps=await api('/edu/face/snapshots'), db=await api('/edu/face/db'), rr=await api('/edu/face/results'); const cs=st.communities||[], latest=(snaps.snapshots||[])[0]; let h='';
@@ -700,19 +732,20 @@ h+='<div class="card"><h2>3. Face DB</h2><table><tr><th>Face ID</th><th>Name</th
 h+='<div class="card"><h2>4. 辨識測試</h2><p class="hint">用最新 Snapshot 與 Face DB 比對；MATCH + LIVENESS=REAL 時自動送出 OPEN_DOOR。</p><select id="match_uid">'+opts(cs)+'</select><button onclick="matchFace()">做人臉辨識測試</button></div>';
 h+='<div class="card"><h2>5. Match Results</h2><table><tr><th>Match ID</th><th>Name</th><th>Score</th><th>Liveness</th><th>Door</th><th>Command</th><th>Time</th></tr>'+((rr.results||[]).map(r=>'<tr><td>'+esc(r.match_id)+'</td><td>'+esc(r.best_name)+'</td><td>'+esc(r.match_score)+'%</td><td>'+esc(r.liveness)+'</td><td class="'+(r.allow_open?'ok':'bad')+'">'+(r.allow_open?'OPEN':'LOCK')+'</td><td>'+esc(r.command_id)+'</td><td>'+esc(r.created_at)+'</td></tr>').join('')||'<tr><td colspan="7" class="hint">尚無辨識結果</td></tr>')+'</table></div>';
 h+='<div class="card warn"><h2>6. 教學說明</h2><pre>ESP32 Camera\n↓\nSnapshot POST Railway\n↓\n手機註冊人臉 Face DB\n↓\n最新 Snapshot 做 Face Match\n↓\nLiveness = REAL\n↓\nOPEN_DOOR Command Queue\n↓\nESP32 GPIO40 Relay</pre><p class="hint">本 V9 是教育版 fingerprint 模擬；正式版再接 OpenAI Face Match + Liveness。</p></div>'; document.getElementById('app').innerHTML=h;}
-let userEditing=false; function isEditing(){const a=document.activeElement; return userEditing || (a && (a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA'));} document.addEventListener('input',()=>{userEditing=true; clearTimeout(window.__editTimer); window.__editTimer=setTimeout(()=>userEditing=false,3000);}); async function safeRefresh(){ if(isEditing()) return; await load(); } async function regFace(){userEditing=false; const r=await post('/edu/face/register',{master_uid:reg_uid.value,person_name:person_name.value}); msg.textContent=JSON.stringify(r,null,2); await load()} async function matchFace(){userEditing=false; const r=await post('/edu/face/match',{master_uid:match_uid.value}); alert(JSON.stringify(r.result||r,null,2)); await load()} async function clearDb(){if(confirm('清除 Face DB?')){userEditing=false; await del('/edu/face/db');load()}} load(); setInterval(safeRefresh,30000);
+let userEditing=false; function isEditing(){const a=document.activeElement; return userEditing || (a && (a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA'));} document.addEventListener('input',()=>{userEditing=true; clearTimeout(window.__editTimer); window.__editTimer=setTimeout(()=>userEditing=false,3000);}); async function safeRefresh(){ if(isEditing()) return; await load(); } async function captureNow(){userEditing=false; const uid=(document.getElementById('reg_uid')&&reg_uid.value)||(document.getElementById('match_uid')&&match_uid.value)||''; const r=await post('/edu/face/capture-command',{master_uid:uid,source:'WEB'}); alert('已送出拍照命令，請等 ESP32 輪詢後更新照片。\n'+JSON.stringify(r.command||r,null,2)); setTimeout(load,2500)} async function regFace(){userEditing=false; const r=await post('/edu/face/register',{master_uid:reg_uid.value,person_name:person_name.value}); msg.textContent=JSON.stringify(r,null,2); await load()} async function matchFace(){userEditing=false; const r=await post('/edu/face/match',{master_uid:match_uid.value}); alert(JSON.stringify(r.result||r,null,2)); await load()} async function clearDb(){if(confirm('清除 Face DB?')){userEditing=false; await del('/edu/face/db');load()}} load(); setInterval(safeRefresh,30000);
 </script></body></html>`}
 
 
-function renderFaceRealtimePage(){return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU FACE V9A1 REALTIME</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1120px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button,select,input{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}button{background:#0b9b5a;color:white;border:0}.blue{background:#0b6fa4}.danger{background:#c0392b}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.hint{color:#64748b;line-height:1.6}.ok{color:#079b50;font-weight:bold}.bad{color:#c0392b;font-weight:bold}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}img.snap{width:100%;max-width:640px;border-radius:12px;border:1px solid #d8e1e7;background:#f8fafc}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.warn{background:#fff8e1;border-left:5px solid #f2c94c}</style></head><body><div class="wrap"><h1>RT7 EDU FACE RECOGNITION V9A1 INPUT FOCUS FIX</h1><p><span class="tag">第九堂進階</span> ESP32 每 30 秒 Snapshot → Railway 自動辨識 → Push → OPEN_DOOR</p><p><button class="blue" onclick="location.href='/edu/face-recognition'">回 V9 人臉辨識</button><button class="blue" onclick="location.href='/edu/push'">推播設定</button><button class="blue" onclick="location.href='/edu/open-door'">開門命令</button></p><div id="app">載入中...</div></div><script>
+function renderFaceRealtimePage(){return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU FACE V9A1 REALTIME</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1120px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button,select,input{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}button{background:#0b9b5a;color:white;border:0}.blue{background:#0b6fa4}.danger{background:#c0392b}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.hint{color:#64748b;line-height:1.6}.ok{color:#079b50;font-weight:bold}.bad{color:#c0392b;font-weight:bold}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}img.snap{width:100%;max-width:640px;border-radius:12px;border:1px solid #d8e1e7;background:#f8fafc}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.warn{background:#fff8e1;border-left:5px solid #f2c94c}</style></head><body><div class="wrap"><h1>RT7 EDU FACE RECOGNITION V9B PREVIEW MANUAL CAPTURE</h1><p><span class="tag">第九堂進階</span> ESP32 TFT/手機預覽 → 手動拍照 → 手動註冊/辨識 → OPEN_DOOR</p><p><button class="blue" onclick="location.href='/edu/face-recognition'">回 V9 人臉辨識</button><button onclick="captureNow()">請 ESP32 立即拍照</button><button class="blue" onclick="location.href='/edu/push'">推播設定</button><button class="blue" onclick="location.href='/edu/open-door'">開門命令</button></p><div id="app">載入中...</div></div><script>
 async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let j={};try{j=await r.json()}catch(e){} if(!r.ok)j.http_status=r.status;return j} async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d||{})})} async function del(p){return api(p,{method:'DELETE'})} function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function opts(cs){return (cs||[]).map(c=>'<option value="'+esc(c.master_uid)+'">'+esc(c.community_name)+' ('+esc(c.master_uid)+')</option>').join('')||'<option value="">請先完成第二堂</option>'}
+async function captureNow(){const st=await api('/edu/state'); const c=(st.communities||[])[0]; if(!c){alert('請先完成第二堂社區註冊');return;} const r=await post('/edu/face/capture-command',{community_id:c.community_id,source:'WEB'}); alert('已送出 SNAPSHOT_NOW，等待 ESP32 拍照上傳'); setTimeout(load,2500)}
 async function load(){const st=await api('/edu/state'), snaps=await api('/edu/face/snapshots'), db=await api('/edu/face/db'), rr=await api('/edu/face/results'), ev=await api('/edu/face/events'), subs=await api('/edu/push/subscriptions'); const cs=st.communities||[], latest=(snaps.snapshots||[])[0], last=(rr.results||[])[0]; let h='';
 h+='<div class="grid"><div class="card"><h2>1. Realtime 狀態</h2><p>Push 訂閱數：<b>'+esc(subs.count||0)+'</b></p><p>最新 Snapshot：<b>'+(latest?esc(latest.created_at):'無')+'</b></p><p>最新 Match：<b>'+(last?esc(last.created_at):'無')+'</b></p><p>Door：'+(last?(last.allow_open?'<span class="ok">OPEN</span>':'<span class="bad">LOCK</span>'):'-')+'</p></div><div class="card"><h2>2. 快速操作</h2><select id="uid">'+opts(cs)+'</select><br><input id="person" placeholder="姓名，例如：老師"><button onclick="reg()">用最新照片註冊</button><button onclick="match()">手動辨識</button><button class="danger" onclick="clearDb()">清除 Face DB</button><pre id="msg">READY</pre></div></div>';
 h+='<div class="card"><h2>3. 最新 Snapshot</h2>'; if(latest){h+='<p class="hint">'+esc(latest.snapshot_id)+'｜'+esc(latest.source)+'｜bytes='+esc(latest.bytes)+'</p><img class="snap" src="/edu/face/latest.jpg?ts='+Date.now()+'">'} else h+='<p class="hint">等待 ESP32 上傳 snapshot...</p>'; h+='</div>';
 h+='<div class="card"><h2>4. Match Results</h2><table><tr><th>Match ID</th><th>Name</th><th>Score</th><th>Liveness</th><th>Door</th><th>Command</th><th>Source</th><th>Time</th></tr>'+((rr.results||[]).slice(0,12).map(r=>'<tr><td>'+esc(r.match_id)+'</td><td>'+esc(r.best_name)+'</td><td>'+esc(r.match_score)+'%</td><td>'+esc(r.liveness)+'</td><td class="'+(r.allow_open?'ok':'bad')+'">'+(r.allow_open?'OPEN':'LOCK')+'</td><td>'+esc(r.command_id)+'</td><td>'+esc(r.source||'')+'</td><td>'+esc(r.created_at)+'</td></tr>').join('')||'<tr><td colspan="8" class="hint">尚無辨識結果</td></tr>')+'</table></div>';
 h+='<div class="card"><h2>5. Face DB</h2><table><tr><th>Face ID</th><th>Name</th><th>Community</th><th>UID</th><th>Time</th></tr>'+((db.faces||[]).map(f=>'<tr><td>'+esc(f.face_id)+'</td><td><b>'+esc(f.person_name)+'</b></td><td>'+esc(f.community_name)+'</td><td>'+esc(f.master_uid)+'</td><td>'+esc(f.registered_at)+'</td></tr>').join('')||'<tr><td colspan="5" class="hint">尚未註冊</td></tr>')+'</table></div>';
-h+='<div class="card warn"><h2>6. 教學觀察重點</h2><pre>ESP32 Camera 每 30 秒拍照\n↓\nPOST /edu/face/snapshot?auto_match=1\n↓\nRailway runFaceMatch()\n↓\nMATCH + REAL → OPEN_DOOR\n↓\nWeb Push 通知手機\n↓\nESP32 polling command → GPIO40 開門</pre><p class="hint">V9A 仍是教育版 fingerprint 模擬；正式版會替換為 OpenAI Face Match + Liveness。</p></div>'; document.getElementById('app').innerHTML=h;}
+h+='<div class="card warn"><h2>6. 教學觀察重點</h2><pre>ESP32 TFT 或手機 latest.jpg 確認人臉位置\n↓\n按「請 ESP32 立即拍照」→ SNAPSHOT_NOW\n↓\nESP32 POST /edu/face/snapshot\n↓\n手動註冊 / 手動辨識 → MATCH + REAL → OPEN_DOOR\n↓\nWeb Push 通知手機\n↓\nESP32 polling command → GPIO40 開門</pre><p class="hint">V9B 採手動拍照，方便學生先確認人臉在鏡頭中央；正式版會替換為串流預覽與 OpenAI Face Match + Liveness。</p></div>'; document.getElementById('app').innerHTML=h;}
 let userEditing=false; function isEditing(){const a=document.activeElement; return userEditing || (a && (a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA'));} document.addEventListener('input',()=>{userEditing=true; clearTimeout(window.__editTimer); window.__editTimer=setTimeout(()=>userEditing=false,3000);}); async function safeRefresh(){ if(isEditing()) return; await load(); } async function reg(){userEditing=false; const r=await post('/edu/face/register',{master_uid:uid.value,person_name:person.value}); msg.textContent=JSON.stringify(r,null,2); await load()} async function match(){userEditing=false; const r=await post('/edu/face/match',{master_uid:uid.value}); msg.textContent=JSON.stringify(r,null,2); await load()} async function clearDb(){if(confirm('清除 Face DB?')){userEditing=false; await del('/edu/face/db');load()}} load(); setInterval(safeRefresh,30000);
 </script></body></html>`}
 
@@ -730,7 +763,7 @@ body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;col
 <body><div class="wrap">
 <h1>RT7 EDU NODE-RED FLOW V6</h1>
 <p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer / IoT Dashboard</p>
-<p><button class="blue" onclick="location.href='/edu/community/register'">第二堂社區註冊</button> <button class="blue" onclick="location.href='/edu/login'">第三堂登入驗證</button> <button class="blue" onclick="location.href='/edu/doorbell'">第四堂門鈴事件</button> <button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button> <button class="blue" onclick="location.href='/edu/node-red'">第六堂 Node-RED Flow</button> <button class="blue" onclick="location.href='/edu/push'">第七堂手機推播</button> <button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 Snapshot</button> <button class="blue" onclick="location.href='/edu/face-recognition'">第九堂人臉辨識</button> <button class="blue" onclick="location.href='/edu/face-realtime'">V9A Realtime</button></p>
+<p><button class="blue" onclick="location.href='/edu/community/register'">第二堂社區註冊</button> <button class="blue" onclick="location.href='/edu/login'">第三堂登入驗證</button> <button class="blue" onclick="location.href='/edu/doorbell'">第四堂門鈴事件</button> <button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button> <button class="blue" onclick="location.href='/edu/node-red'">第六堂 Node-RED Flow</button> <button class="blue" onclick="location.href='/edu/push'">第七堂手機推播</button> <button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 Snapshot</button> <button class="blue" onclick="location.href='/edu/face-recognition'">第九堂人臉辨識</button> <button class="blue" onclick="location.href='/edu/face-preview'">V9A Realtime</button></p>
 <div id="app">載入中...</div>
 </div>
 <script>
@@ -911,7 +944,7 @@ body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;col
 <body><div class="wrap">
 <h1>RT7 EDU FACE SNAPSHOT V8</h1>
 <p><span class="tag">第八堂課</span> ESP32 Camera / Snapshot / Railway / 手機顯示照片</p>
-<p><button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button><button class="blue" onclick="location.href='/edu/push'">第七堂手機推播</button><button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 Snapshot</button> <button class="blue" onclick="location.href='/edu/face-recognition'">第九堂人臉辨識</button> <button class="blue" onclick="location.href='/edu/face-realtime'">V9A Realtime</button></p>
+<p><button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button><button class="blue" onclick="location.href='/edu/push'">第七堂手機推播</button><button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 Snapshot</button> <button class="blue" onclick="location.href='/edu/face-recognition'">第九堂人臉辨識</button> <button class="blue" onclick="location.href='/edu/face-preview'">V9A Realtime</button></p>
 <div id="app">載入中...</div>
 </div>
 <script>
@@ -935,4 +968,4 @@ load(); setInterval(load,5000);
 </body></html>`;
 }
 
-app.listen(PORT, () => console.log('[' + VERSION + '] http://localhost:' + PORT + '/edu/face-realtime'));
+app.listen(PORT, () => console.log('[' + VERSION + '] http://localhost:' + PORT + '/edu/face-preview'));
