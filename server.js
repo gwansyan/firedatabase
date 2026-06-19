@@ -1,4 +1,4 @@
-// RT7_EDU_OPEN_DOOR_V5B_ESP32_COMMAND_NONE_FIX
+// RT7_EDU_OPEN_DOOR_V5C_STRICT_JSON_COMMAND_PARSER
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_OPEN_DOOR_V5B_ESP32_COMMAND_NONE_FIX';
+const VERSION = 'RT7_EDU_OPEN_DOOR_V5C_STRICT_JSON_COMMAND_PARSER';
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
