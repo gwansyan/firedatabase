@@ -1,4 +1,4 @@
-// RT7_EDU_OPEN_DOOR_V5C_STRICT_JSON_COMMAND_PARSER
+// RT7_EDU_NODE_RED_FLOW_V6
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_OPEN_DOOR_V5C_STRICT_JSON_COMMAND_PARSER';
+const VERSION = 'RT7_EDU_NODE_RED_FLOW_V6';
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
@@ -354,14 +354,14 @@ return String.raw`<!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RT7 EDU Open Door V5</title>
+<title>RT7 EDU Node-RED Flow V6</title>
 <style>
 body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1120px;margin:20px auto;padding:16px}.card{background:white;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}input,select,button{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px;box-sizing:border-box}button{background:#0b9b5a;color:#fff;border:0;cursor:pointer}.danger{background:#c0392b}.blue{background:#0b6fa4}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.ok{color:#079b50;font-weight:bold}.bad{color:#d33;font-weight:bold}.hint{color:#64748b;font-size:14px;line-height:1.55}.uidbox{background:#f8fafc;font-family:ui-monospace,Consolas,monospace}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.warn{background:#fff8e1;border-left:5px solid #f2c94c}.step{font-weight:bold;color:#0b5f8a}.loginok{background:#effaf4;border-left:5px solid #0b9b5a}</style>
 </head>
 <body><div class="wrap">
-<h1>RT7 EDU OPEN DOOR V5BA</h1>
-<p><span class="tag">第五堂課</span> Open Door / Command Queue / ESP32 GPIO40 Relay</p>
-<p><button class="blue" onclick="location.href='/edu/community/register'">第二堂社區註冊</button> <button class="blue" onclick="location.href='/edu/login'">第三堂登入驗證</button> <button class="blue" onclick="location.href='/edu/doorbell'">第四堂門鈴事件</button> <button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button></p>
+<h1>RT7 EDU NODE-RED FLOW V6</h1>
+<p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer / IoT Dashboard</p>
+<p><button class="blue" onclick="location.href='/edu/community/register'">第二堂社區註冊</button> <button class="blue" onclick="location.href='/edu/login'">第三堂登入驗證</button> <button class="blue" onclick="location.href='/edu/doorbell'">第四堂門鈴事件</button> <button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button> <button class="blue" onclick="location.href='/edu/node-red'">第六堂 Node-RED Flow</button></p>
 <div id="app">載入中...</div>
 </div>
 <script>
@@ -414,7 +414,7 @@ async function load(){
 }
 async function registerUser(){const data={community_id:document.getElementById('r_community').value,account:document.getElementById('r_account').value,display_name:document.getElementById('r_name').value,password:document.getElementById('r_pass').value}; out(await post('/edu/auth/register',data)); await load();}
 async function loginUser(){const data={community_id:document.getElementById('l_community').value,account:document.getElementById('l_account').value,password:document.getElementById('l_pass').value}; const r=await post('/edu/auth/login',data); out(r); await load();}
-async function sendHeartbeat(){syncSimUid(); out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value,source:'SIM',lesson:'OPEN_DOOR_V5A'})); await load();}
+async function sendHeartbeat(){syncSimUid(); out(await post('/edu/master/heartbeat',{master_uid:h_uid.value,ip:h_ip.value,mac:h_mac.value,source:'SIM',lesson:'NODE_RED_FLOW_V6'})); await load();}
 async function simulateDoorbell(){var masters=Object.values((STATE&&STATE.masters)||{}); var uid=masters[0]?masters[0].master_uid:''; if(!uid){out({ok:false,error:'請先送出 heartbeat'});return;} out(await post('/edu/event/doorbell',{master_uid:uid,source:'SIM'})); await load();}
 async function clearDoorbells(){out(await del('/edu/events/doorbell')); await load();}
 async function openDoorCmd(){var communities=(STATE&&STATE.communities)||[]; var c=communities[0]; if(!c){out({ok:false,error:'請先完成第二堂社區註冊'});return;} out(await post('/edu/command/open-door',{community_id:c.community_id,source:'WEB'})); await load();}
@@ -424,7 +424,28 @@ load(); setInterval(function(){ if(!document.activeElement || document.activeEle
 }
 
 app.get(['/edu', '/edu/doorbell', '/edu/login', '/edu/open-door'], (_req, res) => { res.type('html').send(renderEduPage()); });
+app.get('/edu/node-red', (_req, res) => { res.type('html').send(renderNodeRedPage()); });
 
+
+
+function renderNodeRedPage() {
+return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_NODE_RED_FLOW_V6_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
+Doorbell → doorbell_events.json
+Open Door → commands.json
+ACK → DONE
+/edu/state → Dashboard Observer</pre></div><div class="card"><h2>3. Railway API</h2><pre>GET  /health
+GET  /edu/state
+POST /edu/master/heartbeat
+POST /edu/event/doorbell
+POST /edu/command/open-door
+GET  /edu/commands
+GET  /edu/events/doorbell</pre></div><div class="card"><h2>4. 課程定位</h2><pre>第一堂 Heartbeat
+第二堂 Community Register
+第三堂 Login Auth
+第四堂 Doorbell Event
+第五堂 Open Door Command Queue
+第六堂 Node-RED Flow</pre><p class="ok">V6 不改 ESP32 控制邏輯，只新增 Node-RED 教學觀察 Flow。</p></div></div></body></html>`;
+}
 
 // 第二堂頁面保留：/edu/community/register 必須顯示第二堂社區註冊頁，不可變成第三堂登入頁。
 function renderCommunityRegisterPage() {
@@ -478,4 +499,4 @@ load(); setInterval(function(){ if(!document.activeElement || document.activeEle
 }
 app.get('/edu/community/register', (_req, res) => { res.type('html').send(renderCommunityRegisterPage()); });
 
-app.listen(PORT, () => console.log('[' + VERSION + '] http://localhost:' + PORT + '/edu/open-door'));
+app.listen(PORT, () => console.log('[' + VERSION + '] http://localhost:' + PORT + '/edu/node-red'));
