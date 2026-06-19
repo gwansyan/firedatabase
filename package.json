@@ -1,8 +1,14 @@
 {
-  "name": "rt7-edu-open-door-v5",
-  "version": "5.0.0",
-  "description": "RT7 EDU V5: open door command queue with heartbeat, community, login, and doorbell event",
+  "name": "rt7-edu-push-notify-v7",
+  "version": "7.0.0",
+  "description": "RT7 EDU V7: mobile Web Push notification for doorbell event",
   "main": "server.js",
-  "scripts": {"start": "node server.js"},
-  "dependencies": {"cors": "latest", "express": "latest"}
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "latest",
+    "express": "latest",
+    "web-push": "latest"
+  }
 }

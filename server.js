@@ -1,4 +1,4 @@
-// RT7_EDU_NODE_RED_FLOW_V6
+// RT7_EDU_PUSH_NOTIFY_V7
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -8,11 +8,22 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const webPush = require('web-push');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_NODE_RED_FLOW_V6';
+const VERSION = 'RT7_EDU_PUSH_NOTIFY_V7';
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:teacher@example.com';
+let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
+let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
+if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+  const keys = webPush.generateVAPIDKeys();
+  VAPID_PUBLIC_KEY = keys.publicKey;
+  VAPID_PRIVATE_KEY = keys.privateKey;
+  console.log('[EDU][V7][PUSH] generated temporary VAPID keys. Subscriptions reset after redeploy.');
+}
+webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
@@ -78,6 +89,7 @@ ensureFile('users.json', []);
 ensureFile('sessions.json', []);
 ensureFile('doorbell_events.json', []);
 ensureFile('commands.json', []);
+ensureFile('push_subscriptions.json', []);
 
 app.get('/', (_req, res) => res.redirect('/edu'));
 app.get('/health', (_req, res) => res.json({ ok: true, version: VERSION, time: nowIso() }));
@@ -228,8 +240,53 @@ app.post('/edu/auth/login', (req, res) => {
 });
 
 
+
+function getPushSubscriptions() {
+  return readJson('push_subscriptions.json', []);
+}
+function savePushSubscriptions(list) {
+  writeJson('push_subscriptions.json', list);
+}
+function subscriptionKey(sub) {
+  return sub && sub.endpoint ? String(sub.endpoint) : '';
+}
+async function sendDoorbellPush(event) {
+  let subs = getPushSubscriptions();
+  if (!subs.length) {
+    console.log('[EDU][V7][PUSH] no subscriptions');
+    return { sent: 0, failed: 0 };
+  }
+  const payload = JSON.stringify({
+    title: 'RT7 EDU 門鈴通知',
+    body: (event.community_name ? event.community_name + '：' : '') + '有人按門鈴',
+    tag: event.event_id,
+    url: '/edu/push',
+    event_id: event.event_id,
+    community_name: event.community_name,
+    master_uid: event.master_uid,
+    created_at: event.created_at
+  });
+  let sent = 0, failed = 0;
+  const alive = [];
+  for (const sub of subs) {
+    try {
+      await webPush.sendNotification(sub.subscription, payload);
+      sent++;
+      alive.push(sub);
+    } catch (e) {
+      failed++;
+      const code = e && (e.statusCode || e.status);
+      console.log('[EDU][V7][PUSH_FAIL]', code || '', e && e.message ? e.message : e);
+      if (code !== 404 && code !== 410) alive.push(sub);
+    }
+  }
+  if (alive.length !== subs.length) savePushSubscriptions(alive);
+  console.log('[EDU][V7][PUSH_SENT]', 'sent=' + sent, 'failed=' + failed);
+  return { sent, failed };
+}
+
 // 第四堂：門鈴事件。ESP32 按 GPIO38 後 POST 到這裡。
-app.post('/edu/event/doorbell', (req, res) => {
+app.post('/edu/event/doorbell', async (req, res) => {
   const body = req.body || {};
   const master_uid = normalizeUid(body.master_uid);
   if (!master_uid) return res.status(400).json({ ok: false, error: 'missing master_uid' });
@@ -255,7 +312,8 @@ app.post('/edu/event/doorbell', (req, res) => {
   events = events.slice(0, 50);
   writeJson('doorbell_events.json', events);
   console.log('[EDU][V4][DOORBELL]', event.event_id, event.community_name || '-', master_uid);
-  res.json({ ok: true, version: VERSION, event, count: events.length });
+  const push = await sendDoorbellPush(event);
+  res.json({ ok: true, version: VERSION, event, count: events.length, push });
 });
 
 app.get('/edu/events/doorbell', (_req, res) => {
@@ -349,6 +407,87 @@ app.post('/edu/auth/logout', (req, res) => {
   res.json({ ok: true, deleted: before.length - after.length, version: VERSION });
 });
 
+
+app.get('/edu/push/vapid-public-key', (_req, res) => {
+  res.json({ ok: true, version: VERSION, publicKey: VAPID_PUBLIC_KEY });
+});
+
+app.post('/edu/push/subscribe', (req, res) => {
+  const body = req.body || {};
+  const sub = body.subscription || body;
+  const endpoint = subscriptionKey(sub);
+  if (!endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) return res.status(400).json({ ok: false, error: 'invalid subscription' });
+  let list = getPushSubscriptions();
+  list = list.filter(x => subscriptionKey(x.subscription) !== endpoint);
+  const item = {
+    subscription: sub,
+    community_id: safeText(body.community_id || '', 120),
+    user_agent: safeText(req.headers['user-agent'] || '', 180),
+    created_at: nowIso(),
+    last_seen: nowIso(),
+    lesson: VERSION
+  };
+  list.unshift(item);
+  list = list.slice(0, 50);
+  savePushSubscriptions(list);
+  console.log('[EDU][V7][PUSH_SUBSCRIBE]', endpoint.slice(0, 60));
+  res.json({ ok: true, version: VERSION, count: list.length });
+});
+
+app.get('/edu/push/subscriptions', (_req, res) => {
+  const list = getPushSubscriptions().map((x, i) => ({
+    index: i + 1,
+    endpoint: subscriptionKey(x.subscription).slice(0, 80) + '...',
+    community_id: x.community_id || '',
+    created_at: x.created_at,
+    last_seen: x.last_seen || ''
+  }));
+  res.json({ ok: true, version: VERSION, count: list.length, subscriptions: list });
+});
+
+app.delete('/edu/push/subscriptions', (_req, res) => {
+  const before = getPushSubscriptions();
+  savePushSubscriptions([]);
+  res.json({ ok: true, version: VERSION, deleted: before.length });
+});
+
+app.post('/edu/push/test', async (_req, res) => {
+  const event = {
+    event_id: 'PUSH-TEST-' + Date.now().toString(36).toUpperCase(),
+    community_name: 'RT7 EDU',
+    master_uid: 'TEST',
+    created_at: nowIso()
+  };
+  const push = await sendDoorbellPush(event);
+  res.json({ ok: true, version: VERSION, push });
+});
+
+app.get('/edu/push/sw.js', (_req, res) => {
+  res.type('application/javascript').send(`
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch(e) { data = { title: 'RT7 EDU', body: event.data ? event.data.text() : '通知' }; }
+  const title = data.title || 'RT7 EDU 門鈴通知';
+  const options = {
+    body: data.body || '有人按門鈴',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
+    tag: data.tag || data.event_id || 'rt7-edu-doorbell',
+    data: { url: data.url || '/edu/push' }
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/edu/push';
+  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    for (const client of list) { if ('focus' in client) return client.focus(); }
+    if (clients.openWindow) return clients.openWindow(url);
+  }));
+});
+`);
+});
+
 function renderEduPage() {
 return String.raw`<!doctype html>
 <html lang="zh-Hant">
@@ -425,11 +564,41 @@ load(); setInterval(function(){ if(!document.activeElement || document.activeEle
 
 app.get(['/edu', '/edu/doorbell', '/edu/login', '/edu/open-door'], (_req, res) => { res.type('html').send(renderEduPage()); });
 app.get('/edu/node-red', (_req, res) => { res.type('html').send(renderNodeRedPage()); });
+app.get('/edu/push', (_req, res) => { res.type('html').send(renderPushPage()); });
 
 
+
+
+function renderPushPage() {
+return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Push Notify V7</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button{font-size:16px;padding:10px;border-radius:8px;border:0;margin:4px;background:#0b9b5a;color:#fff;cursor:pointer}.blue{background:#0b6fa4}.danger{background:#c0392b}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.ok{color:#079b50;font-weight:bold}.bad{color:#d33;font-weight:bold}.hint{color:#64748b;line-height:1.6}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}</style></head><body><div class="wrap"><h1>RT7 EDU PUSH NOTIFY V7</h1><p><span class="tag">第七堂課</span> Web Push / Service Worker / Doorbell Notification</p><p><button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button><button class="blue" onclick="location.href='/edu/node-red'">第六堂 Node-RED</button></p><div class="card"><h2>1. 手機推播啟用</h2><p class="hint">請用手機 Chrome 開啟本頁，按「啟用手機推播」。若瀏覽器詢問通知權限，請按允許。</p><button onclick="enablePush()">啟用手機推播</button><button onclick="testPush()">測試推播</button><button class="danger" onclick="clearSubs()">清除訂閱</button><p id="status" class="hint">READY</p></div><div class="card"><h2>2. 門鈴事件觸發推播</h2><p class="hint">按 ESP32 GPIO38 或按下方模擬按鈕，Railway 寫入 doorbell_events.json，並送出 Web Push。</p><button onclick="simulateDoorbell()">模擬按門鈴</button><button class="blue" onclick="load()">重新整理</button></div><div class="card"><h2>3. Push Subscriptions</h2><div id="subs">載入中...</div></div><div class="card"><h2>4. Doorbell Events</h2><div id="events">載入中...</div></div><div class="card"><h2>5. 課程觀察重點</h2><pre>手機瀏覽器
+↓
+Service Worker
+↓
+Push Subscription
+↓
+Railway 儲存訂閱
+↓
+ESP32 Doorbell Event
+↓
+Railway Web Push
+↓
+手機收到通知</pre></div><div class="card"><h2>回應</h2><pre id="out">READY</pre></div></div><script>
+function log(x){document.getElementById('out').textContent=typeof x==='string'?x:JSON.stringify(x,null,2)}
+async function api(path,opt){const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'}},opt||{}));let j={};try{j=await r.json()}catch(e){} if(!r.ok)j.http_status=r.status;return j}
+async function post(path,data){return api(path,{method:'POST',body:JSON.stringify(data||{})})} async function del(path){return api(path,{method:'DELETE'})}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function urlBase64ToUint8Array(base64String){const padding='='.repeat((4-base64String.length%4)%4);const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');const rawData=atob(base64);const outputArray=new Uint8Array(rawData.length);for(let i=0;i<rawData.length;++i)outputArray[i]=rawData.charCodeAt(i);return outputArray}
+async function enablePush(){try{if(!('serviceWorker' in navigator))throw new Error('此瀏覽器不支援 Service Worker'); if(!('PushManager' in window))throw new Error('此瀏覽器不支援 Push API'); const perm=await Notification.requestPermission(); if(perm!=='granted')throw new Error('通知權限未允許：'+perm); const reg=await navigator.serviceWorker.register('/edu/push/sw.js'); await navigator.serviceWorker.ready; const key=(await api('/edu/push/vapid-public-key')).publicKey; const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(key)}); const r=await post('/edu/push/subscribe',{subscription:sub}); document.getElementById('status').innerHTML='<span class="ok">推播已啟用</span>'; log(r); await load();}catch(e){document.getElementById('status').innerHTML='<span class="bad">'+esc(e.message||e)+'</span>'; log(String(e.stack||e));}}
+async function testPush(){log(await post('/edu/push/test',{})); setTimeout(load,800)}
+async function clearSubs(){log(await del('/edu/push/subscriptions')); await load()}
+async function simulateDoorbell(){const s=await api('/edu/state'); const m=Object.values(s.masters||{})[0]; if(!m){log({ok:false,error:'請先讓 ESP32 heartbeat 上線'});return} log(await post('/edu/event/doorbell',{master_uid:m.master_uid,source:'SIM'})); setTimeout(load,800)}
+async function load(){const subs=await api('/edu/push/subscriptions'); document.getElementById('subs').innerHTML='<p>訂閱數：<b>'+esc(subs.count||0)+'</b></p><pre>'+esc(JSON.stringify(subs.subscriptions||[],null,2))+'</pre>'; const ev=await api('/edu/events/doorbell'); const rows=(ev.events||[]).slice(0,8).map(e=>'<tr><td>'+esc(e.event_id)+'</td><td>'+esc(e.message)+'</td><td>'+esc(e.community_name)+'</td><td>'+esc(e.source)+'</td><td>'+esc(e.created_at)+'</td></tr>').join(''); document.getElementById('events').innerHTML='<table><tr><th>Event ID</th><th>訊息</th><th>Community</th><th>來源</th><th>時間</th></tr>'+rows+'</table>'}
+load(); setInterval(load,10000);
+</script></body></html>`;
+}
 
 function renderNodeRedPage() {
-return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_NODE_RED_FLOW_V6_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
+return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_PUSH_NOTIFY_V7_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
 Doorbell → doorbell_events.json
 Open Door → commands.json
 ACK → DONE
@@ -499,4 +668,4 @@ load(); setInterval(function(){ if(!document.activeElement || document.activeEle
 }
 app.get('/edu/community/register', (_req, res) => { res.type('html').send(renderCommunityRegisterPage()); });
 
-app.listen(PORT, () => console.log('[' + VERSION + '] http://localhost:' + PORT + '/edu/node-red'));
+app.listen(PORT, () => console.log('[' + VERSION + '] http://localhost:' + PORT + '/edu/push'));
