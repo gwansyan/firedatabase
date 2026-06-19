@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-push-notify-v7",
-  "version": "7.0.0",
-  "description": "RT7 EDU V7: mobile Web Push notification for doorbell event",
+  "name": "rt7-edu-face-recognition-v9a-realtime-test",
+  "version": "9.1.0",
+  "description": "RT7 EDU V9A: realtime ESP32 snapshot, auto face match, push notify, open door",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

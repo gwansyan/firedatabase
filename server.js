@@ -1,4 +1,5 @@
-// RT7_EDU_FACE_RECOGNITION_V9
+// RT7_EDU_FACE_RECOGNITION_V9A_REALTIME_TEST
+// 第九堂進階：Realtime Snapshot -> Auto Face Match -> Push -> OPEN_DOOR
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -13,7 +14,7 @@ const webPush = require('web-push');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_FACE_RECOGNITION_V9';
+const VERSION = 'RT7_EDU_FACE_RECOGNITION_V9A_REALTIME_TEST';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:teacher@example.com';
 let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
@@ -93,6 +94,7 @@ ensureFile('push_subscriptions.json', []);
 ensureFile('face_snapshots.json', []);
 ensureFile('face_db.json', []);
 ensureFile('face_match_results.json', []);
+ensureFile('face_match_events.json', []);
 
 app.get('/', (_req, res) => res.redirect('/edu'));
 app.get('/health', (_req, res) => res.json({ ok: true, version: VERSION, time: nowIso() }));
@@ -285,10 +287,49 @@ async function sendDoorbellPush(event) {
   }
   if (alive.length !== subs.length) savePushSubscriptions(alive);
   console.log('[EDU][V7][PUSH_SENT]', 'sent=' + sent, 'failed=' + failed);
+
   return { sent, failed };
 }
 
-// 第四堂：門鈴事件。ESP32 按 GPIO38 後 POST 到這裡。
+async function sendFaceMatchPush(result) {
+  let subs = getPushSubscriptions();
+  if (!subs.length) {
+    console.log('[EDU][V9A][FACE_PUSH] no subscriptions');
+    return { sent: 0, failed: 0 };
+  }
+  const payload = JSON.stringify({
+    title: result.allow_open ? 'RT7 EDU 人臉辨識成功' : 'RT7 EDU 人臉辨識未通過',
+    body: (result.best_name || '未知') + '｜Score ' + (result.match_score || 0) + '%｜Liveness ' + (result.liveness || 'UNKNOWN') + '｜' + (result.allow_open ? '門已開啟' : '門保持上鎖'),
+    tag: result.match_id,
+    url: '/edu/face-realtime',
+    match_id: result.match_id,
+    best_name: result.best_name,
+    match_score: result.match_score,
+    liveness: result.liveness,
+    allow_open: result.allow_open,
+    command_id: result.command_id,
+    created_at: result.created_at
+  });
+  let sent = 0, failed = 0;
+  const alive = [];
+  for (const sub of subs) {
+    try {
+      await webPush.sendNotification(sub.subscription, payload);
+      sent++;
+      alive.push(sub);
+    } catch (e) {
+      failed++;
+      const code = e && (e.statusCode || e.status);
+      console.log('[EDU][V9A][FACE_PUSH_FAIL]', code || '', e && e.message ? e.message : e);
+      if (code !== 404 && code !== 410) alive.push(sub);
+    }
+  }
+  if (alive.length !== subs.length) savePushSubscriptions(alive);
+  console.log('[EDU][V9A][FACE_PUSH_SENT]', 'sent=' + sent, 'failed=' + failed, result.match_id);
+  return { sent, failed };
+}
+
+// 第四堂// 第四堂：門鈴事件。ESP32 按 GPIO38 後 POST 到這裡。
 app.post('/edu/event/doorbell', async (req, res) => {
   const body = req.body || {};
   const master_uid = normalizeUid(body.master_uid);
@@ -526,6 +567,15 @@ app.post('/edu/face/snapshot', express.raw({ type: ['image/jpeg', 'application/o
   shots = shots.slice(0, 30);
   writeJson('face_snapshots.json', shots);
   console.log('[EDU][V8][FACE_SNAPSHOT]', shot.snapshot_id, 'bytes=' + buf.length, master_uid);
+  if (String(req.query.auto_match || '') === '1') {
+    runFaceMatch(master_uid, 'AUTO_SNAPSHOT').then(result => {
+      res.json({ ok: true, version: VERSION, snapshot: shot, count: shots.length, auto_match: true, result });
+    }).catch(e => {
+      console.log('[EDU][V9A][AUTO_MATCH_ERR]', e && e.message ? e.message : e);
+      res.json({ ok: true, version: VERSION, snapshot: shot, count: shots.length, auto_match: false, error: String(e && e.message ? e.message : e) });
+    });
+    return;
+  }
   res.json({ ok: true, version: VERSION, snapshot: shot, count: shots.length });
 });
 
@@ -597,33 +647,50 @@ app.post('/edu/face/register', (req,res)=>{
   let db=readJson('face_db.json',[]); db.unshift(rec); db=db.slice(0,50); writeJson('face_db.json',db);
   res.json({ok:true,version:VERSION,face:{face_id:rec.face_id,person_name:rec.person_name,community_id:rec.community_id,community_name:rec.community_name,master_uid:rec.master_uid,bytes:rec.bytes,registered_at:rec.registered_at}});
 });
-app.post('/edu/face/match', async (req,res)=>{
-  const body=req.body||{}; const master_uid=normalizeUid(body.master_uid);
-  const buf=latestImageBuffer();
-  if(!master_uid) return res.status(400).json({ok:false,error:'missing master_uid'});
-  if(!buf) return res.status(400).json({ok:false,error:'no latest snapshot'});
-  const fp=imageFingerprint(buf);
-  const db=readJson('face_db.json',[]).filter(f=>!f.master_uid || f.master_uid===master_uid);
-  let best=null; for(const f of db){ const score=fingerprintScore(fp,f.fingerprint); if(!best||score>best.score) best={...f,score}; }
-  const match=!!best && best.score>=95;
-  const liveness = buf.length>2500 ? 'REAL' : 'UNKNOWN';
-  const allow_open = match && liveness==='REAL';
-  let command=null;
-  if(allow_open){
-    const community=getMasterCommunity(master_uid);
-    const cmd={command_id:'CMD-'+Date.now().toString(36).toUpperCase(),command:'OPEN_DOOR',status:'PENDING',community_id:community?community.community_id:'',community_name:community?community.community_name:'',master_uid,relay_pin:40,pulse_ms:800,source:'FACE_MATCH',created_at:nowIso(),lesson:VERSION};
-    let commands=readJson('commands.json',[]); commands.unshift(cmd); commands=commands.slice(0,30); writeJson('commands.json',commands); command=cmd;
+async function runFaceMatch(master_uid, source = 'WEB'){
+  master_uid = normalizeUid(master_uid);
+  const buf = latestImageBuffer();
+  if(!master_uid) throw new Error('missing master_uid');
+  if(!buf) throw new Error('no latest snapshot');
+  const fp = imageFingerprint(buf);
+  const db = readJson('face_db.json',[]).filter(f=>!f.master_uid || f.master_uid===master_uid);
+  let best = null;
+  for(const f of db){
+    const score = fingerprintScore(fp,f.fingerprint);
+    if(!best || score > best.score) best = {...f, score};
   }
-  const result={match_id:'MATCH-'+Date.now().toString(36).toUpperCase(),master_uid,best_name:best?best.person_name:'',best_face_id:best?best.face_id:'',match_score:best?best.score:0,face_match:match,liveness,allow_open,command_id:command?command.command_id:'',created_at:nowIso(),lesson:VERSION};
-  let results=readJson('face_match_results.json',[]); results.unshift(result); results=results.slice(0,30); writeJson('face_match_results.json',results);
-  res.json({ok:true,version:VERSION,result,command});
+  const match = !!best && best.score >= 95;
+  const liveness = buf.length > 2500 ? 'REAL' : 'UNKNOWN';
+  const allow_open = match && liveness === 'REAL';
+  let command = null;
+  if(allow_open){
+    const community = getMasterCommunity(master_uid);
+    const cmd = {command_id:'CMD-'+Date.now().toString(36).toUpperCase(),command:'OPEN_DOOR',status:'PENDING',community_id:community?community.community_id:'',community_name:community?community.community_name:'',master_uid,relay_pin:40,pulse_ms:800,source:'FACE_MATCH_REALTIME',created_at:nowIso(),lesson:VERSION};
+    let commands = readJson('commands.json',[]); commands.unshift(cmd); commands = commands.slice(0,50); writeJson('commands.json',commands); command = cmd;
+  }
+  const result = {match_id:'MATCH-'+Date.now().toString(36).toUpperCase(),master_uid,best_name:best?best.person_name:'',best_face_id:best?best.face_id:'',match_score:best?best.score:0,face_match:match,liveness,allow_open,command_id:command?command.command_id:'',source,created_at:nowIso(),lesson:VERSION};
+  let results = readJson('face_match_results.json',[]); results.unshift(result); results = results.slice(0,50); writeJson('face_match_results.json',results);
+  let events = readJson('face_match_events.json',[]); events.unshift({...result, event_id:'FACE-'+Date.now().toString(36).toUpperCase()}); events = events.slice(0,50); writeJson('face_match_events.json',events);
+  result.push = await sendFaceMatchPush(result);
+  return { result, command };
+}
+
+app.post('/edu/face/match', async (req,res)=>{
+  try {
+    const out = await runFaceMatch((req.body||{}).master_uid, 'WEB_BUTTON');
+    res.json({ok:true,version:VERSION,result:out.result,command:out.command});
+  } catch(e) {
+    res.status(400).json({ok:false,version:VERSION,error:String(e && e.message ? e.message : e)});
+  }
 });
 app.get('/edu/face/db', (_req,res)=>res.json({ok:true,version:VERSION,faces:readJson('face_db.json',[]).map(f=>({face_id:f.face_id,person_name:f.person_name,community_id:f.community_id,community_name:f.community_name,master_uid:f.master_uid,bytes:f.bytes,registered_at:f.registered_at}))}));
 app.delete('/edu/face/db', (_req,res)=>{const before=readJson('face_db.json',[]); writeJson('face_db.json',[]); res.json({ok:true,version:VERSION,deleted:before.length});});
 app.get('/edu/face/results', (_req,res)=>res.json({ok:true,version:VERSION,results:readJson('face_match_results.json',[])}));
 
 app.get('/edu/face-recognition', (_req,res)=>res.send(renderFaceRecognitionPage()));
-function renderFaceRecognitionPage(){return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU FACE RECOGNITION V9</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1040px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button,input,select{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}button{background:#0b9b5a;color:white;border:0}.blue{background:#0b6fa4}.danger{background:#c0392b}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.hint{color:#64748b;line-height:1.6}.ok{color:#079b50;font-weight:bold}.bad{color:#c0392b;font-weight:bold}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}img.snap{width:100%;max-width:640px;border-radius:12px;border:1px solid #d8e1e7;background:#f8fafc}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.warn{background:#fff8e1;border-left:5px solid #f2c94c}</style></head><body><div class="wrap"><h1>RT7 EDU FACE RECOGNITION V9</h1><p><span class="tag">第九堂課</span> Face Register / Educational Face Match / Liveness / OPEN_DOOR</p><p><button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 Snapshot</button><button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button></p><div id="app">載入中...</div></div><script>
+app.get('/edu/face-realtime', (_req,res)=>res.send(renderFaceRealtimePage()));
+app.get('/edu/face/events', (_req,res)=>res.json({ok:true,version:VERSION,events:readJson('face_match_events.json',[])}));
+function renderFaceRecognitionPage(){return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU FACE RECOGNITION V9A</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1040px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button,input,select{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}button{background:#0b9b5a;color:white;border:0}.blue{background:#0b6fa4}.danger{background:#c0392b}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.hint{color:#64748b;line-height:1.6}.ok{color:#079b50;font-weight:bold}.bad{color:#c0392b;font-weight:bold}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}img.snap{width:100%;max-width:640px;border-radius:12px;border:1px solid #d8e1e7;background:#f8fafc}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.warn{background:#fff8e1;border-left:5px solid #f2c94c}</style></head><body><div class="wrap"><h1>RT7 EDU FACE RECOGNITION V9A REALTIME TEST</h1><p><span class="tag">第九堂進階</span> Realtime Snapshot / Auto Face Match / Push / OPEN_DOOR</p><p><button class="blue" onclick="location.href='/edu/face-realtime'">Realtime Monitor</button></p><p><button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 Snapshot</button><button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button></p><div id="app">載入中...</div></div><script>
 async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let j={};try{j=await r.json()}catch(e){} if(!r.ok)j.http_status=r.status;return j} async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d)})} async function del(p){return api(p,{method:'DELETE'})} function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function opts(cs){return (cs||[]).map(c=>'<option value="'+esc(c.master_uid)+'">'+esc(c.community_name)+' | '+esc(c.master_uid)+'</option>').join('')||'<option value="">請先完成第二堂</option>'}
 async function load(){const st=await api('/edu/state'), snaps=await api('/edu/face/snapshots'), db=await api('/edu/face/db'), rr=await api('/edu/face/results'); const cs=st.communities||[], latest=(snaps.snapshots||[])[0]; let h='';
@@ -634,6 +701,19 @@ h+='<div class="card"><h2>4. 辨識測試</h2><p class="hint">用最新 Snapshot
 h+='<div class="card"><h2>5. Match Results</h2><table><tr><th>Match ID</th><th>Name</th><th>Score</th><th>Liveness</th><th>Door</th><th>Command</th><th>Time</th></tr>'+((rr.results||[]).map(r=>'<tr><td>'+esc(r.match_id)+'</td><td>'+esc(r.best_name)+'</td><td>'+esc(r.match_score)+'%</td><td>'+esc(r.liveness)+'</td><td class="'+(r.allow_open?'ok':'bad')+'">'+(r.allow_open?'OPEN':'LOCK')+'</td><td>'+esc(r.command_id)+'</td><td>'+esc(r.created_at)+'</td></tr>').join('')||'<tr><td colspan="7" class="hint">尚無辨識結果</td></tr>')+'</table></div>';
 h+='<div class="card warn"><h2>6. 教學說明</h2><pre>ESP32 Camera\n↓\nSnapshot POST Railway\n↓\n手機註冊人臉 Face DB\n↓\n最新 Snapshot 做 Face Match\n↓\nLiveness = REAL\n↓\nOPEN_DOOR Command Queue\n↓\nESP32 GPIO40 Relay</pre><p class="hint">本 V9 是教育版 fingerprint 模擬；正式版再接 OpenAI Face Match + Liveness。</p></div>'; document.getElementById('app').innerHTML=h;}
 async function regFace(){const r=await post('/edu/face/register',{master_uid:reg_uid.value,person_name:person_name.value}); msg.textContent=JSON.stringify(r,null,2); await load()} async function matchFace(){const r=await post('/edu/face/match',{master_uid:match_uid.value}); alert(JSON.stringify(r.result||r,null,2)); await load()} async function clearDb(){if(confirm('清除 Face DB?')){await del('/edu/face/db');load()}} load(); setInterval(load,10000);
+</script></body></html>`}
+
+
+function renderFaceRealtimePage(){return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU FACE V9A REALTIME</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1120px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button,select,input{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}button{background:#0b9b5a;color:white;border:0}.blue{background:#0b6fa4}.danger{background:#c0392b}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.hint{color:#64748b;line-height:1.6}.ok{color:#079b50;font-weight:bold}.bad{color:#c0392b;font-weight:bold}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}img.snap{width:100%;max-width:640px;border-radius:12px;border:1px solid #d8e1e7;background:#f8fafc}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.warn{background:#fff8e1;border-left:5px solid #f2c94c}</style></head><body><div class="wrap"><h1>RT7 EDU FACE RECOGNITION V9A REALTIME TEST</h1><p><span class="tag">第九堂進階</span> ESP32 每 5 秒 Snapshot → Railway 自動辨識 → Push → OPEN_DOOR</p><p><button class="blue" onclick="location.href='/edu/face-recognition'">回 V9 人臉辨識</button><button class="blue" onclick="location.href='/edu/push'">推播設定</button><button class="blue" onclick="location.href='/edu/open-door'">開門命令</button></p><div id="app">載入中...</div></div><script>
+async function api(p,o){const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'}},o||{}));let j={};try{j=await r.json()}catch(e){} if(!r.ok)j.http_status=r.status;return j} async function post(p,d){return api(p,{method:'POST',body:JSON.stringify(d||{})})} async function del(p){return api(p,{method:'DELETE'})} function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function opts(cs){return (cs||[]).map(c=>'<option value="'+esc(c.master_uid)+'">'+esc(c.community_name)+' ('+esc(c.master_uid)+')</option>').join('')||'<option value="">請先完成第二堂</option>'}
+async function load(){const st=await api('/edu/state'), snaps=await api('/edu/face/snapshots'), db=await api('/edu/face/db'), rr=await api('/edu/face/results'), ev=await api('/edu/face/events'), subs=await api('/edu/push/subscriptions'); const cs=st.communities||[], latest=(snaps.snapshots||[])[0], last=(rr.results||[])[0]; let h='';
+h+='<div class="grid"><div class="card"><h2>1. Realtime 狀態</h2><p>Push 訂閱數：<b>'+esc(subs.count||0)+'</b></p><p>最新 Snapshot：<b>'+(latest?esc(latest.created_at):'無')+'</b></p><p>最新 Match：<b>'+(last?esc(last.created_at):'無')+'</b></p><p>Door：'+(last?(last.allow_open?'<span class="ok">OPEN</span>':'<span class="bad">LOCK</span>'):'-')+'</p></div><div class="card"><h2>2. 快速操作</h2><select id="uid">'+opts(cs)+'</select><br><input id="person" placeholder="姓名，例如：老師"><button onclick="reg()">用最新照片註冊</button><button onclick="match()">手動辨識</button><button class="danger" onclick="clearDb()">清除 Face DB</button><pre id="msg">READY</pre></div></div>';
+h+='<div class="card"><h2>3. 最新 Snapshot</h2>'; if(latest){h+='<p class="hint">'+esc(latest.snapshot_id)+'｜'+esc(latest.source)+'｜bytes='+esc(latest.bytes)+'</p><img class="snap" src="/edu/face/latest.jpg?ts='+Date.now()+'">'} else h+='<p class="hint">等待 ESP32 上傳 snapshot...</p>'; h+='</div>';
+h+='<div class="card"><h2>4. Match Results</h2><table><tr><th>Match ID</th><th>Name</th><th>Score</th><th>Liveness</th><th>Door</th><th>Command</th><th>Source</th><th>Time</th></tr>'+((rr.results||[]).slice(0,12).map(r=>'<tr><td>'+esc(r.match_id)+'</td><td>'+esc(r.best_name)+'</td><td>'+esc(r.match_score)+'%</td><td>'+esc(r.liveness)+'</td><td class="'+(r.allow_open?'ok':'bad')+'">'+(r.allow_open?'OPEN':'LOCK')+'</td><td>'+esc(r.command_id)+'</td><td>'+esc(r.source||'')+'</td><td>'+esc(r.created_at)+'</td></tr>').join('')||'<tr><td colspan="8" class="hint">尚無辨識結果</td></tr>')+'</table></div>';
+h+='<div class="card"><h2>5. Face DB</h2><table><tr><th>Face ID</th><th>Name</th><th>Community</th><th>UID</th><th>Time</th></tr>'+((db.faces||[]).map(f=>'<tr><td>'+esc(f.face_id)+'</td><td><b>'+esc(f.person_name)+'</b></td><td>'+esc(f.community_name)+'</td><td>'+esc(f.master_uid)+'</td><td>'+esc(f.registered_at)+'</td></tr>').join('')||'<tr><td colspan="5" class="hint">尚未註冊</td></tr>')+'</table></div>';
+h+='<div class="card warn"><h2>6. 教學觀察重點</h2><pre>ESP32 Camera 每 5 秒拍照\n↓\nPOST /edu/face/snapshot?auto_match=1\n↓\nRailway runFaceMatch()\n↓\nMATCH + REAL → OPEN_DOOR\n↓\nWeb Push 通知手機\n↓\nESP32 polling command → GPIO40 開門</pre><p class="hint">V9A 仍是教育版 fingerprint 模擬；正式版會替換為 OpenAI Face Match + Liveness。</p></div>'; document.getElementById('app').innerHTML=h;}
+async function reg(){const r=await post('/edu/face/register',{master_uid:uid.value,person_name:person.value}); msg.textContent=JSON.stringify(r,null,2); await load()} async function match(){const r=await post('/edu/face/match',{master_uid:uid.value}); msg.textContent=JSON.stringify(r,null,2); await load()} async function clearDb(){if(confirm('清除 Face DB?')){await del('/edu/face/db');load()}} load(); setInterval(load,5000);
 </script></body></html>`}
 
 app.get('/edu/face-snapshot', (_req, res) => res.send(renderFaceSnapshotPage()));
@@ -650,7 +730,7 @@ body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;col
 <body><div class="wrap">
 <h1>RT7 EDU NODE-RED FLOW V6</h1>
 <p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer / IoT Dashboard</p>
-<p><button class="blue" onclick="location.href='/edu/community/register'">第二堂社區註冊</button> <button class="blue" onclick="location.href='/edu/login'">第三堂登入驗證</button> <button class="blue" onclick="location.href='/edu/doorbell'">第四堂門鈴事件</button> <button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button> <button class="blue" onclick="location.href='/edu/node-red'">第六堂 Node-RED Flow</button> <button class="blue" onclick="location.href='/edu/push'">第七堂手機推播</button> <button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 Snapshot</button> <button class="blue" onclick="location.href='/edu/face-recognition'">第九堂人臉辨識</button></p>
+<p><button class="blue" onclick="location.href='/edu/community/register'">第二堂社區註冊</button> <button class="blue" onclick="location.href='/edu/login'">第三堂登入驗證</button> <button class="blue" onclick="location.href='/edu/doorbell'">第四堂門鈴事件</button> <button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button> <button class="blue" onclick="location.href='/edu/node-red'">第六堂 Node-RED Flow</button> <button class="blue" onclick="location.href='/edu/push'">第七堂手機推播</button> <button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 Snapshot</button> <button class="blue" onclick="location.href='/edu/face-recognition'">第九堂人臉辨識</button> <button class="blue" onclick="location.href='/edu/face-realtime'">V9A Realtime</button></p>
 <div id="app">載入中...</div>
 </div>
 <script>
@@ -831,7 +911,7 @@ body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;col
 <body><div class="wrap">
 <h1>RT7 EDU FACE SNAPSHOT V8</h1>
 <p><span class="tag">第八堂課</span> ESP32 Camera / Snapshot / Railway / 手機顯示照片</p>
-<p><button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button><button class="blue" onclick="location.href='/edu/push'">第七堂手機推播</button><button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 Snapshot</button> <button class="blue" onclick="location.href='/edu/face-recognition'">第九堂人臉辨識</button></p>
+<p><button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button><button class="blue" onclick="location.href='/edu/push'">第七堂手機推播</button><button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 Snapshot</button> <button class="blue" onclick="location.href='/edu/face-recognition'">第九堂人臉辨識</button> <button class="blue" onclick="location.href='/edu/face-realtime'">V9A Realtime</button></p>
 <div id="app">載入中...</div>
 </div>
 <script>
@@ -855,4 +935,4 @@ load(); setInterval(load,5000);
 </body></html>`;
 }
 
-app.listen(PORT, () => console.log('[' + VERSION + '] http://localhost:' + PORT + '/edu/push'));
+app.listen(PORT, () => console.log('[' + VERSION + '] http://localhost:' + PORT + '/edu/face-realtime'));
