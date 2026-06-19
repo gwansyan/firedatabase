@@ -14,7 +14,7 @@ const webPush = require('web-push');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_PRODUCTION_FACE_DOORBELL_V10A_REQUIRE_FRESH_SNAPSHOT_BEFORE_MATCHA_REQUIRE_FRESH_SNAPSHOT_BEFORE_MATCH';
+const VERSION = 'RT7_PRODUCTION_FACE_MATCH_V11_OPENAI_FACE_FINGERPRINT';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:teacher@example.com';
 let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
@@ -27,7 +27,7 @@ if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
 webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
 app.use(cors());
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 function ensureFile(name, fallback) {
@@ -651,6 +651,97 @@ app.delete('/edu/face/snapshots', (_req, res) => {
 });
 
 
+
+
+// ===== V11: Production OpenAI Face Fingerprint / Vision Bridge =====
+// 目的：把教育版 JPEG fingerprint 升級成正式版 OpenAI Vision 前置流程。
+// 若 OPENAI_API_KEY 未設定，API 會回傳 OPENAI_API_KEY_NOT_SET，不會誤開門。
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const OPENAI_MODEL = process.env.OPENAI_FACE_MODEL || 'gpt-4o-mini';
+
+function latestImageDataUrl_() {
+  const buf = latestImageBuffer();
+  if (!buf) return '';
+  return 'data:image/jpeg;base64,' + buf.toString('base64');
+}
+
+async function rt7OpenAIFaceFingerprint_(master_uid) {
+  if (!OPENAI_API_KEY) {
+    return { ok:false, error:'OPENAI_API_KEY_NOT_SET', face_found:false, liveness:'UNKNOWN', match_score:0, allow_open:false };
+  }
+  const dataUrl = latestImageDataUrl_();
+  if (!dataUrl) return { ok:false, error:'NO_LATEST_SNAPSHOT', face_found:false, liveness:'UNKNOWN', match_score:0, allow_open:false };
+
+  const faceDb = readJson('face_db.json', []).filter(f => !f.master_uid || f.master_uid === master_uid);
+  const knownNames = faceDb.map(f => f.person_name).filter(Boolean).slice(0, 10);
+
+  const prompt = [
+    '你是 RT7 社區門禁人臉辨識安全守衛。',
+    '請只根據影像判斷是否有清楚真人臉、是否像真人現場拍攝、以及最可能的姓名。',
+    '已註冊名單：' + (knownNames.join(', ') || '無'),
+    '請輸出嚴格 JSON，不要 markdown。',
+    '格式：{"face_found":true/false,"best_name":"姓名或空字串","match_score":0-100,"liveness":"REAL|PHOTO|SCREEN|UNKNOWN","reason":"簡短原因"}',
+    '若沒有清楚人臉，match_score 必須為 0。若無法確認為真人現場，liveness 不可為 REAL。'
+  ].join('\n');
+
+  const body = {
+    model: OPENAI_MODEL,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'text', text: prompt },
+        { type: 'image_url', image_url: { url: dataUrl } }
+      ]
+    }],
+    temperature: 0,
+    max_tokens: 300
+  };
+
+  const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + OPENAI_API_KEY },
+    body: JSON.stringify(body)
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) return { ok:false, error:'OPENAI_HTTP_' + r.status, detail:j, face_found:false, liveness:'UNKNOWN', match_score:0, allow_open:false };
+
+  const text = (((j.choices || [])[0] || {}).message || {}).content || '{}';
+  let parsed = {};
+  try {
+    parsed = JSON.parse(String(text).replace(/^```json\s*/,'').replace(/```$/,'').trim());
+  } catch(e) {
+    parsed = { face_found:false, best_name:'', match_score:0, liveness:'UNKNOWN', reason:'JSON_PARSE_FAIL: ' + String(text).slice(0,120) };
+  }
+  const score = Math.max(0, Math.min(100, Number(parsed.match_score || 0)));
+  const live = String(parsed.liveness || 'UNKNOWN').toUpperCase();
+  return {
+    ok:true,
+    provider:'openai',
+    model:OPENAI_MODEL,
+    face_found: !!parsed.face_found,
+    best_name: safeText(parsed.best_name || '', 60),
+    match_score: score,
+    liveness: ['REAL','PHOTO','SCREEN','UNKNOWN'].includes(live) ? live : 'UNKNOWN',
+    reason: safeText(parsed.reason || '', 220),
+    allow_open: !!parsed.face_found && score >= 80 && live === 'REAL'
+  };
+}
+
+app.post('/api/rt7/face/openai-match', async (req, res) => {
+  const body = req.body || {};
+  const master_uid = normalizeUid(body.master_uid || (readJson('communities.json', [])[0] || {}).master_uid || '');
+  if (!master_uid) return res.status(400).json({ ok:false, version:VERSION, error:'missing master_uid' });
+  const ai = await rt7OpenAIFaceFingerprint_(master_uid);
+  let command = null;
+  if (ai.allow_open) {
+    const community = getMasterCommunity(master_uid);
+    const cmd = { command_id:'CMD-'+Date.now().toString(36).toUpperCase(), command:'OPEN_DOOR', status:'PENDING', community_id:community?community.community_id:'', community_name:community?community.community_name:'', master_uid, relay_pin:40, pulse_ms:800, source:'OPENAI_FACE_MATCH', created_at:nowIso(), lesson:VERSION };
+    let commands = readJson('commands.json', []); commands.unshift(cmd); commands = commands.slice(0, 50); writeJson('commands.json', commands); command = cmd;
+  }
+  const result = { match_id:'MATCH-'+Date.now().toString(36).toUpperCase(), master_uid, best_name:ai.best_name || '', best_face_id:'OPENAI', match_score:ai.match_score || 0, face_match:!!ai.allow_open, liveness:ai.liveness || 'UNKNOWN', allow_open:!!ai.allow_open, command_id:command?command.command_id:'', source:'OPENAI_FACE_FINGERPRINT', reason:ai.reason || ai.error || '', created_at:nowIso(), lesson:VERSION };
+  let results = readJson('face_match_results.json', []); results.unshift(result); results = results.slice(0, 50); writeJson('face_match_results.json', results);
+  res.json({ ok: ai.ok, version:VERSION, result, ai, command });
+});
 
 // ===== Lesson 9: Educational Face Recognition =====
 // 教學版：用 JPEG SHA256 fingerprint 模擬 Face DB / Face Match / Liveness 流程。
