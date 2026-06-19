@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-production-face-doorbell-v10",
-  "version": "9.2.0",
-  "description": "RT7 EDU V9B: preview and manual capture before educational face recognition",
+  "name": "rt7-edu-production-face-doorbell-v10a",
+  "version": "10.1.0",
+  "description": "RT7 EDU V10A: require fresh snapshot before face match and open door",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
