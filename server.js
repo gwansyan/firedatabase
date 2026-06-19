@@ -1,4 +1,4 @@
-// RT7_EDU_PUSH_NOTIFY_V7
+// RT7_EDU_FACE_SNAPSHOT_V8
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -13,7 +13,7 @@ const webPush = require('web-push');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_PUSH_NOTIFY_V7';
+const VERSION = 'RT7_EDU_FACE_SNAPSHOT_V8';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:teacher@example.com';
 let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
@@ -26,7 +26,7 @@ if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
 webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
 app.use(cors());
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 function ensureFile(name, fallback) {
@@ -90,6 +90,7 @@ ensureFile('sessions.json', []);
 ensureFile('doorbell_events.json', []);
 ensureFile('commands.json', []);
 ensureFile('push_subscriptions.json', []);
+ensureFile('face_snapshots.json', []);
 
 app.get('/', (_req, res) => res.redirect('/edu'));
 app.get('/health', (_req, res) => res.json({ ok: true, version: VERSION, time: nowIso() }));
@@ -488,6 +489,85 @@ self.addEventListener('notificationclick', event => {
 `);
 });
 
+
+// 第八堂：ESP32 Camera Snapshot。ESP32 拍照後 POST JPEG 到 Railway，手機頁面顯示最新照片。
+function latestSnapshotPath() {
+  return path.join(DATA_DIR, 'latest_face_snapshot.jpg');
+}
+function snapshotPublicUrl() {
+  return '/edu/face/latest.jpg?ts=' + Date.now();
+}
+app.post('/edu/face/snapshot', express.raw({ type: ['image/jpeg', 'application/octet-stream'], limit: '3mb' }), (req, res) => {
+  const master_uid = normalizeUid(req.query.master_uid || req.headers['x-master-uid'] || '');
+  const source = safeText(req.query.source || req.headers['x-source'] || 'ESP32', 20).toUpperCase();
+  if (!master_uid) return res.status(400).json({ ok: false, error: 'missing master_uid query or X-Master-UID header' });
+  const buf = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+  if (!buf.length) return res.status(400).json({ ok: false, error: 'empty jpeg body' });
+  if (buf.length < 1000) return res.status(400).json({ ok: false, error: 'jpeg too small', bytes: buf.length });
+  fs.writeFileSync(latestSnapshotPath(), buf);
+  const communities = readJson('communities.json', []);
+  const community = communities.find(c => c.master_uid === master_uid) || null;
+  let shots = readJson('face_snapshots.json', []);
+  const shot = {
+    snapshot_id: 'SNAP-' + Date.now().toString(36).toUpperCase(),
+    type: 'FACE_SNAPSHOT',
+    master_uid,
+    community_id: community ? community.community_id : '',
+    community_name: community ? community.community_name : '',
+    source,
+    bytes: buf.length,
+    image_url: '/edu/face/latest.jpg',
+    created_at: nowIso(),
+    lesson: VERSION
+  };
+  shots.unshift(shot);
+  shots = shots.slice(0, 30);
+  writeJson('face_snapshots.json', shots);
+  console.log('[EDU][V8][FACE_SNAPSHOT]', shot.snapshot_id, 'bytes=' + buf.length, master_uid);
+  res.json({ ok: true, version: VERSION, snapshot: shot, count: shots.length });
+});
+
+// 教學用：瀏覽器模擬 snapshot，方便沒有接 ESP32 Camera 時先測 UI。
+app.post('/edu/face/snapshot/sim', (req, res) => {
+  const body = req.body || {};
+  let master_uid = normalizeUid(body.master_uid || '');
+  if (!master_uid) {
+    const communities = readJson('communities.json', []);
+    if (communities[0]) master_uid = normalizeUid(communities[0].master_uid);
+  }
+  if (!master_uid) return res.status(400).json({ ok: false, error: 'missing master_uid. Please run heartbeat and register community first.' });
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><rect width="100%" height="100%" fill="#dbeafe"/><circle cx="320" cy="210" r="90" fill="#f8c9a8"/><circle cx="285" cy="190" r="10" fill="#111827"/><circle cx="355" cy="190" r="10" fill="#111827"/><path d="M285 255 Q320 285 355 255" stroke="#111827" stroke-width="8" fill="none" stroke-linecap="round"/><text x="320" y="390" text-anchor="middle" font-size="34" font-family="Arial" fill="#0f172a">RT7 EDU FACE SNAPSHOT V8</text><text x="320" y="430" text-anchor="middle" font-size="20" font-family="Arial" fill="#475569">${nowIso()}</text></svg>`;
+  fs.writeFileSync(latestSnapshotPath(), Buffer.from(svg));
+  const communities = readJson('communities.json', []);
+  const community = communities.find(c => c.master_uid === master_uid) || null;
+  let shots = readJson('face_snapshots.json', []);
+  const shot = { snapshot_id: 'SNAP-' + Date.now().toString(36).toUpperCase(), type:'FACE_SNAPSHOT_SIM', master_uid, community_id: community?community.community_id:'', community_name: community?community.community_name:'', source:'SIM', bytes: Buffer.byteLength(svg), image_url:'/edu/face/latest.jpg', created_at: nowIso(), lesson: VERSION };
+  shots.unshift(shot); shots = shots.slice(0,30); writeJson('face_snapshots.json', shots);
+  res.json({ ok:true, version: VERSION, snapshot: shot, count: shots.length });
+});
+
+app.get('/edu/face/latest.jpg', (_req, res) => {
+  const f = latestSnapshotPath();
+  if (!fs.existsSync(f)) return res.status(404).send('No snapshot yet');
+  const b = fs.readFileSync(f);
+  const isSvg = b.slice(0, 20).toString().includes('<svg');
+  res.type(isSvg ? 'image/svg+xml' : 'image/jpeg').send(b);
+});
+
+app.get('/edu/face/snapshots', (_req, res) => {
+  res.json({ ok: true, version: VERSION, snapshots: readJson('face_snapshots.json', []) });
+});
+
+app.delete('/edu/face/snapshots', (_req, res) => {
+  const before = readJson('face_snapshots.json', []);
+  writeJson('face_snapshots.json', []);
+  const f = latestSnapshotPath();
+  if (fs.existsSync(f)) fs.unlinkSync(f);
+  res.json({ ok: true, version: VERSION, deleted: before.length });
+});
+
+app.get('/edu/face-snapshot', (_req, res) => res.send(renderFaceSnapshotPage()));
+
 function renderEduPage() {
 return String.raw`<!doctype html>
 <html lang="zh-Hant">
@@ -500,7 +580,7 @@ body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;col
 <body><div class="wrap">
 <h1>RT7 EDU NODE-RED FLOW V6</h1>
 <p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer / IoT Dashboard</p>
-<p><button class="blue" onclick="location.href='/edu/community/register'">第二堂社區註冊</button> <button class="blue" onclick="location.href='/edu/login'">第三堂登入驗證</button> <button class="blue" onclick="location.href='/edu/doorbell'">第四堂門鈴事件</button> <button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button> <button class="blue" onclick="location.href='/edu/node-red'">第六堂 Node-RED Flow</button></p>
+<p><button class="blue" onclick="location.href='/edu/community/register'">第二堂社區註冊</button> <button class="blue" onclick="location.href='/edu/login'">第三堂登入驗證</button> <button class="blue" onclick="location.href='/edu/doorbell'">第四堂門鈴事件</button> <button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button> <button class="blue" onclick="location.href='/edu/node-red'">第六堂 Node-RED Flow</button> <button class="blue" onclick="location.href='/edu/push'">第七堂手機推播</button> <button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 Snapshot</button></p>
 <div id="app">載入中...</div>
 </div>
 <script>
@@ -598,7 +678,7 @@ load(); setInterval(load,10000);
 }
 
 function renderNodeRedPage() {
-return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_PUSH_NOTIFY_V7_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
+return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_FACE_SNAPSHOT_V8_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
 Doorbell → doorbell_events.json
 Open Door → commands.json
 ACK → DONE
@@ -667,5 +747,42 @@ load(); setInterval(function(){ if(!document.activeElement || document.activeEle
 </script></body></html>`;
 }
 app.get('/edu/community/register', (_req, res) => { res.type('html').send(renderCommunityRegisterPage()); });
+
+
+function renderFaceSnapshotPage() {
+return String.raw`<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RT7 EDU FACE SNAPSHOT V8</title>
+<style>
+body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1040px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button,select{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}button{background:#0b9b5a;color:white;border:0}.blue{background:#0b6fa4}.danger{background:#c0392b}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.hint{color:#64748b;line-height:1.6}.ok{color:#079b50;font-weight:bold}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}img.snap{width:100%;max-width:640px;border-radius:12px;border:1px solid #d8e1e7;background:#f8fafc}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.warn{background:#fff8e1;border-left:5px solid #f2c94c}</style>
+</head>
+<body><div class="wrap">
+<h1>RT7 EDU FACE SNAPSHOT V8</h1>
+<p><span class="tag">第八堂課</span> ESP32 Camera / Snapshot / Railway / 手機顯示照片</p>
+<p><button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button><button class="blue" onclick="location.href='/edu/push'">第七堂手機推播</button><button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 Snapshot</button></p>
+<div id="app">載入中...</div>
+</div>
+<script>
+async function api(path,opt){const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'}},opt||{}));let j={};try{j=await r.json();}catch(e){j={text:await r.text()}} if(!r.ok)j.http_status=r.status;return j;}
+async function post(path,data){return api(path,{method:'POST',body:JSON.stringify(data)});} async function del(path){return api(path,{method:'DELETE'});} function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+let STATE={}; function options(list){ if(!list.length)return '<option value="">請先完成第二堂：社區註冊</option>'; return list.map(c=>'<option value="'+esc(c.master_uid)+'">'+esc(c.community_name)+' ('+esc(c.master_uid)+')</option>').join(''); }
+async function load(){ const s=await api('/edu/state'); const f=await api('/edu/face/snapshots'); STATE=s; const communities=s.communities||[]; const shots=f.snapshots||[]; const latest=shots[0]; let h='';
+ h+='<div class="card"><h2>1. Snapshot 測試</h2><p class="hint">ESP32 Camera 拍照後，POST JPEG 到 <b>/edu/face/snapshot</b>，Railway 儲存最新照片，手機頁面讀取 <b>/edu/face/latest.jpg</b>。</p><select id="master_uid">'+options(communities)+'</select><button onclick="simSnap()">模擬 Snapshot</button><button class="danger" onclick="clearSnaps()">清除照片</button><p id="msg" class="ok"></p></div>';
+ h+='<div class="card"><h2>2. 手機顯示最新照片</h2>';
+ if(latest){ h+='<p class="hint">最新 Snapshot：'+esc(latest.snapshot_id)+'｜來源：'+esc(latest.source)+'｜bytes：'+esc(latest.bytes)+'｜時間：'+esc(latest.created_at)+'</p><img class="snap" src="/edu/face/latest.jpg?ts='+Date.now()+'">'; } else { h+='<p class="hint">尚未收到 Snapshot。可先按「模擬 Snapshot」，或燒錄 V8 ESP32 Camera 程式。</p>'; }
+ h+='</div>';
+ h+='<div class="card"><h2>3. Snapshot Records</h2><table><tr><th>Snapshot ID</th><th>Community</th><th>Master UID</th><th>Source</th><th>Bytes</th><th>Time</th></tr>';
+ if(!shots.length) h+='<tr><td colspan="6" class="hint">尚無資料</td></tr>'; else shots.slice(0,10).forEach(x=>{h+='<tr><td>'+esc(x.snapshot_id)+'</td><td>'+esc(x.community_name)+'<br><span class="hint">'+esc(x.community_id)+'</span></td><td>'+esc(x.master_uid)+'</td><td>'+esc(x.source)+'</td><td>'+esc(x.bytes)+'</td><td>'+esc(x.created_at)+'</td></tr>';});
+ h+='</table></div>';
+ h+='<div class="card warn"><h2>4. 第八堂觀察重點</h2><pre>ESP32 Camera\n↓\nSnapshot JPEG\n↓\nPOST /edu/face/snapshot\n↓\nRailway latest_face_snapshot.jpg\n↓\n手機網頁顯示照片\n\n下一堂才加入：Face Register / Face Match / Liveness</pre></div>';
+ document.getElementById('app').innerHTML=h; }
+async function simSnap(){ const uid=document.getElementById('master_uid').value; const r=await post('/edu/face/snapshot/sim',{master_uid:uid}); document.getElementById('msg').textContent=r.ok?'模擬 Snapshot 成功':'失敗：'+(r.error||r.http_status); await load(); }
+async function clearSnaps(){ if(!confirm('清除 snapshot records?'))return; await del('/edu/face/snapshots'); await load(); }
+load(); setInterval(load,5000);
+</script>
+</body></html>`;
+}
 
 app.listen(PORT, () => console.log('[' + VERSION + '] http://localhost:' + PORT + '/edu/push'));
