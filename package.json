@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-face-recognition-v9b-route-order-latest-fix",
-  "version": "9.0.2",
-  "description": "RT7 EDU V9B: remove duplicate face-recognition routes and bind latest snapshot",
+  "name": "rt7-edu-face-recognition-v9c-register-status-ui",
+  "version": "9.0.3",
+  "description": "RT7 EDU V9C: register status UI for face registration success/failure",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
