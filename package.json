@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-face-snapshot-v8a2b-typedef-order-fix",
-  "version": "8.2.2",
-  "description": "RT7 EDU V8A2B: Arduino typedef order compile fix",
+  "name": "rt7-edu-face-snapshot-v8a2d-clean-esp32-compile-fix",
+  "version": "8.2.4",
+  "description": "RT7 EDU V8A2D clean ESP32 compile fix; gate skip upload",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
