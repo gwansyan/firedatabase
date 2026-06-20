@@ -1,4 +1,4 @@
-// RT7_EDU_FACE_RECOGNITION_V9B1_STABLE_REGISTER_STATUS_FIX
+// RT7_EDU_PRODUCTION_FACE_DOORBELL_V10
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -13,7 +13,7 @@ const webPush = require('web-push');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_FACE_RECOGNITION_V9B1_STABLE_REGISTER_STATUS_FIX';
+const VERSION = 'RT7_EDU_PRODUCTION_FACE_DOORBELL_V10';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:teacher@example.com';
 let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
@@ -705,7 +705,7 @@ load(); setInterval(load,10000);
 }
 
 function renderNodeRedPage() {
-return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_FACE_RECOGNITION_V9B1_STABLE_REGISTER_STATUS_FIX_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
+return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_PRODUCTION_FACE_DOORBELL_V10_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
 Doorbell → doorbell_events.json
 Open Door → commands.json
 ACK → DONE
@@ -1042,14 +1042,14 @@ app.get('/edu/face-recognition', (_req, res) => {
   const latestHtml = latest ? `<div class="meta">最新 Candidate：${latest.snapshot_id}｜${latest.community_name||''}｜face_gate=${latest.face_gate}｜face_count=${latest.face_count}｜bytes=${latest.bytes}｜${latest.created_at||''}</div><img src="/edu/face/latest.jpg?_=${Date.now()}">` : '<p>尚未收到 FACE_GATE_PASS Candidate Snapshot。</p>';
   const rows = faces.map(f => `<tr><td>${f.face_id}</td><td><b>${f.person_name}</b></td><td>${f.community_name||''}</td><td>${f.master_uid}</td><td>${f.snapshot_id||''}</td><td>${f.bytes||''}</td><td>${f.created_at||''}</td></tr>`).join('') || '<tr><td colspan="7">尚未註冊</td></tr>';
   res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${VERSION}</title>
-<style>body{font-family:system-ui,"Noto Sans TC",sans-serif;background:#eef5f7;margin:0;color:#102330}.wrap{max-width:920px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}button{border:0;border-radius:10px;background:#079b50;color:white;font-weight:800;padding:12px 16px;margin:6px}button.red{background:#c9342d}input,select{padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px;min-width:220px}img{max-width:100%;border-radius:12px;border:1px solid #ddd}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #dde;padding:9px;text-align:left}.meta{color:#617085;margin:8px 0}.status{font-weight:800;border-radius:10px;padding:12px;margin-top:10px}.ok{background:#e8fff2;color:#08783e}.warn{background:#fff7df;color:#946200}.err{background:#ffecec;color:#a11212}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto}</style>
+<style>body{font-family:system-ui,"Noto Sans TC",sans-serif;background:#eef5f7;margin:0;color:#102330}.wrap{max-width:920px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}button{border:0;border-radius:10px;background:#079b50;color:white;font-weight:800;padding:12px 16px;margin:6px}button.red{background:#c9342d}input,select{padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px;min-width:220px}img{max-width:100%;border-radius:12px;border:1px solid #ddd}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #dde;padding:9px;text-align:left}.meta{color:#617085;margin:8px 0}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto}</style>
 </head><body><div class="wrap">
 <h1>RT7 EDU FACE RECOGNITION V9B</h1>
 <div class="meta">第九堂：Real Face Register / Route Order Latest Fix</div>
 <p><a href="/edu/face-snapshot">第八堂 Snapshot</a> ｜ <a href="/edu/face-gate/state">FACE_GATE state</a> ｜ <a href="/edu/face/latest-meta">latest-meta</a></p>
 <div class="card"><h2>1. 最新 FACE_GATE Candidate Snapshot</h2>${latestHtml}</div>
 <div class="card"><h2>2. 註冊人臉</h2><p>先用 ESP32 輸入 <b>s</b> 上傳 FACE_GATE_PASS 照片，再在這裡輸入姓名註冊。</p>
-<select id="master_uid">${opts}</select><input id="person_name" placeholder="姓名，例如：小艾"><button onclick="registerFace()">註冊目前 Candidate</button><button class="red" onclick="clearDb()">清除 Face DB</button><div id="statusBox" class="status">READY</div><pre id="result">READY</pre></div>
+<select id="master_uid">${opts}</select><input id="person_name" placeholder="姓名，例如：小艾"><button onclick="registerFace()">註冊目前 Candidate</button><button class="red" onclick="clearDb()">清除 Face DB</button><pre id="result">READY</pre></div>
 <div class="card"><h2>3. Face DB</h2><table><thead><tr><th>Face ID</th><th>Name</th><th>Community</th><th>UID</th><th>Snapshot</th><th>Bytes</th><th>Time</th></tr></thead><tbody>${rows}</tbody></table></div>
 <div class="card"><h2>4. 第九堂觀察重點</h2><pre>FACE_GATE_PASS Snapshot
 ↓
@@ -1063,35 +1063,218 @@ Face DB 顯示註冊資料
 
 本堂不做 Face Match，不開門。</pre></div>
 </div><script>
-function setStatus(cls,msg){statusBox.className='status '+cls;statusBox.textContent=msg;}
-async function registerFace(){
-  const name = person_name.value.trim();
-  if(!name){ setStatus('err','❌ 請先輸入姓名'); person_name.focus(); return; }
-  if(!master_uid.value){ setStatus('err','❌ 尚未讀到 Candidate Snapshot'); return; }
-  setStatus('warn','⏳ 註冊中...');
-  try{
-    const r=await fetch('/edu/face/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({master_uid:master_uid.value,person_name:name})});
-    const j=await r.json();
-    result.textContent=JSON.stringify(j,null,2);
-    if(j.ok){
-      setStatus('ok','✅ 人臉註冊成功：'+(j.face&&j.face.person_name?j.face.person_name:name)+' / '+(j.face&&j.face.face_id?j.face.face_id:'FACE_OK'));
-      setTimeout(()=>location.reload(),1200);
-    }else{
-      setStatus('err','❌ 註冊失敗：'+(j.error||'UNKNOWN'));
-    }
-  }catch(e){
-    result.textContent=String(e);
-    setStatus('err','❌ 註冊失敗：網路或伺服器錯誤');
-  }
+async function registerFace(){const r=await fetch('/edu/face/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({master_uid:master_uid.value,person_name:person_name.value})});const j=await r.json();result.textContent=JSON.stringify(j,null,2);if(j.ok)setTimeout(()=>location.reload(),800);}
+async function clearDb(){if(!confirm('清除 Face DB?'))return;const r=await fetch('/edu/face/db/clear',{method:'POST'});const j=await r.json();result.textContent=JSON.stringify(j,null,2);setTimeout(()=>location.reload(),600);}
+</script></body></html>`);
+});
+
+
+
+// ===== Lesson 10: Production Face Doorbell =====
+// V10 uses the V9 registered Face DB and the newest FACE_GATE_PASS snapshot.
+// It performs an educational metadata-based face similarity, then queues OPEN_DOOR when MATCH + LIVENESS=REAL.
+// Original RT7 production idea: ESP32 does FACE_GATE candidate snapshot; Railway does register/match/door command.
+
+function rt7V10ReadSnapshots_() {
+  const arr = readJson('face_snapshots.json', []);
+  return Array.isArray(arr) ? arr : [];
 }
-async function clearDb(){
-  if(!confirm('清除 Face DB?'))return;
-  setStatus('warn','⏳ 清除 Face DB...');
-  const r=await fetch('/edu/face/db/clear',{method:'POST'});
-  const j=await r.json();
-  result.textContent=JSON.stringify(j,null,2);
-  setStatus('ok','✅ Face DB 已清除');
-  setTimeout(()=>location.reload(),800);
+function rt7V10Latest_() {
+  const arr = rt7V10ReadSnapshots_();
+  arr.sort((a,b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  return arr.find(s => String(s.face_gate || '').toUpperCase() === 'PASS' && Number(s.face_count || 0) > 0) || null;
+}
+function rt7V10FaceDb_() {
+  const arr = readJson('edu_face_db.json', []);
+  return Array.isArray(arr) ? arr : [];
+}
+function rt7V10Matches_() {
+  const arr = readJson('edu_face_matches.json', []);
+  return Array.isArray(arr) ? arr : [];
+}
+function rt7V10WriteMatches_(arr) {
+  writeJson('edu_face_matches.json', Array.isArray(arr) ? arr.slice(0, 80) : []);
+}
+function rt7V10Metric_(txt, name) {
+  const m = String(txt || '').match(new RegExp(name + '=([0-9.]+)'));
+  return m ? Number(m[1]) : 0;
+}
+function rt7V10Parse_(obj) {
+  const reason = String(obj && obj.face_reason || '');
+  const box = reason.match(/box=([0-9]+)x([0-9]+)/);
+  const center = reason.match(/center=([0-9]+),([0-9]+)/);
+  return {
+    skin: rt7V10Metric_(reason, 'skin'),
+    skin_pct: rt7V10Metric_(reason, 'skin_pct'),
+    ratio: rt7V10Metric_(reason, 'ratio'),
+    box_w: box ? Number(box[1]) : 0,
+    box_h: box ? Number(box[2]) : 0,
+    cx: center ? Number(center[1]) : 0,
+    cy: center ? Number(center[2]) : 0,
+    bytes: Number(obj && obj.bytes || 0)
+  };
+}
+function rt7V10Similarity_(latest, face) {
+  const a = rt7V10Parse_(latest);
+  const b = rt7V10Parse_(face);
+  if (!a.skin_pct || !b.skin_pct || !a.box_w || !b.box_w) return 0;
+
+  let score = 100;
+  score -= Math.min(28, Math.abs(a.skin_pct - b.skin_pct) * 2.0);
+  score -= Math.min(22, Math.abs(a.ratio - b.ratio) * 30.0);
+  score -= Math.min(18, Math.abs(a.box_w - b.box_w) * 0.55);
+  score -= Math.min(18, Math.abs(a.box_h - b.box_h) * 0.55);
+  score -= Math.min(14, (Math.abs(a.cx - b.cx) + Math.abs(a.cy - b.cy)) * 0.7);
+  score -= Math.min(10, Math.abs(a.bytes - b.bytes) / 400.0);
+  if (score < 0) score = 0;
+  if (score > 100) score = 100;
+  return Math.round(score);
+}
+function rt7V10QueueOpenDoor_(community_id, community_name, master_uid, source, note) {
+  let commands = readJson('commands.json', []);
+  const cmd = {
+    command_id: 'CMD-' + Date.now().toString(36).toUpperCase(),
+    command: 'OPEN_DOOR',
+    status: 'PENDING',
+    community_id: community_id || '',
+    community_name: community_name || '',
+    master_uid,
+    relay_pin: 40,
+    pulse_ms: 800,
+    source: source || 'FACE_MATCH',
+    created_at: nowIso(),
+    delivered_at: '',
+    ack_at: '',
+    ack_note: note || '',
+    lesson: VERSION
+  };
+  commands.unshift(cmd);
+  writeJson('commands.json', commands.slice(0,50));
+  return cmd;
+}
+function rt7V10BestMatch_(master_uid) {
+  const latest = rt7V10Latest_();
+  const db = rt7V10FaceDb_().filter(f => !master_uid || f.master_uid === master_uid);
+  let best = null;
+  let best_score = 0;
+  for (const f of db) {
+    const s = rt7V10Similarity_(latest, f);
+    if (s > best_score) { best_score = s; best = f; }
+  }
+  return { latest, db, best, best_score };
+}
+
+app.post('/edu/face/match', express.json({limit:'1mb'}), (req, res) => {
+  const body = req.body || {};
+  const master_uid = normalizeUid(body.master_uid || '');
+  const threshold = Number(body.threshold || 70);
+  const liveness = 'REAL'; // Lesson 10 keeps liveness as REAL placeholder; OpenAI liveness is later production enhancement.
+  if (!master_uid) return res.status(400).json({ ok:false, version:VERSION, error:'missing master_uid' });
+
+  const { latest, db, best, best_score } = rt7V10BestMatch_(master_uid);
+  if (!latest) return res.status(409).json({ ok:false, version:VERSION, error:'NO_LATEST_FACE_GATE_PASS_SNAPSHOT' });
+  if (!db.length) return res.status(409).json({ ok:false, version:VERSION, error:'FACE_DB_EMPTY', note:'請先完成第九堂 Face Register。' });
+
+  const face_match = !!(best && best_score >= threshold);
+  const allow_open = face_match && liveness === 'REAL';
+  let cmd = null;
+  if (allow_open) {
+    cmd = rt7V10QueueOpenDoor_(latest.community_id || best.community_id, latest.community_name || best.community_name, master_uid, 'FACE_MATCH', 'V10 MATCH + LIVENESS REAL');
+  }
+  const rec = {
+    match_id: 'MATCH-' + Date.now().toString(36).toUpperCase(),
+    master_uid,
+    latest_snapshot_id: latest.snapshot_id,
+    best_face_id: best ? best.face_id : '',
+    best_name: best ? best.person_name : '',
+    match_score: best_score,
+    threshold,
+    face_match,
+    liveness,
+    allow_open,
+    command_id: cmd ? cmd.command_id : '',
+    block_reason: allow_open ? '' : (face_match ? 'LIVENESS_NOT_REAL' : 'MATCH_SCORE_BELOW_THRESHOLD'),
+    created_at: nowIso(),
+    lesson: VERSION
+  };
+  const matches = rt7V10Matches_();
+  matches.unshift(rec);
+  rt7V10WriteMatches_(matches);
+  res.json({ ok:true, version:VERSION, result:rec, command:cmd, latest, best_face:best });
+});
+
+app.get('/edu/face/matches', (_req, res) => {
+  res.json({ ok:true, version:VERSION, matches:rt7V10Matches_() });
+});
+
+app.get('/edu/production-face-doorbell', (_req, res) => {
+  const latest = rt7V10Latest_();
+  const faces = rt7V10FaceDb_();
+  const matches = rt7V10Matches_();
+  const masters = readJson('master_registry.json', {});
+  let masterOptions = [];
+  if (latest && latest.master_uid) masterOptions.push({uid:latest.master_uid, name:latest.community_name || '最新 Snapshot'});
+  if (!masterOptions.length && faces.length) masterOptions = faces.map(f => ({uid:f.master_uid, name:f.community_name || f.person_name || 'Face DB'}));
+  const seen = {};
+  masterOptions = masterOptions.filter(o => o.uid && !seen[o.uid] && (seen[o.uid]=true));
+  const opts = masterOptions.map(o => `<option value="${o.uid}">${o.name} (${o.uid})</option>`).join('');
+  const latestHtml = latest ? `<div class="meta">最新 Candidate：${latest.snapshot_id}｜${latest.community_name||''}｜face_gate=${latest.face_gate}｜face_count=${latest.face_count}｜bytes=${latest.bytes}｜${latest.created_at||''}</div><img src="/edu/face/latest.jpg?_=${Date.now()}">` : '<p>尚未收到 FACE_GATE_PASS Candidate Snapshot。</p>';
+  const faceRows = faces.map(f => `<tr><td>${f.face_id}</td><td><b>${f.person_name}</b></td><td>${f.community_name||''}</td><td>${f.master_uid}</td><td>${f.snapshot_id||''}</td><td>${f.bytes||''}</td><td>${f.created_at||''}</td></tr>`).join('') || '<tr><td colspan="7">尚未註冊</td></tr>';
+  const matchRows = matches.map(m => `<tr><td>${m.match_id}</td><td>${m.best_name||''}</td><td>${m.match_score}%</td><td>${m.liveness}</td><td style="font-weight:800;color:${m.allow_open?'#08783e':'#b11111'}">${m.allow_open?'OPEN':'LOCK'}</td><td>${m.command_id||''}</td><td>${m.block_reason||''}</td><td>${m.created_at}</td></tr>`).join('') || '<tr><td colspan="8">尚無辨識結果</td></tr>';
+
+  res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${VERSION}</title>
+<style>
+body{font-family:system-ui,"Noto Sans TC",sans-serif;background:#eef5f7;margin:0;color:#102330}.wrap{max-width:980px;margin:auto;padding:18px}
+.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}button{border:0;border-radius:10px;background:#079b50;color:white;font-weight:800;padding:12px 16px;margin:6px}
+button.red{background:#c9342d}input,select{padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px;min-width:220px}img{max-width:100%;border-radius:12px;border:1px solid #ddd}
+table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #dde;padding:9px;text-align:left}.meta{color:#617085;margin:8px 0}.status{font-weight:800;border-radius:10px;padding:12px;margin-top:10px}.ok{background:#e8fff2;color:#08783e}.warn{background:#fff7df;color:#946200}.err{background:#ffecec;color:#a11212}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto}
+</style></head><body><div class="wrap">
+<h1>RT7 EDU PRODUCTION FACE DOORBELL V10</h1>
+<div class="meta">第十堂：FACE_GATE Candidate → Face DB Match → OPEN_DOOR Command</div>
+<p><a href="/edu/face-recognition">第九堂 Face Register</a> ｜ <a href="/edu/face-gate/state">FACE_GATE state</a> ｜ <a href="/edu/commands">Commands</a></p>
+
+<div class="card"><h2>1. 最新 FACE_GATE Candidate Snapshot</h2>${latestHtml}</div>
+
+<div class="card"><h2>2. 生產版辨識測試</h2>
+<p>先讓 ESP32 串口輸入 <b>s</b> 上傳最新候選照片，再按辨識。MATCH + LIVENESS=REAL 時會寫入 OPEN_DOOR command。</p>
+<select id="master_uid">${opts}</select>
+<input id="threshold" type="number" value="70" min="1" max="100" style="width:120px;min-width:120px"> %
+<button onclick="doMatch()">做人臉辨識測試</button>
+<div id="statusBox" class="status">READY</div>
+<pre id="result">READY</pre>
+</div>
+
+<div class="card"><h2>3. Match Results</h2><table><thead><tr><th>Match ID</th><th>Name</th><th>Score</th><th>Liveness</th><th>Door</th><th>Command</th><th>Block</th><th>Time</th></tr></thead><tbody>${matchRows}</tbody></table></div>
+
+<div class="card"><h2>4. Face DB</h2><table><thead><tr><th>Face ID</th><th>Name</th><th>Community</th><th>UID</th><th>Snapshot</th><th>Bytes</th><th>Time</th></tr></thead><tbody>${faceRows}</tbody></table></div>
+
+<div class="card"><h2>5. 第十堂觀察重點</h2><pre>ESP32 Camera
+↓
+human_face_detect / FACE_GATE_PASS
+↓
+Railway Candidate Snapshot
+↓
+Face DB Match
+↓
+MATCH + LIVENESS=REAL
+↓
+OPEN_DOOR command
+↓
+ESP32 GPIO40 relay</pre></div>
+</div>
+<script>
+function setStatus(cls,msg){statusBox.className='status '+cls;statusBox.textContent=msg;}
+async function doMatch(){
+  if(!master_uid.value){setStatus('err','❌ 尚未有 Master UID');return;}
+  setStatus('warn','⏳ 辨識中...');
+  const r = await fetch('/edu/face/match',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({master_uid:master_uid.value,threshold:Number(threshold.value||70)})});
+  const j = await r.json();
+  result.textContent = JSON.stringify(j,null,2);
+  if(j.ok && j.result && j.result.allow_open){setStatus('ok','✅ MATCH '+j.result.match_score+'%：已送出開門命令 '+j.result.command_id);}
+  else if(j.ok && j.result){setStatus('err','🔒 LOCK：MATCH '+j.result.match_score+'%，未達門檻');}
+  else setStatus('err','❌ 辨識失敗：'+(j.error||'UNKNOWN'));
+  setTimeout(()=>location.reload(),1500);
 }
 </script></body></html>`);
 });

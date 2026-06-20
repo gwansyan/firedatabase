@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-face-recognition-v9b1-stable-register-status-fix",
-  "version": "9.0.2-stable.1",
-  "description": "RT7 EDU V9B1 stable restore: keep registration/snapshot routes and add status UI",
+  "name": "rt7-edu-production-face-doorbell-v10",
+  "version": "10.0.0",
+  "description": "RT7 EDU V10: production face doorbell, Face DB match to OPEN_DOOR command",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
