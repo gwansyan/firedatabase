@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 
-const VERSION = 'RT7_EDU_FACE_RECOGNITION_V9D1_RAILWAY_SYNTAX_FIX';
+const VERSION = 'RT7_EDU_FACE_RECOGNITION_V9D2_RESTORE_COMMUNITY_REGISTER';
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = process.env.RT7_DATA_DIR || __dirname;
@@ -223,5 +223,59 @@ app.get('/edu/face-recognition', (_req, res) => {
   ].join('');
   res.type('html').send(html);
 });
+
+
+// ===== V9D2: restore Lesson 2 community register routes =====
+function rt7V9D2Communities_() {
+  const arr = readJson('communities.json', []);
+  return Array.isArray(arr) ? arr : [];
+}
+function rt7V9D2WriteCommunities_(arr) {
+  writeJson('communities.json', Array.isArray(arr) ? arr.slice(0, 50) : []);
+}
+
+app.post('/edu/community/register', express.json({limit:'1mb'}), (req, res) => {
+  const body = req.body || {};
+  const community_name = safeText(body.community_name || body.name || 'A社區', 60).trim() || 'A社區';
+  const master_uid = normalizeUid(body.master_uid || 'RT7-MASTER-68F2299FC114');
+  const community_id = 'COMM-' + community_name + '-' + Date.now().toString(36).toUpperCase();
+  const rec = {
+    community_id,
+    community_name,
+    master_uid,
+    created_at: nowIso(),
+    lesson: VERSION
+  };
+  const list = rt7V9D2Communities_().filter(c => c.master_uid !== master_uid);
+  list.unshift(rec);
+  rt7V9D2WriteCommunities_(list);
+  res.json({ ok:true, version:VERSION, community:rec, count:list.length });
+});
+
+app.get('/edu/community/register', (_req, res) => {
+  const communities = rt7V9D2Communities_();
+  const rows = communities.map(c => '<tr><td>'+htmlEscape(c.community_id)+'</td><td><b>'+htmlEscape(c.community_name)+'</b></td><td>'+htmlEscape(c.master_uid)+'</td><td>'+htmlEscape(c.created_at)+'</td></tr>').join('') || '<tr><td colspan="4">尚未註冊</td></tr>';
+  const html = [
+'<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">',
+'<title>'+VERSION+'</title>',
+'<style>body{font-family:system-ui,"Noto Sans TC",sans-serif;background:#eef5f7;margin:0;color:#102330}.wrap{max-width:920px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}button{border:0;border-radius:10px;background:#079b50;color:white;font-weight:800;padding:12px 16px;margin:6px}input{padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px;min-width:260px}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #dde;padding:9px;text-align:left}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto}.ok{background:#e8fff2;color:#08783e;font-weight:800;border-radius:10px;padding:12px;margin-top:10px}.err{background:#ffecec;color:#a11212;font-weight:800;border-radius:10px;padding:12px;margin-top:10px}</style>',
+'</head><body><div class="wrap">',
+'<h1>RT7 EDU COMMUNITY REGISTER</h1>',
+'<div>第二堂：社區註冊 / V9D2 restored route</div>',
+'<p><a href="/edu/face-recognition">第九堂人臉註冊</a> ｜ <a href="/edu/face-snapshot">Snapshot</a> ｜ <a href="/health">health</a></p>',
+'<div class="card"><h2>1. 註冊社區</h2>',
+'<input id="community_name" value="A社區" placeholder="社區名稱，例如：A社區">',
+'<input id="master_uid" value="RT7-MASTER-68F2299FC114" placeholder="Master UID">',
+'<button onclick="registerCommunity()">註冊 / 綁定</button>',
+'<div id="status" class="ok">READY</div><pre id="result">READY</pre></div>',
+'<div class="card"><h2>2. Communities</h2><table><thead><tr><th>Community ID</th><th>Name</th><th>Master UID</th><th>Time</th></tr></thead><tbody>'+rows+'</tbody></table></div>',
+'</div><script>',
+'async function registerCommunity(){status.className="ok";status.textContent="⏳ 註冊中...";const r=await fetch("/edu/community/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({community_name:community_name.value,master_uid:master_uid.value})});const j=await r.json();result.textContent=JSON.stringify(j,null,2);if(j.ok){status.textContent="✅ 社區註冊成功："+j.community.community_name;setTimeout(()=>location.reload(),800)}else{status.className="err";status.textContent="❌ 註冊失敗："+(j.error||"UNKNOWN")}}',
+'</script></body></html>'
+  ].join('');
+  res.type('html').send(html);
+});
+
+app.get('/edu/register', (_req, res) => res.redirect('/edu/community/register'));
 
 app.listen(PORT, () => console.log(VERSION + ' listening on ' + PORT));

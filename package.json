@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-face-recognition-v9d1-railway-syntax-fix",
-  "version": "9.0.5",
-  "description": "RT7 EDU V9D1 clean server syntax fix",
+  "name": "rt7-edu-face-recognition-v9d2-restore-community-register",
+  "version": "9.0.6",
+  "description": "RT7 EDU V9D2: restore /edu/community/register route after clean V9D1 server",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
