@@ -1,14 +1,14 @@
 {
-  "name": "rt7-production-face-match-v11a-esp32-face-gate-railway-match-openai-liveness",
-  "version": "11.1.0",
+  "name": "rt7-edu-face-snapshot-v8a-face-gate",
+  "version": "8.1.0",
+  "description": "RT7 EDU V8A: ESP32 human_face_detect / FACE_GATE candidate snapshot upload to Railway",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "ws": "^8.16.0",
-    "jpeg-js": "^0.4.4"
-  },
-  "description": "RT7 V11A: ESP32 face gate + Railway face fingerprint match + OpenAI liveness only"
+    "cors": "latest",
+    "express": "latest",
+    "web-push": "latest"
+  }
 }
