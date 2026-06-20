@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-production-face-doorbell-v10",
-  "version": "10.0.0",
-  "description": "RT7 EDU V10: production face doorbell, Face DB match to OPEN_DOOR command",
+  "name": "rt7-edu-production-face-match-openai-liveness-v11",
+  "version": "11.0.0",
+  "description": "RT7 EDU V11: Face Match plus OpenAI liveness before OPEN_DOOR",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

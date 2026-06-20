@@ -1,4 +1,4 @@
-// RT7_EDU_PRODUCTION_FACE_DOORBELL_V10
+// RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V11
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -13,7 +13,7 @@ const webPush = require('web-push');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_PRODUCTION_FACE_DOORBELL_V10';
+const VERSION = 'RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V11';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:teacher@example.com';
 let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
@@ -705,7 +705,7 @@ load(); setInterval(load,10000);
 }
 
 function renderNodeRedPage() {
-return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_PRODUCTION_FACE_DOORBELL_V10_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
+return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V11_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
 Doorbell → doorbell_events.json
 Open Door → commands.json
 ACK → DONE
@@ -1277,5 +1277,105 @@ async function doMatch(){
   setTimeout(()=>location.reload(),1500);
 }
 </script></body></html>`);
+});
+
+
+
+// ===== Lesson 11: OpenAI Liveness + Face Match =====
+function rt7V11Snapshots(){ const a=readJson('face_snapshots.json',[]); return Array.isArray(a)?a:[]; }
+function rt7V11Latest(){
+  const a=rt7V11Snapshots();
+  a.sort((x,y)=>String(y.created_at||'').localeCompare(String(x.created_at||'')));
+  return a.find(s=>String(s.face_gate||'').toUpperCase()==='PASS' && Number(s.face_count||0)>0) || null;
+}
+function rt7V11FaceDb(){ const a=readJson('edu_face_db.json',[]); return Array.isArray(a)?a:[]; }
+function rt7V11Matches(){ const a=readJson('edu_face_matches.json',[]); return Array.isArray(a)?a:[]; }
+function rt7V11WriteMatches(a){ writeJson('edu_face_matches.json', Array.isArray(a)?a.slice(0,100):[]); }
+function rt7V11Metric(txt,name){ const m=String(txt||'').match(new RegExp(name+'=([0-9.]+)')); return m?Number(m[1]):0; }
+function rt7V11Parse(o){
+  const r=String(o&&o.face_reason||'');
+  const b=r.match(/box=([0-9]+)x([0-9]+)/);
+  const c=r.match(/center=([0-9]+),([0-9]+)/);
+  return {skin_pct:rt7V11Metric(r,'skin_pct'),ratio:rt7V11Metric(r,'ratio'),box_w:b?Number(b[1]):0,box_h:b?Number(b[2]):0,cx:c?Number(c[1]):0,cy:c?Number(c[2]):0,bytes:Number(o&&o.bytes||0)};
+}
+function rt7V11Similarity(latest,face){
+  const a=rt7V11Parse(latest), b=rt7V11Parse(face);
+  if(!a.skin_pct||!b.skin_pct||!a.box_w||!b.box_w) return 0;
+  let s=100;
+  s-=Math.min(28,Math.abs(a.skin_pct-b.skin_pct)*2.0);
+  s-=Math.min(22,Math.abs(a.ratio-b.ratio)*30.0);
+  s-=Math.min(18,Math.abs(a.box_w-b.box_w)*0.55);
+  s-=Math.min(18,Math.abs(a.box_h-b.box_h)*0.55);
+  s-=Math.min(14,(Math.abs(a.cx-b.cx)+Math.abs(a.cy-b.cy))*0.7);
+  s-=Math.min(10,Math.abs(a.bytes-b.bytes)/400.0);
+  return Math.max(0,Math.min(100,Math.round(s)));
+}
+function rt7V11Best(master_uid){
+  const latest=rt7V11Latest();
+  const db=rt7V11FaceDb().filter(f=>!master_uid||f.master_uid===master_uid);
+  let best=null, best_score=0;
+  for(const f of db){ const s=rt7V11Similarity(latest,f); if(s>best_score){best=f;best_score=s;} }
+  return {latest,db,best,best_score};
+}
+function rt7V11QueueOpen(community_id,community_name,master_uid,note){
+  let commands=readJson('commands.json',[]);
+  const cmd={command_id:'CMD-'+Date.now().toString(36).toUpperCase(),command:'OPEN_DOOR',status:'PENDING',community_id:community_id||'',community_name:community_name||'',master_uid,relay_pin:40,pulse_ms:800,source:'OPENAI_LIVENESS_FACE_MATCH',created_at:nowIso(),delivered_at:'',ack_at:'',ack_note:note||'',lesson:VERSION};
+  commands.unshift(cmd); writeJson('commands.json',commands.slice(0,50)); return cmd;
+}
+async function rt7V11OpenAILiveness(){
+  const key=process.env.OPENAI_API_KEY||'';
+  const imgPath=path.join(DATA_DIR,'edu_face_latest.jpg');
+  if(!key) return {mode:'DEMO_NO_OPENAI_KEY',liveness:'REAL',confidence:0.51,reason:'OPENAI_API_KEY not configured; demo mode returns REAL for lesson testing.'};
+  if(!fs.existsSync(imgPath)) return {mode:'OPENAI',liveness:'UNKNOWN',confidence:0,reason:'latest image not found'};
+  try{
+    const b64=fs.readFileSync(imgPath).toString('base64');
+    const body={model:process.env.OPENAI_VISION_MODEL||'gpt-4o-mini',messages:[{role:'user',content:[{type:'text',text:'Door access liveness check. Decide whether image shows a real live person in front of camera, or a printed photo/screen/replay. Return strict JSON only: {"liveness":"REAL|PHOTO|SCREEN|UNKNOWN","confidence":0-1,"reason":"short reason"}'},{type:'image_url',image_url:{url:'data:image/jpeg;base64,'+b64}}]}],temperature:0,max_tokens:120,response_format:{type:'json_object'}};
+    const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok) return {mode:'OPENAI_ERROR',liveness:'UNKNOWN',confidence:0,reason:d.error?d.error.message:('HTTP '+r.status)};
+    const txt=d.choices&&d.choices[0]&&d.choices[0].message?d.choices[0].message.content:'{}';
+    const p=JSON.parse(txt);
+    return {mode:'OPENAI',liveness:String(p.liveness||'UNKNOWN').toUpperCase(),confidence:Number(p.confidence||0),reason:String(p.reason||'')};
+  }catch(e){ return {mode:'OPENAI_EXCEPTION',liveness:'UNKNOWN',confidence:0,reason:String(e&&e.message||e)}; }
+}
+app.post('/edu/face/openai-liveness-match', express.json({limit:'1mb'}), async (req,res)=>{
+  const body=req.body||{};
+  const master_uid=normalizeUid(body.master_uid||'');
+  const threshold=Number(body.threshold||70);
+  const liveThreshold=Number(body.liveness_confidence||0.5);
+  if(!master_uid) return res.status(400).json({ok:false,version:VERSION,error:'missing master_uid'});
+  const {latest,db,best,best_score}=rt7V11Best(master_uid);
+  if(!latest) return res.status(409).json({ok:false,version:VERSION,error:'NO_LATEST_FACE_GATE_PASS_SNAPSHOT'});
+  if(!db.length) return res.status(409).json({ok:false,version:VERSION,error:'FACE_DB_EMPTY',note:'請先完成第九堂 Face Register。'});
+  const live=await rt7V11OpenAILiveness();
+  const face_match=!!(best&&best_score>=threshold);
+  const live_ok=live.liveness==='REAL' && Number(live.confidence||0)>=liveThreshold;
+  const allow_open=face_match&&live_ok;
+  const cmd=allow_open?rt7V11QueueOpen(latest.community_id||best.community_id,latest.community_name||best.community_name,master_uid,'V11 MATCH + OPENAI LIVENESS REAL'):null;
+  const rec={match_id:'MATCH-'+Date.now().toString(36).toUpperCase(),master_uid,latest_snapshot_id:latest.snapshot_id,best_face_id:best?best.face_id:'',best_name:best?best.person_name:'',match_score:best_score,threshold,face_match,liveness:live.liveness,liveness_mode:live.mode,liveness_confidence:live.confidence,liveness_reason:live.reason,allow_open,command_id:cmd?cmd.command_id:'',block_reason:allow_open?'':(!face_match?'MATCH_SCORE_BELOW_THRESHOLD':'LIVENESS_NOT_REAL'),created_at:nowIso(),lesson:VERSION};
+  const m=rt7V11Matches(); m.unshift(rec); rt7V11WriteMatches(m);
+  res.json({ok:true,version:VERSION,result:rec,command:cmd,latest,best_face:best,liveness:live});
+});
+app.get('/edu/openai-liveness-face-doorbell', (_req,res)=>{
+  const latest=rt7V11Latest(), faces=rt7V11FaceDb(), matches=rt7V11Matches().filter(m=>String(m.lesson||'').includes('V11')||m.liveness_mode);
+  let options=[]; if(latest&&latest.master_uid) options.push({uid:latest.master_uid,name:latest.community_name||'最新 Snapshot'}); if(!options.length&&faces.length) options=faces.map(f=>({uid:f.master_uid,name:f.community_name||f.person_name||'Face DB'}));
+  const seen={}; options=options.filter(o=>o.uid&&!seen[o.uid]&&(seen[o.uid]=true));
+  const opts=options.map(o=>`<option value="${o.uid}">${o.name} (${o.uid})</option>`).join('');
+  const latestHtml=latest?`<div class="meta">最新 Candidate：${latest.snapshot_id}｜${latest.community_name||''}｜face_gate=${latest.face_gate}｜face_count=${latest.face_count}｜bytes=${latest.bytes}｜${latest.created_at||''}</div><img src="/edu/face/latest.jpg?_=${Date.now()}">`:'<p>尚未收到 FACE_GATE_PASS Candidate Snapshot。</p>';
+  const faceRows=faces.map(f=>`<tr><td>${f.face_id}</td><td><b>${f.person_name}</b></td><td>${f.community_name||''}</td><td>${f.master_uid}</td><td>${f.snapshot_id||''}</td><td>${f.created_at||''}</td></tr>`).join('')||'<tr><td colspan="6">尚未註冊</td></tr>';
+  const matchRows=matches.map(m=>`<tr><td>${m.match_id}</td><td>${m.best_name||''}</td><td>${m.match_score}%</td><td>${m.liveness}</td><td>${m.liveness_mode||''}</td><td>${Math.round(Number(m.liveness_confidence||0)*100)}%</td><td style="font-weight:800;color:${m.allow_open?'#08783e':'#b11111'}">${m.allow_open?'OPEN':'LOCK'}</td><td>${m.command_id||''}</td><td>${m.block_reason||''}</td><td>${m.created_at}</td></tr>`).join('')||'<tr><td colspan="10">尚無 V11 辨識結果</td></tr>';
+  res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${VERSION}</title><style>body{font-family:system-ui,"Noto Sans TC",sans-serif;background:#eef5f7;margin:0;color:#102330}.wrap{max-width:1040px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}button{border:0;border-radius:10px;background:#079b50;color:white;font-weight:800;padding:12px 16px;margin:6px}input,select{padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px;min-width:180px}img{max-width:100%;border-radius:12px;border:1px solid #ddd}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #dde;padding:8px;text-align:left}.meta{color:#617085;margin:8px 0}.status{font-weight:800;border-radius:10px;padding:12px;margin-top:10px}.ok{background:#e8fff2;color:#08783e}.warn{background:#fff7df;color:#946200}.err{background:#ffecec;color:#a11212}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto}</style></head><body><div class="wrap"><h1>RT7 EDU V11 OPENAI LIVENESS FACE DOORBELL</h1><div class="meta">第十一堂：Face Match + OpenAI Liveness + OPEN_DOOR</div><p><a href="/edu/production-face-doorbell">第十堂 V10</a> ｜ <a href="/edu/face-recognition">第九堂 Face Register</a> ｜ <a href="/edu/face-gate/state">FACE_GATE state</a></p><div class="card"><h2>1. 最新 FACE_GATE Candidate Snapshot</h2>${latestHtml}</div><div class="card"><h2>2. OpenAI Liveness + Face Match</h2><p>先讓 ESP32 串口輸入 <b>s</b> 上傳最新候選照片，再按辨識。MATCH + LIVENESS=REAL 時送出 OPEN_DOOR command。</p><select id="master_uid">${opts}</select><input id="threshold" type="number" value="70" min="1" max="100" style="width:90px;min-width:90px"> %<input id="live_conf" type="number" value="0.5" min="0" max="1" step="0.1" style="width:90px;min-width:90px"> liveness<button onclick="doMatch()">OpenAI 活體 + 人臉辨識</button><div id="statusBox" class="status">READY</div><pre id="result">READY</pre></div><div class="card"><h2>3. V11 Match Results</h2><table><thead><tr><th>Match ID</th><th>Name</th><th>Score</th><th>Liveness</th><th>Mode</th><th>Conf</th><th>Door</th><th>Command</th><th>Block</th><th>Time</th></tr></thead><tbody>${matchRows}</tbody></table></div><div class="card"><h2>4. Face DB</h2><table><thead><tr><th>Face ID</th><th>Name</th><th>Community</th><th>UID</th><th>Snapshot</th><th>Time</th></tr></thead><tbody>${faceRows}</tbody></table></div><div class="card"><h2>5. 第十一堂觀察重點</h2><pre>ESP32 FACE_GATE_PASS Candidate
+↓
+Railway Face DB Match
+↓
+OpenAI Vision Liveness
+↓
+MATCH + LIVENESS=REAL
+↓
+OPEN_DOOR command
+↓
+ESP32 GPIO40 relay
+
+若 Railway 未設定 OPENAI_API_KEY，系統會進入 DEMO_NO_OPENAI_KEY 模式，仍可完成課堂流程。</pre></div></div><script>function setStatus(cls,msg){statusBox.className='status '+cls;statusBox.textContent=msg;}async function doMatch(){if(!master_uid.value){setStatus('err','❌ 尚未有 Master UID');return;}setStatus('warn','⏳ OpenAI 活體辨識中...');const r=await fetch('/edu/face/openai-liveness-match',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({master_uid:master_uid.value,threshold:Number(threshold.value||70),liveness_confidence:Number(live_conf.value||0.5)})});const j=await r.json();result.textContent=JSON.stringify(j,null,2);if(j.ok&&j.result&&j.result.allow_open){setStatus('ok','✅ OPEN：MATCH '+j.result.match_score+'% / LIVENESS '+j.result.liveness+' / '+j.result.command_id);}else if(j.ok&&j.result){setStatus('err','🔒 LOCK：MATCH '+j.result.match_score+'% / LIVENESS '+j.result.liveness+' / '+j.result.block_reason);}else setStatus('err','❌ 辨識失敗：'+(j.error||'UNKNOWN'));setTimeout(()=>location.reload(),1800);}</script></body></html>`);
 });
 
