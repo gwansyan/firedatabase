@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-face-recognition-v9c-register-status-ui",
-  "version": "9.0.3",
-  "description": "RT7 EDU V9C: register status UI for face registration success/failure",
+  "name": "rt7-edu-face-recognition-v9d-client-latest-state-bind",
+  "version": "9.0.4",
+  "description": "RT7 EDU V9D: client-side latest binding from /edu/face-gate/state with status UI",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
