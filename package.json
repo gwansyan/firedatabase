@@ -1,14 +1,14 @@
 {
-  "name": "rt7-production-face-match-v11-openai-face-fingerprint",
-  "version": "11.0.0",
-  "description": "RT7 V11: OpenAI Vision face fingerprint bridge for production face match",
+  "name": "rt7-production-face-match-v11a-esp32-face-gate-railway-match-openai-liveness",
+  "version": "11.1.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "cors": "latest",
-    "express": "latest",
-    "web-push": "latest"
-  }
+    "express": "^4.18.2",
+    "ws": "^8.16.0",
+    "jpeg-js": "^0.4.4"
+  },
+  "description": "RT7 V11A: ESP32 face gate + Railway face fingerprint match + OpenAI liveness only"
 }
