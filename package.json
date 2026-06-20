@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-face-snapshot-v8b1b-relax-face-box-ratio",
-  "version": "8.3.3",
-  "description": "RT7 EDU V8B1B: relax original human_face_detect face box ratio for close face snapshots",
+  "name": "rt7-edu-face-recognition-v9-real-face-register",
+  "version": "9.0.0",
+  "description": "RT7 EDU V9: register FACE_GATE_PASS candidate snapshots into Railway Face DB",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
