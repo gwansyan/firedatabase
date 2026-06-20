@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-face-snapshot-v8a2e-face-gate-threshold-tune",
-  "version": "8.2.5",
-  "description": "RT7 EDU V8A2E: threshold tuned FACE_GATE fallback, clean ESP32",
+  "name": "rt7-edu-face-snapshot-v8b-real-face-detect-gate",
+  "version": "8.3.0",
+  "description": "RT7 EDU V8B: real ESP32 face detect gate before candidate snapshot upload",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

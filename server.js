@@ -1,4 +1,4 @@
-// RT7_EDU_FACE_SNAPSHOT_V8A2E_FACE_GATE_THRESHOLD_TUNEA2E_FACE_GATE_THRESHOLD_TUNE
+// RT7_EDU_FACE_SNAPSHOT_V8B_REAL_FACE_DETECT_GATE
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -13,7 +13,7 @@ const webPush = require('web-push');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_FACE_SNAPSHOT_V8A2E_FACE_GATE_THRESHOLD_TUNEA2E_FACE_GATE_THRESHOLD_TUNE';
+const VERSION = 'RT7_EDU_FACE_SNAPSHOT_V8B_REAL_FACE_DETECT_GATE';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:teacher@example.com';
 let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
@@ -549,7 +549,7 @@ app.post('/edu/face/snapshot/sim', (req, res) => {
     if (communities[0]) master_uid = normalizeUid(communities[0].master_uid);
   }
   if (!master_uid) return res.status(400).json({ ok: false, error: 'missing master_uid. Please run heartbeat and register community first.' });
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><rect width="100%" height="100%" fill="#dbeafe"/><circle cx="320" cy="210" r="90" fill="#f8c9a8"/><circle cx="285" cy="190" r="10" fill="#111827"/><circle cx="355" cy="190" r="10" fill="#111827"/><path d="M285 255 Q320 285 355 255" stroke="#111827" stroke-width="8" fill="none" stroke-linecap="round"/><text x="320" y="390" text-anchor="middle" font-size="34" font-family="Arial" fill="#0f172a">RT7 EDU FACE SNAPSHOT V8A FACE GATE</text><text x="320" y="430" text-anchor="middle" font-size="20" font-family="Arial" fill="#475569">${nowIso()}</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><rect width="100%" height="100%" fill="#dbeafe"/><circle cx="320" cy="210" r="90" fill="#f8c9a8"/><circle cx="285" cy="190" r="10" fill="#111827"/><circle cx="355" cy="190" r="10" fill="#111827"/><path d="M285 255 Q320 285 355 255" stroke="#111827" stroke-width="8" fill="none" stroke-linecap="round"/><text x="320" y="390" text-anchor="middle" font-size="34" font-family="Arial" fill="#0f172a">RT7 EDU FACE SNAPSHOT V8B REAL FACE DETECT GATE</text><text x="320" y="430" text-anchor="middle" font-size="20" font-family="Arial" fill="#475569">${nowIso()}</text></svg>`;
   fs.writeFileSync(latestSnapshotPath(), Buffer.from(svg));
   const communities = readJson('communities.json', []);
   const community = communities.find(c => c.master_uid === master_uid) || null;
@@ -607,7 +607,7 @@ body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;col
 <body><div class="wrap">
 <h1>RT7 EDU NODE-RED FLOW V6</h1>
 <p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer / IoT Dashboard</p>
-<p><button class="blue" onclick="location.href='/edu/community/register'">第二堂社區註冊</button> <button class="blue" onclick="location.href='/edu/login'">第三堂登入驗證</button> <button class="blue" onclick="location.href='/edu/doorbell'">第四堂門鈴事件</button> <button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button> <button class="blue" onclick="location.href='/edu/node-red'">第六堂 Node-RED Flow</button> <button class="blue" onclick="location.href='/edu/push'">第七堂手機推播</button> <button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 FACE_GATE Snapshot</button></p>
+<p><button class="blue" onclick="location.href='/edu/community/register'">第二堂社區註冊</button> <button class="blue" onclick="location.href='/edu/login'">第三堂登入驗證</button> <button class="blue" onclick="location.href='/edu/doorbell'">第四堂門鈴事件</button> <button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button> <button class="blue" onclick="location.href='/edu/node-red'">第六堂 Node-RED Flow</button> <button class="blue" onclick="location.href='/edu/push'">第七堂手機推播</button> <button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 REAL FACE_DETECT Snapshot</button></p>
 <div id="app">載入中...</div>
 </div>
 <script>
@@ -705,7 +705,7 @@ load(); setInterval(load,10000);
 }
 
 function renderNodeRedPage() {
-return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_FACE_SNAPSHOT_V8A2E_FACE_GATE_THRESHOLD_TUNEA2E_FACE_GATE_THRESHOLD_TUNE_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
+return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_FACE_SNAPSHOT_V8B_REAL_FACE_DETECT_GATE_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
 Doorbell → doorbell_events.json
 Open Door → commands.json
 ACK → DONE
@@ -781,14 +781,14 @@ return String.raw`<!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RT7 EDU FACE SNAPSHOT V8A FACE GATE</title>
+<title>RT7 EDU FACE SNAPSHOT V8B REAL FACE DETECT GATE</title>
 <style>
 body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:1040px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}button,select{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccd6dc;margin:4px}button{background:#0b9b5a;color:white;border:0}.blue{background:#0b6fa4}.danger{background:#c0392b}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.hint{color:#64748b;line-height:1.6}.ok{color:#079b50;font-weight:bold}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5edf1;text-align:left;word-break:break-all}img.snap{width:100%;max-width:640px;border-radius:12px;border:1px solid #d8e1e7;background:#f8fafc}pre{background:#f5f7f8;padding:10px;border-radius:8px;overflow:auto}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.warn{background:#fff8e1;border-left:5px solid #f2c94c}</style>
 </head>
 <body><div class="wrap">
-<h1>RT7 EDU FACE SNAPSHOT V8A FACE GATE</h1>
+<h1>RT7 EDU FACE SNAPSHOT V8B REAL FACE DETECT GATE</h1>
 <p><span class="tag">第八堂課</span> ESP32 Camera / human_face_detect / FACE_GATE / Candidate Snapshot / Railway</p>
-<p><button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button><button class="blue" onclick="location.href='/edu/push'">第七堂手機推播</button><button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 FACE_GATE Snapshot</button></p>
+<p><button class="blue" onclick="location.href='/edu/open-door'">第五堂開門控制</button><button class="blue" onclick="location.href='/edu/push'">第七堂手機推播</button><button class="blue" onclick="location.href='/edu/face-snapshot'">第八堂 REAL FACE_DETECT Snapshot</button></p>
 <div id="app">載入中...</div>
 </div>
 <script>
