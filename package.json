@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-face-snapshot-v8a-face-gate",
-  "version": "8.1.0",
-  "description": "RT7 EDU V8A: ESP32 human_face_detect / FACE_GATE candidate snapshot upload to Railway",
+  "name": "rt7-edu-face-snapshot-v8a1-real-face-gate-only-upload-candidate",
+  "version": "8.1.1",
+  "description": "RT7 EDU V8A1: real ESP32 FACE_GATE_PASS only uploads candidate snapshots",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

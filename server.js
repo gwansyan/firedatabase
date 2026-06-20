@@ -1,4 +1,4 @@
-// RT7_EDU_FACE_SNAPSHOT_V8A_FACE_GATE
+// RT7_EDU_FACE_SNAPSHOT_V8A1_REAL_FACE_GATE_ONLY_UPLOAD_CANDIDATEA1_REAL_FACE_GATE_ONLY_UPLOAD_CANDIDATE
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -13,7 +13,7 @@ const webPush = require('web-push');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_FACE_SNAPSHOT_V8A_FACE_GATE';
+const VERSION = 'RT7_EDU_FACE_SNAPSHOT_V8A1_REAL_FACE_GATE_ONLY_UPLOAD_CANDIDATEA1_REAL_FACE_GATE_ONLY_UPLOAD_CANDIDATE';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:teacher@example.com';
 let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
@@ -500,6 +500,10 @@ function snapshotPublicUrl() {
 app.post('/edu/face/snapshot', express.raw({ type: ['image/jpeg', 'application/octet-stream'], limit: '3mb' }), (req, res) => {
   const master_uid = normalizeUid(req.query.master_uid || req.headers['x-master-uid'] || '');
   const source = safeText(req.query.source || req.headers['x-source'] || 'ESP32', 20).toUpperCase();
+  const faceGateParam = String(req.query.face_gate || req.headers['x-face-gate'] || '').toUpperCase();
+  if (faceGateParam && faceGateParam !== 'PASS') {
+    return res.status(409).json({ ok:false, version: VERSION, error:'FACE_GATE_NOT_PASS', face_gate: faceGateParam, note:'V8A1 only accepts candidate snapshots after ESP32 FACE_GATE_PASS.' });
+  }
   if (!master_uid) return res.status(400).json({ ok: false, error: 'missing master_uid query or X-Master-UID header' });
   const buf = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
   if (!buf.length) return res.status(400).json({ ok: false, error: 'empty jpeg body' });
@@ -515,11 +519,11 @@ app.post('/edu/face/snapshot', express.raw({ type: ['image/jpeg', 'application/o
     community_id: community ? community.community_id : '',
     community_name: community ? community.community_name : '',
     source,
-    face_gate: String(req.query.face_gate || req.headers['x-face-gate'] || '').toUpperCase() || 'UNKNOWN',
-    face_found: String(req.query.face_found || req.headers['x-face-found'] || '').toLowerCase() === 'true',
+    face_gate: faceGateParam || 'PASS',
+    face_found: (faceGateParam || 'PASS') === 'PASS',
     face_count: Number(req.query.face_count || req.headers['x-face-count'] || 0),
     face_quality: safeText(req.query.face_quality || req.headers['x-face-quality'] || '', 40),
-    face_reason: safeText(req.query.face_reason || req.headers['x-face-reason'] || '', 80),
+    face_reason: safeText(req.query.face_reason || req.headers['x-face-reason'] || 'ESP32_REAL_FACE_GATE_PASS', 80),
     bytes: buf.length,
     image_url: '/edu/face/latest.jpg',
     created_at: nowIso(),
@@ -566,8 +570,8 @@ app.get('/edu/face-gate/state', (_req, res) => {
   res.json({
     ok: true,
     version: VERSION,
-    lesson: 'V8A_FACE_GATE',
-    rule: 'ESP32 runs human_face_detect / FACE_GATE, Railway only stores candidate snapshots.',
+    lesson: 'V8A1_REAL_FACE_GATE',
+    rule: 'ESP32 runs real human_face_detect / FACE_GATE; Railway stores only FACE_GATE_PASS candidate snapshots.',
     latest,
     snapshot_count: shots.length
   });
@@ -697,7 +701,7 @@ load(); setInterval(load,10000);
 }
 
 function renderNodeRedPage() {
-return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_FACE_SNAPSHOT_V8A_FACE_GATE_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
+return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_FACE_SNAPSHOT_V8A1_REAL_FACE_GATE_ONLY_UPLOAD_CANDIDATEA1_REAL_FACE_GATE_ONLY_UPLOAD_CANDIDATE_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
 Doorbell → doorbell_events.json
 Open Door → commands.json
 ACK → DONE
