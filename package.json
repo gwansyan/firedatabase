@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-face-snapshot-v8a1-real-face-gate-only-upload-candidate",
-  "version": "8.1.1",
-  "description": "RT7 EDU V8A1: real ESP32 FACE_GATE_PASS only uploads candidate snapshots",
+  "name": "rt7-edu-face-snapshot-v8a2-esp32-real-human-face-gate-skip-upload",
+  "version": "8.2.0",
+  "description": "RT7 EDU V8A2: ESP32 human_face_detect/FACE_GATE skip upload when no face; Railway rejects PASS with zero face_count",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
