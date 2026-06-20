@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-face-recognition-v9-real-face-register",
-  "version": "9.0.0",
-  "description": "RT7 EDU V9: register FACE_GATE_PASS candidate snapshots into Railway Face DB",
+  "name": "rt7-edu-face-recognition-v9a-latest-snapshot-bind-fix",
+  "version": "9.0.1",
+  "description": "RT7 EDU V9A: fix face-recognition page latest candidate binding",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

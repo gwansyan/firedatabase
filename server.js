@@ -1,4 +1,4 @@
-// RT7_EDU_FACE_RECOGNITION_V9_REAL_FACE_REGISTER
+// RT7_EDU_FACE_RECOGNITION_V9A_LATEST_SNAPSHOT_BIND_FIX
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -13,7 +13,7 @@ const webPush = require('web-push');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_FACE_RECOGNITION_V9_REAL_FACE_REGISTER';
+const VERSION = 'RT7_EDU_FACE_RECOGNITION_V9A_LATEST_SNAPSHOT_BIND_FIX';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:teacher@example.com';
 let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
@@ -705,7 +705,7 @@ load(); setInterval(load,10000);
 }
 
 function renderNodeRedPage() {
-return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_FACE_RECOGNITION_V9_REAL_FACE_REGISTER_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
+return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_FACE_RECOGNITION_V9A_LATEST_SNAPSHOT_BIND_FIX_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
 Doorbell → doorbell_events.json
 Open Door → commands.json
 ACK → DONE
@@ -848,6 +848,67 @@ function safeReadFile(name) {
   return null;
 }
 
+
+
+
+
+function getCommunityByMasterUid_(master_uid) {
+  const arr = readJson('communities.json', []);
+  return arr.find(c => c.master_uid === master_uid) || null;
+}
+
+
+// ===== V9A latest snapshot binding fix =====
+// 修正：/edu/face-gate/state 看得到 latest，但 /edu/face-recognition 顯示尚未收到。
+// 原因通常是讀取檔名/排序/相容欄位不同。V9A 統一使用同一個 latest resolver。
+function rt7EduReadSnapshotsV9A_() {
+  const arr = readJson('face_snapshots.json', []);
+  return Array.isArray(arr) ? arr : [];
+}
+function rt7EduLatestSnapshotV9A_() {
+  const arr = rt7EduReadSnapshotsV9A_();
+  if (!arr.length) return null;
+  arr.sort((a,b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  return arr.find(s => String(s.face_gate || '').toUpperCase() === 'PASS' && Number(s.face_count || 0) > 0) || arr[0] || null;
+}
+function rt7EduReadFaceDbV9A_() {
+  return readJson('edu_face_db.json', []);
+}
+function rt7EduWriteFaceDbV9A_(db) {
+  writeJson('edu_face_db.json', Array.isArray(db) ? db.slice(0, 80) : []);
+}
+function rt7EduFaceFingerprintFromLatestV9A_(snapshot) {
+  const img = safeReadFileV9A_('edu_face_latest.jpg');
+  const seed = img && img.length ? img : Buffer.from(JSON.stringify(snapshot || {}));
+  let h = 2166136261;
+  const step = Math.max(1, Math.floor(seed.length / 512));
+  for (let i = 0; i < seed.length; i += step) {
+    h ^= seed[i];
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  h ^= Number(snapshot && snapshot.bytes || 0);
+  return 'FNV1A-' + (h >>> 0).toString(16).toUpperCase();
+}
+function safeReadFileV9A_(name) {
+  try {
+    const p = path.join(DATA_DIR, name);
+    if (fs.existsSync(p)) return fs.readFileSync(p);
+  } catch (_) {}
+  try {
+    const p = path.join(__dirname, name);
+    if (fs.existsSync(p)) return fs.readFileSync(p);
+  } catch (_) {}
+  return null;
+}
+function getCommunityByMasterUidV9A_(master_uid) {
+  const arr = readJson('communities.json', []);
+  return Array.isArray(arr) ? (arr.find(c => c.master_uid === master_uid) || null) : null;
+}
+
+app.get('/edu/face/latest-meta', (_req, res) => {
+  res.json({ ok:true, version:VERSION, latest:rt7EduLatestSnapshotV9A_(), snapshots:rt7EduReadSnapshotsV9A_().slice(0,5) });
+});
+
 app.post('/edu/face/register', express.json({ limit: '1mb' }), (req, res) => {
   const body = req.body || {};
   const person_name = safeText(body.person_name || body.name || '', 60).trim();
@@ -855,14 +916,14 @@ app.post('/edu/face/register', express.json({ limit: '1mb' }), (req, res) => {
   if (!person_name) return res.status(400).json({ ok:false, version:VERSION, error:'missing person_name' });
   if (!master_uid) return res.status(400).json({ ok:false, version:VERSION, error:'missing master_uid' });
 
-  const latest = rt7EduLatestSnapshot_();
+  const latest = rt7EduLatestSnapshotV9A_();
   if (!latest) return res.status(409).json({ ok:false, version:VERSION, error:'NO_LATEST_CANDIDATE_SNAPSHOT', note:'請先用 ESP32 FACE_GATE_PASS 上傳 candidate snapshot。' });
   if (latest.master_uid && latest.master_uid !== master_uid) return res.status(409).json({ ok:false, version:VERSION, error:'SNAPSHOT_UID_MISMATCH', latest_uid:latest.master_uid, master_uid });
-  if (latest.face_gate !== 'PASS' || !latest.face_found || Number(latest.face_count || 0) <= 0) {
+  if (String(latest.face_gate || '').toUpperCase() !== 'PASS' || Number(latest.face_count || 0) <= 0) {
     return res.status(409).json({ ok:false, version:VERSION, error:'LATEST_SNAPSHOT_NOT_FACE_GATE_PASS', latest });
   }
 
-  const community = getCommunityByMasterUid_(master_uid) || {};
+  const community = getCommunityByMasterUidV9A_(master_uid) || {};
   const rec = {
     face_id: 'FACE-' + Date.now().toString(36).toUpperCase(),
     person_name,
@@ -875,39 +936,52 @@ app.post('/edu/face/register', express.json({ limit: '1mb' }), (req, res) => {
     face_gate: latest.face_gate,
     face_count: latest.face_count || 1,
     face_reason: latest.face_reason || '',
-    fingerprint: rt7EduFaceFingerprintFromLatest_(latest),
+    fingerprint: rt7EduFaceFingerprintFromLatestV9A_(latest),
     created_at: nowIso(),
     lesson: VERSION
   };
-  const db = rt7EduReadFaceDb_();
+  const db = rt7EduReadFaceDbV9A_();
   db.unshift(rec);
-  rt7EduWriteFaceDb_(db);
+  rt7EduWriteFaceDbV9A_(db);
   res.json({ ok:true, version:VERSION, face:rec, count:db.length });
 });
 
 app.get('/edu/face/db', (_req, res) => {
-  res.json({ ok:true, version:VERSION, faces:rt7EduReadFaceDb_() });
+  res.json({ ok:true, version:VERSION, faces:rt7EduReadFaceDbV9A_() });
 });
 
 app.post('/edu/face/db/clear', (_req, res) => {
-  rt7EduWriteFaceDb_([]);
+  rt7EduWriteFaceDbV9A_([]);
   res.json({ ok:true, version:VERSION, count:0 });
 });
 
 app.get('/edu/face-recognition', (_req, res) => {
   const communities = readJson('communities.json', []);
   const masters = readJson('masters.json', []);
-  const faces = rt7EduReadFaceDb_();
-  const latest = rt7EduLatestSnapshot_();
-  const opts = (communities.length ? communities : masters.map(m => ({ community_name:'A社區', master_uid:m.master_uid }))).map(c => {
-    const uid = c.master_uid || '';
-    const name = c.community_name || c.name || 'A社區';
-    return `<option value="${uid}">${name} (${uid})</option>`;
-  }).join('');
+  const faces = rt7EduReadFaceDbV9A_();
+  const latest = rt7EduLatestSnapshotV9A_();
+
+  const optionList = [];
+  if (Array.isArray(communities)) {
+    communities.forEach(c => {
+      if (c.master_uid) optionList.push({ uid:c.master_uid, name:c.community_name || c.name || '社區' });
+    });
+  }
+  if (!optionList.length && Array.isArray(masters)) {
+    masters.forEach(m => {
+      if (m.master_uid) optionList.push({ uid:m.master_uid, name:'A社區' });
+    });
+  }
+  if (latest && latest.master_uid && !optionList.find(o => o.uid === latest.master_uid)) {
+    optionList.unshift({ uid:latest.master_uid, name:latest.community_name || '最新 Snapshot' });
+  }
+  const opts = optionList.map(o => `<option value="${o.uid}" ${latest && latest.master_uid === o.uid ? 'selected' : ''}>${o.name} (${o.uid})</option>`).join('');
+
   const rows = faces.map(f => `<tr><td>${f.face_id}</td><td><b>${f.person_name}</b></td><td>${f.community_name || ''}</td><td>${f.master_uid}</td><td>${f.snapshot_id || ''}</td><td>${f.bytes || ''}</td><td>${f.created_at || ''}</td></tr>`).join('') || '<tr><td colspan="7">尚未註冊</td></tr>';
   const latestHtml = latest ? `
-    <div class="meta">最新 Candidate：${latest.snapshot_id}｜face_gate=${latest.face_gate}｜face_count=${latest.face_count}｜bytes=${latest.bytes}</div>
+    <div class="meta">最新 Candidate：${latest.snapshot_id}｜face_gate=${latest.face_gate}｜face_count=${latest.face_count}｜bytes=${latest.bytes}｜${latest.created_at || ''}</div>
     <img src="/edu/face/latest.jpg?_=${Date.now()}" />` : '<p>尚未收到 FACE_GATE_PASS Candidate Snapshot。</p>';
+
   res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${VERSION}</title>
 <style>
@@ -916,9 +990,9 @@ body{font-family:system-ui,"Noto Sans TC",sans-serif;background:#eef5f7;margin:0
 button.red{background:#c9342d}input,select{padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px;min-width:220px}img{max-width:100%;border-radius:12px;border:1px solid #ddd}
 table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #dde;padding:9px;text-align:left}.meta{color:#617085;margin:8px 0}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto}
 </style></head><body><div class="wrap">
-<h1>RT7 EDU FACE RECOGNITION V9</h1>
-<div class="meta">第九堂：Real Face Register / FACE_GATE Candidate / Railway Face DB</div>
-<p><a href="/edu/face-snapshot">第八堂 Snapshot</a> ｜ <a href="/edu/face-gate/state">FACE_GATE state</a></p>
+<h1>RT7 EDU FACE RECOGNITION V9A</h1>
+<div class="meta">第九堂：Real Face Register / Latest Snapshot Bind Fix</div>
+<p><a href="/edu/face-snapshot">第八堂 Snapshot</a> ｜ <a href="/edu/face-gate/state">FACE_GATE state</a> ｜ <a href="/edu/face/latest-meta">latest-meta</a></p>
 
 <div class="card"><h2>1. 最新 FACE_GATE Candidate Snapshot</h2>${latestHtml}</div>
 
@@ -957,9 +1031,3 @@ async function clearDb(){
 </script></body></html>`);
 });
 
-
-
-function getCommunityByMasterUid_(master_uid) {
-  const arr = readJson('communities.json', []);
-  return arr.find(c => c.master_uid === master_uid) || null;
-}
