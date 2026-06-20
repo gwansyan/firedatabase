@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-face-snapshot-v8a2d-clean-esp32-compile-fix",
-  "version": "8.2.4",
-  "description": "RT7 EDU V8A2D clean ESP32 compile fix; gate skip upload",
+  "name": "rt7-edu-face-snapshot-v8a2e-face-gate-threshold-tune",
+  "version": "8.2.5",
+  "description": "RT7 EDU V8A2E: threshold tuned FACE_GATE fallback, clean ESP32",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
