@@ -1,14 +1,13 @@
 {
-  "name": "rt7-edu-face-recognition-v9d-client-latest-state-bind",
-  "version": "9.0.4",
-  "description": "RT7 EDU V9D: client-side latest binding from /edu/face-gate/state with status UI",
+  "name": "rt7-edu-face-recognition-v9d1-railway-syntax-fix",
+  "version": "9.0.5",
+  "description": "RT7 EDU V9D1 clean server syntax fix",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "cors": "latest",
-    "express": "latest",
-    "web-push": "latest"
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
   }
 }
