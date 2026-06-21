@@ -1,4 +1,4 @@
-// RT7_EDU_FACE_TFT_GUIDE_V13A_TFT_STREAM_PREVIEW
+// RT7_EDU_FACE_TFT_GUIDE_V13A1_TYPEDEF_FIX_TFT_STREAM_PREVIEWA1_TYPEDEF_FIX_TFT_STREAM_PREVIEW
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -13,7 +13,7 @@ const webPush = require('web-push');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_FACE_TFT_GUIDE_V13A_TFT_STREAM_PREVIEW';
+const VERSION = 'RT7_EDU_FACE_TFT_GUIDE_V13A1_TYPEDEF_FIX_TFT_STREAM_PREVIEWA1_TYPEDEF_FIX_TFT_STREAM_PREVIEW';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:teacher@example.com';
 let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
@@ -705,7 +705,7 @@ load(); setInterval(load,10000);
 }
 
 function renderNodeRedPage() {
-return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_FACE_TFT_GUIDE_V13A_TFT_STREAM_PREVIEW_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
+return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_FACE_TFT_GUIDE_V13A1_TYPEDEF_FIX_TFT_STREAM_PREVIEWA1_TYPEDEF_FIX_TFT_STREAM_PREVIEW_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
 Doorbell → doorbell_events.json
 Open Door → commands.json
 ACK → DONE
@@ -1821,7 +1821,7 @@ function v13Read(n,d){const a=readJson(n,d);return Array.isArray(d)?(Array.isArr
 function v13Latest(){const a=v13Read('face_snapshots.json',[]);a.sort((x,y)=>String(y.created_at||'').localeCompare(String(x.created_at||'')));return a.find(s=>String(s.face_gate||'').toUpperCase()==='PASS'&&Number(s.face_count||0)>0)||null}
 function v13Challenge(){return v13Read('v12b_two_step_challenge.json',{})}
 function v13Matches(){return v13Read('edu_face_matches.json',[]).filter(m=>String(m.lesson||'').includes('V13')||String(m.lesson||'').includes('V12B')).slice(0,12)}
-app.get('/edu/tft-guide-v13a',(_req,res)=>{
+app.get('/edu/tft-guide-v13a1',(_req,res)=>{
   const latest=v13Latest(), ch=v13Challenge(), matches=v13Matches();
   const latestHtml=latest?`<div class="meta">最新 FACE_GATE_PASS：<b>${latest.snapshot_id}</b>｜${latest.community_name||''}｜bytes=${latest.bytes}｜${latest.created_at||''}</div><img src="/edu/face/latest.jpg?_=${Date.now()}">`:'<p class="bad">尚未收到 FACE_GATE_PASS Candidate Snapshot。</p>';
   const rows=matches.map(m=>`<tr><td>${m.match_id}</td><td>${m.best_name||''}</td><td>${m.match_score||''}%</td><td>${m.liveness||''}</td><td>${m.challenge_pass?'PASS':'FAIL'}</td><td style="font-weight:900;color:${m.allow_open?'#08783e':'#b11111'}">${m.allow_open?'OPEN':'LOCK'}</td><td>${m.block_reason||''}</td><td>${m.created_at||''}</td></tr>`).join('')||'<tr><td colspan="8">尚無資料</td></tr>';

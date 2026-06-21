@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-face-tft-guide-v13a-tft-stream-preview",
-  "version": "13.1.0",
-  "description": "RT7 EDU V13A: GC9A01 TFT local stream preview + guide",
+  "name": "rt7-edu-face-tft-guide-v13a1-typedef-fix",
+  "version": "13.1.1",
+  "description": "RT7 EDU V13A1: typedef fix for TFT stream preview ESP32",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
