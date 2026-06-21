@@ -1,4 +1,4 @@
-// RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V11D_UNIQUE_FRAME_CAPTURE
+// RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V12A_ESP32_AUTO_FACE_GATE_RECOGNITION
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -13,7 +13,7 @@ const webPush = require('web-push');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V11D_UNIQUE_FRAME_CAPTURE';
+const VERSION = 'RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V12A_ESP32_AUTO_FACE_GATE_RECOGNITION';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:teacher@example.com';
 let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
@@ -705,7 +705,7 @@ load(); setInterval(load,10000);
 }
 
 function renderNodeRedPage() {
-return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V11D_UNIQUE_FRAME_CAPTURE_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
+return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V12A_ESP32_AUTO_FACE_GATE_RECOGNITION_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
 Doorbell → doorbell_events.json
 Open Door → commands.json
 ACK → DONE
@@ -1657,4 +1657,131 @@ app.get('/edu/openai-liveness-unique-frame',(_req,res)=>{
   const rows=matches.map(m=>`<tr><td>${m.match_id}</td><td>${m.best_name||''}</td><td>${m.match_score}%</td><td>${m.liveness}</td><td>${m.challenge_pass?'PASS':'FAIL'}</td><td>${Math.round(Number(m.liveness_confidence||0)*100)}%</td><td>${m.frame_a_snapshot_id||''}</td><td>${m.frame_b_snapshot_id||''}</td><td>${m.openai_http_status||''}</td><td>${m.openai_parse_method||''}</td><td style="font-weight:800;color:${m.allow_open?'#08783e':'#b11111'}">${m.allow_open?'OPEN':'LOCK'}</td><td>${m.command_id||''}</td><td>${m.block_reason||''}</td><td>${m.created_at}</td></tr>`).join('')||'<tr><td colspan="14">尚無 V11D 結果</td></tr>';
   const last=logs[0]&&logs[0].debug?logs[0].debug:null;const dbg=last?JSON.stringify({debug_id:last.debug_id,model:last.model,frame_a_bytes:last.frame_a_bytes,frame_b_bytes:last.frame_b_bytes,http_status:last.http_status,openai_ok:last.openai_ok,usage:last.usage,parse_ok:last.parse_ok,parse_method:last.parse_method,normalized:last.normalized,raw_content:last.raw_content},null,2):'尚無 V11D debug log';
   res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${VERSION}</title><style>body{font-family:system-ui,"Noto Sans TC",sans-serif;background:#eef5f7;margin:0;color:#102330}.wrap{max-width:1220px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}button{border:0;border-radius:10px;background:#079b50;color:white;font-weight:800;padding:12px 16px;margin:6px}.blue{background:#1677a8}.red{background:#c9342d}input,select{padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px;min-width:160px}img{max-width:100%;border-radius:12px;border:1px solid #ddd}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #dde;padding:8px;text-align:left;font-size:13px}.meta{color:#617085;margin:8px 0}.status{font-weight:800;border-radius:10px;padding:12px;margin-top:10px}.ok{background:#e8fff2;color:#08783e}.warn{background:#fff7df;color:#946200}.err{background:#ffecec;color:#a11212}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap}</style></head><body><div class="wrap"><h1>RT7 EDU V11D UNIQUE FRAME CAPTURE</h1><p><a href="/edu/openai-liveness-multiframe">V11C</a> ｜ <a href="/edu/liveness/challenge/unique-state">Unique State JSON</a> ｜ <a href="/edu/production-face-doorbell">V10</a></p><div class="card"><h2>1. 最新 FACE_GATE Candidate Snapshot</h2>${latestHtml}</div><div class="card"><h2>2. Unique Frame 活體挑戰</h2>${guard}<p>重設 → ESP32 串口 s → 擷取 A → 眨眼/轉頭 → ESP32 串口再輸入 s → 擷取 B。若 B 的 snapshot_id 與 A 相同，系統會拒絕。</p><button class="red" onclick="resetChallenge()">重設挑戰</button><button class="blue" onclick="cap('A')">擷取 Frame A</button><button class="blue" onclick="cap('B')">擷取 Frame B（必須新 snapshot）</button><select id="master_uid">${opts}</select><input id="threshold" type="number" value="70" min="1" max="100" style="width:90px;min-width:90px"> % <input id="live_conf" type="number" value="0.5" min="0" max="1" step="0.1" style="width:90px;min-width:90px"> liveness <button onclick="doMatch()">OpenAI Unique A/B 活體 + 人臉辨識</button><div id="statusBox" class="status">READY</div><pre id="result">READY</pre></div><div class="card"><h2>3. Challenge State</h2><pre>${JSON.stringify(ch,null,2).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre></div><div class="card"><h2>4. V11D Results</h2><table><thead><tr><th>Match</th><th>Name</th><th>Score</th><th>Live</th><th>Chal</th><th>Conf</th><th>Frame A</th><th>Frame B</th><th>HTTP</th><th>Parse</th><th>Door</th><th>Command</th><th>Block</th><th>Time</th></tr></thead><tbody>${rows}</tbody></table></div><div class="card"><h2>5. Last Debug</h2><pre>${dbg.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre></div></div><script>function setStatus(c,m){statusBox.className='status '+c;statusBox.textContent=m;}async function resetChallenge(){setStatus('warn','重設中...');const r=await fetch('/edu/liveness/challenge/unique-reset',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});const j=await r.json();result.textContent=JSON.stringify(j,null,2);setStatus('ok','✅ 已重設挑戰');setTimeout(()=>location.reload(),800)}async function cap(label){setStatus('warn','擷取 Frame '+label+'...');const r=await fetch('/edu/liveness/challenge/capture-unique',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({label})});const j=await r.json();result.textContent=JSON.stringify(j,null,2);if(j.ok)setStatus('ok','✅ Frame '+label+' 已擷取 snapshot='+(j.captured&&j.captured.snapshot_id));else setStatus('err','❌ Frame '+label+' 失敗：'+(j.error||'UNKNOWN'));setTimeout(()=>location.reload(),1200)}async function doMatch(){if(!master_uid.value){setStatus('err','❌ 尚未有 Master UID');return;}setStatus('warn','⏳ OpenAI Unique A/B 辨識中...');const r=await fetch('/edu/face/openai-liveness-unique-frame-match',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({master_uid:master_uid.value,threshold:Number(threshold.value||70),liveness_confidence:Number(live_conf.value||0.5)})});const j=await r.json();result.textContent=JSON.stringify(j,null,2);if(j.ok&&j.result&&j.result.allow_open)setStatus('ok','✅ OPEN：MATCH '+j.result.match_score+'% / '+j.result.liveness+' / challenge PASS / '+j.result.command_id);else if(j.ok&&j.result)setStatus('err','🔒 LOCK：MATCH '+j.result.match_score+'% / '+j.result.liveness+' / challenge '+(j.result.challenge_pass?'PASS':'FAIL')+' / '+j.result.block_reason);else setStatus('err','❌ 辨識失敗：'+(j.error||'UNKNOWN'));setTimeout(()=>location.reload(),2600)}</script></body></html>`)});
+
+
+
+// ===== V12A ESP32 AUTO FACE_GATE RECOGNITION =====
+// Goal: return to production-like flow.
+// 1) ESP32 automatically FACE_GATE_PASS and uploads candidate snapshot.
+// 2) Railway automatically processes the latest new candidate.
+// 3) Face DB match + OpenAI single-snapshot liveness verification.
+// 4) MATCH + LIVENESS=REAL => queue OPEN_DOOR.
+// Web page is monitor/control only; it is not Frame A/B manual capture.
+
+function v12aR(n,d){const a=readJson(n,d);return Array.isArray(d)?(Array.isArray(a)?a:[]):(a&&typeof a==='object'?a:{})}
+function v12aW(n,o){writeJson(n,o)}
+function v12aState(){return v12aR('v12a_auto_face_state.json',{enabled:false,last_processed_snapshot_id:'',last_match_id:'',updated_at:'',lesson:VERSION})}
+function v12aSaveState(s){s=s&&typeof s==='object'?s:{};s.lesson=VERSION;s.updated_at=nowIso();v12aW('v12a_auto_face_state.json',s);return s}
+function v12aLatest(){const a=v12aR('face_snapshots.json',[]);a.sort((x,y)=>String(y.created_at||'').localeCompare(String(x.created_at||'')));return a.find(s=>String(s.face_gate||'').toUpperCase()==='PASS'&&Number(s.face_count||0)>0)||null}
+function v12aDb(){return v12aR('edu_face_db.json',[])}
+function v12aMatches(){return v12aR('edu_face_matches.json',[])}
+function v12aLog(){return v12aR('openai_liveness_debug_log.json',[])}
+function v12aMetric(t,n){const m=String(t||'').match(new RegExp(n+'=([0-9.]+)'));return m?Number(m[1]):0}
+function v12aMeta(o){const r=String(o&&o.face_reason||''),b=r.match(/box=([0-9]+)x([0-9]+)/),c=r.match(/center=([0-9]+),([0-9]+)/);return{skin_pct:v12aMetric(r,'skin_pct'),ratio:v12aMetric(r,'ratio'),box_w:b?+b[1]:0,box_h:b?+b[2]:0,cx:c?+c[1]:0,cy:c?+c[2]:0,bytes:+(o&&o.bytes||0)}}
+function v12aScore(a0,b0){const a=v12aMeta(a0),b=v12aMeta(b0);if(!a.skin_pct||!b.skin_pct||!a.box_w||!b.box_w)return 0;let s=100;s-=Math.min(28,Math.abs(a.skin_pct-b.skin_pct)*2);s-=Math.min(22,Math.abs(a.ratio-b.ratio)*30);s-=Math.min(18,Math.abs(a.box_w-b.box_w)*.55);s-=Math.min(18,Math.abs(a.box_h-b.box_h)*.55);s-=Math.min(14,(Math.abs(a.cx-b.cx)+Math.abs(a.cy-b.cy))*.7);s-=Math.min(10,Math.abs(a.bytes-b.bytes)/400);return Math.max(0,Math.min(100,Math.round(s)))}
+function v12aBest(uid,latest){const db=v12aDb().filter(f=>!uid||f.master_uid===uid);let best=null,best_score=0;for(const f of db){const s=v12aScore(latest,f);if(s>best_score){best=f;best_score=s}}return{db,best,best_score}}
+function v12aBase(req){if(process.env.RAILWAY_PUBLIC_DOMAIN)return'https://'+process.env.RAILWAY_PUBLIC_DOMAIN;if(process.env.RAILWAY_STATIC_URL)return process.env.RAILWAY_STATIC_URL;if(req&&req.headers&&req.headers.host)return(req.headers['x-forwarded-proto']||'https')+'://'+req.headers.host;return''}
+async function v12aFetchLatestImage(latest,req){
+  const base=v12aBase(req);
+  if(latest&&latest.image_url&&base){
+    const url=base+(String(latest.image_url).startsWith('/')?latest.image_url:'/'+latest.image_url);
+    try{
+      const r=await fetch(url+(url.includes('?')?'&':'?')+'_='+Date.now(),{headers:{'Cache-Control':'no-cache'}});
+      const buf=Buffer.from(await r.arrayBuffer());
+      if(r.ok&&buf.length>1000)return{ok:true,buffer:buf,source:'SELF_FETCH_IMAGE_URL',path:url,bytes:buf.length,http_status:r.status};
+      return{ok:false,error:'self fetch failed',bytes:buf.length,status:r.status,path:url}
+    }catch(e){return{ok:false,error:String(e.message||e),path:url}}
+  }
+  return{ok:false,error:'no latest image url'}
+}
+function v12aQueue(cid,cname,uid,note){
+  let commands=readJson('commands.json',[]);
+  const cmd={command_id:'CMD-'+Date.now().toString(36).toUpperCase(),command:'OPEN_DOOR',status:'PENDING',community_id:cid||'',community_name:cname||'',master_uid:uid,relay_pin:40,pulse_ms:800,source:'V12A_AUTO_FACE_GATE_RECOGNITION',created_at:nowIso(),delivered_at:'',ack_at:'',ack_note:note||'',lesson:VERSION};
+  commands.unshift(cmd);writeJson('commands.json',commands.slice(0,60));return cmd
+}
+function v12aExtract(raw){const txt=String(raw||'').trim();if(!txt)return{ok:false,parsed:null,method:'EMPTY',error:'empty'};try{return{ok:true,parsed:JSON.parse(txt),method:'DIRECT_JSON'}}catch(e){}const f=txt.match(/```(?:json)?\s*([\s\S]*?)```/i);if(f&&f[1]){try{return{ok:true,parsed:JSON.parse(f[1].trim()),method:'MARKDOWN_JSON_FENCE'}}catch(e){return{ok:false,method:'MARKDOWN_JSON_FAIL',error:String(e.message||e)}}}const i=txt.indexOf('{'),j=txt.lastIndexOf('}');if(i>=0&&j>i){try{return{ok:true,parsed:JSON.parse(txt.slice(i,j+1)),method:'JSON_SUBSTRING'}}catch(e){}}const up=txt.toUpperCase();if(up.includes('REAL')||up.includes('LIVE'))return{ok:true,parsed:{liveness:'REAL',confidence:.65,reason:'plain text'},method:'PLAIN_TEXT'};return{ok:false,parsed:null,method:'UNPARSEABLE',error:'no json'}}
+function v12aNorm(p){p=p||{};let l=String(p.liveness||p.live||p.verdict||'').toUpperCase();if(typeof p.real==='boolean')l=p.real?'REAL':'PHOTO';if(typeof p.is_live==='boolean')l=p.is_live?'REAL':'PHOTO';if(l.includes('REAL')||l.includes('LIVE'))l='REAL';else if(l.includes('PHOTO')||l.includes('PRINT'))l='PHOTO';else if(l.includes('SCREEN')||l.includes('REPLAY'))l='SCREEN';else l='UNKNOWN';let c=Number(p.confidence??p.score??0);if(c>1)c=c/100;if(!Number.isFinite(c))c=0;return{liveness:l,confidence:c,reason:String(p.reason||p.explanation||'')}}
+async function v12aOpenAISingle(latest,req){
+  const key=process.env.OPENAI_API_KEY||'',img=await v12aFetchLatestImage(latest,req);
+  const d={debug_id:'DBG-'+Date.now().toString(36).toUpperCase(),has_openai_key:!!key,model:process.env.OPENAI_VISION_MODEL||'gpt-4o-mini',snapshot_id:latest&&latest.snapshot_id||'',image_ok:img.ok,image_bytes:img.bytes||0,image_path:img.path||'',image_error:img.error||'',http_status:0,openai_ok:false,usage:null,raw_content:'',parse_ok:false,parse_method:'',parse_error:'',normalized:null};
+  if(!img.ok){d.normalized={liveness:'UNKNOWN',confidence:0,reason:'image not found'};d.parse_error='image not found';return d}
+  if(!key){d.parse_ok=true;d.parse_method='DEMO_NO_OPENAI_KEY';d.normalized={liveness:'REAL',confidence:.51,reason:'demo no openai key'};return d}
+  try{
+    const b64=img.buffer.toString('base64');
+    const body={model:d.model,messages:[{role:'user',content:[
+      {type:'text',text:'RT7 door access liveness check. The ESP32 already detected a human face and uploaded this candidate snapshot. Decide if this looks like a real live person in front of a camera rather than a printed photo or screen replay. Return ONLY JSON: {"liveness":"REAL|PHOTO|SCREEN|UNKNOWN","confidence":0-1,"reason":"short reason"}. Be conservative if image quality is poor.'},
+      {type:'image_url',image_url:{url:'data:image/jpeg;base64,'+b64}}
+    ]}],temperature:0,max_tokens:160};
+    const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(body)});
+    d.http_status=r.status;const j=await r.json();d.usage=j.usage||null;d.openai_ok=!!r.ok;
+    if(!r.ok){d.raw_content=j.error?JSON.stringify(j.error):JSON.stringify(j).slice(0,1000);d.parse_error=j.error?(j.error.message||'OpenAI error'):('HTTP '+r.status);d.normalized={liveness:'UNKNOWN',confidence:0,reason:d.parse_error};return d}
+    d.raw_content=j.choices&&j.choices[0]&&j.choices[0].message?String(j.choices[0].message.content||''):'';
+    const ex=v12aExtract(d.raw_content);d.parse_ok=ex.ok;d.parse_method=ex.method;d.parse_error=ex.error||'';d.normalized=ex.ok?v12aNorm(ex.parsed):{liveness:'UNKNOWN',confidence:0,reason:ex.error||'parse failed'};
+    return d
+  }catch(e){d.parse_error=String(e.message||e);d.normalized={liveness:'UNKNOWN',confidence:0,reason:d.parse_error};return d}
+}
+async function v12aProcessLatest(req,opts){
+  opts=opts||{};
+  const state=v12aState(),latest=v12aLatest(),threshold=Number(opts.threshold||state.threshold||70),liveThreshold=Number(opts.liveness_confidence||state.liveness_confidence||.5);
+  if(!latest)return{ok:false,version:VERSION,error:'NO_FACE_GATE_PASS_CANDIDATE',state};
+  if(opts.skip_processed!==false && state.last_processed_snapshot_id===latest.snapshot_id){
+    return{ok:true,version:VERSION,skipped:true,reason:'ALREADY_PROCESSED',latest,state};
+  }
+  const uid=normalizeUid(latest.master_uid||opts.master_uid||'');
+  if(!uid)return{ok:false,version:VERSION,error:'MISSING_MASTER_UID',latest,state};
+  const {db,best,best_score}=v12aBest(uid,latest);
+  if(!db.length)return{ok:false,version:VERSION,error:'FACE_DB_EMPTY',latest,state};
+  const debug=await v12aOpenAISingle(latest,req),n=debug.normalized||{liveness:'UNKNOWN',confidence:0,reason:'no normalized'};
+  const face_match=!!(best&&best_score>=threshold);
+  const live_ok=n.liveness==='REAL'&&Number(n.confidence||0)>=liveThreshold;
+  const allow_open=face_match&&live_ok;
+  const cmd=allow_open?v12aQueue(latest.community_id||best.community_id,latest.community_name||best.community_name,uid,'V12A AUTO FACE_GATE MATCH + LIVENESS REAL'):null;
+  const rec={match_id:'MATCH-'+Date.now().toString(36).toUpperCase(),master_uid:uid,snapshot_id:latest.snapshot_id,best_face_id:best?best.face_id:'',best_name:best?best.person_name:'',match_score:best_score,threshold,face_match,liveness:n.liveness,liveness_mode:debug.has_openai_key?'OPENAI_SINGLE_AUTO_FACE_GATE':'DEMO_NO_OPENAI_KEY',liveness_confidence:n.confidence,liveness_reason:n.reason,openai_http_status:debug.http_status,openai_parse_ok:debug.parse_ok,openai_parse_method:debug.parse_method,openai_parse_error:debug.parse_error,openai_usage:debug.usage,openai_raw_content:String(debug.raw_content||'').slice(0,1200),allow_open,command_id:cmd?cmd.command_id:'',block_reason:allow_open?'':(!face_match?'MATCH_SCORE_BELOW_THRESHOLD':'LIVENESS_NOT_REAL'),created_at:nowIso(),lesson:VERSION};
+  const m=v12aMatches();m.unshift(rec);v12aW('edu_face_matches.json',m.slice(0,200));
+  const logs=v12aLog();logs.unshift({debug_id:debug.debug_id,result:rec,debug});v12aW('openai_liveness_debug_log.json',logs.slice(0,160));
+  const next=Object.assign({},state,{last_processed_snapshot_id:latest.snapshot_id,last_match_id:rec.match_id,last_result:rec,threshold,liveness_confidence:liveThreshold});
+  v12aSaveState(next);
+  return{ok:true,version:VERSION,result:rec,command:cmd,latest,best_face:best,openai_debug:debug,state:next}
+}
+app.post('/api/v12a/auto/enable',express.json({limit:'1mb'}),(req,res)=>{
+  const body=req.body||{},s=v12aState();
+  s.enabled=body.enabled!==false;
+  s.threshold=Number(body.threshold||s.threshold||70);
+  s.liveness_confidence=Number(body.liveness_confidence||s.liveness_confidence||.5);
+  v12aSaveState(s);
+  res.json({ok:true,version:VERSION,state:s})
+});
+app.post('/api/v12a/auto/reset',express.json({limit:'1mb'}),(_req,res)=>{
+  const s=v12aSaveState({enabled:false,last_processed_snapshot_id:'',last_match_id:'',last_result:null,threshold:70,liveness_confidence:.5});
+  res.json({ok:true,version:VERSION,state:s})
+});
+app.post('/api/v12a/auto/process-latest',express.json({limit:'1mb'}),async(req,res)=>{
+  try{res.json(await v12aProcessLatest(req,Object.assign({},req.body||{},{skip_processed:false})))}catch(e){res.status(500).json({ok:false,version:VERSION,error:String(e.message||e),stack:String(e.stack||'').slice(0,1500)})}
+});
+app.get('/api/v12a/auto/state',async(req,res)=>{
+  const state=v12aState(),latest=v12aLatest();
+  let processed=null;
+  if(state.enabled && latest && state.last_processed_snapshot_id!==latest.snapshot_id){
+    try{processed=await v12aProcessLatest(req,{skip_processed:true})}catch(e){processed={ok:false,error:String(e.message||e)}}
+  }
+  res.json({ok:true,version:VERSION,state:v12aState(),latest,snapshot_count:v12aR('face_snapshots.json',[]).length,face_db_count:v12aDb().length,processed})
+});
+app.get('/edu/auto-face-gate-recognition',(_req,res)=>{
+  const latest=v12aLatest(),state=v12aState(),faces=v12aDb(),matches=v12aMatches().filter(m=>String(m.lesson||'').includes('V12A')||m.liveness_mode==='OPENAI_SINGLE_AUTO_FACE_GATE').slice(0,20);
+  let opts=[];if(latest&&latest.master_uid)opts.push({uid:latest.master_uid,name:latest.community_name||'最新 Snapshot'});if(!opts.length&&faces.length)opts=faces.map(f=>({uid:f.master_uid,name:f.community_name||f.person_name||'Face DB'}));const seen={};opts=opts.filter(o=>o.uid&&!seen[o.uid]&&(seen[o.uid]=true)).map(o=>`<option value="${o.uid}">${o.name} (${o.uid})</option>`).join('');
+  const latestHtml=latest?`<div class="meta">最新 Candidate：<b>${latest.snapshot_id}</b>｜${latest.community_name||''}｜face_gate=${latest.face_gate}｜face_count=${latest.face_count}｜bytes=${latest.bytes}｜${latest.created_at||''}</div><img src="/edu/face/latest.jpg?_=${Date.now()}">`:'<p class="bad">尚未收到 FACE_GATE_PASS Candidate Snapshot。請讓 ESP32 自動 FACE_GATE_PASS 上傳。</p>';
+  const rows=matches.map(m=>`<tr><td>${m.match_id}</td><td>${m.snapshot_id||''}</td><td>${m.best_name||''}</td><td>${m.match_score}%</td><td>${m.liveness}</td><td>${Math.round(Number(m.liveness_confidence||0)*100)}%</td><td>${m.openai_http_status||''}</td><td>${m.openai_parse_method||''}</td><td style="font-weight:900;color:${m.allow_open?'#08783e':'#b11111'}">${m.allow_open?'OPEN':'LOCK'}</td><td>${m.command_id||''}</td><td>${m.block_reason||''}</td><td>${m.created_at}</td></tr>`).join('')||'<tr><td colspan="12">尚無 V12A 結果</td></tr>';
+  const last=v12aLog()[0]&&v12aLog()[0].debug?v12aLog()[0].debug:null;
+  const dbg=last?JSON.stringify({debug_id:last.debug_id,model:last.model,snapshot_id:last.snapshot_id,image_ok:last.image_ok,image_bytes:last.image_bytes,http_status:last.http_status,openai_ok:last.openai_ok,parse_ok:last.parse_ok,parse_method:last.parse_method,normalized:last.normalized,raw_content:last.raw_content},null,2):'尚無 V12A debug log';
+  res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${VERSION}</title><style>body{font-family:system-ui,"Noto Sans TC",sans-serif;background:#eef5f7;margin:0;color:#102330}.wrap{max-width:1220px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}button{border:0;border-radius:10px;background:#079b50;color:white;font-weight:900;padding:12px 16px;margin:6px}.blue{background:#1677a8}.red{background:#c9342d}input,select{padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px;min-width:160px}img{max-width:100%;border-radius:12px;border:1px solid #ddd}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #dde;padding:8px;text-align:left;font-size:13px}.meta{color:#617085;margin:8px 0}.status{font-weight:900;border-radius:10px;padding:12px;margin-top:10px}.ok{background:#e8fff2;color:#08783e}.warn{background:#fff7df;color:#946200}.err{background:#ffecec;color:#a11212}.bad{color:#b11111;font-weight:900}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap}</style></head><body><div class="wrap"><h1>RT7 EDU V12A AUTO FACE_GATE RECOGNITION</h1><p><a href="/edu/face-recognition">第九堂註冊</a> ｜ <a href="/edu/face-gate/state">FACE_GATE state</a> ｜ <a href="/api/v12a/auto/state">V12A state JSON</a></p><div class="card"><h2>1. 正式流程說明</h2><pre>人在 ESP32 鏡頭前
+↓
+ESP32 自動 human_face_detect / FACE_GATE
+↓
+FACE_GATE_PASS 才自動 POST Candidate Snapshot
+↓
+Railway 自動 Face Match
+↓
+OpenAI Liveness
+↓
+MATCH + LIVENESS=REAL 才送 OPEN_DOOR</pre></div><div class="card"><h2>2. 最新 ESP32 FACE_GATE Candidate Snapshot</h2>${latestHtml}</div><div class="card"><h2>3. Auto Recognition 控制</h2><select id="master_uid">${opts}</select><input id="threshold" type="number" value="${state.threshold||70}" min="1" max="100" style="width:90px;min-width:90px"> % <input id="live_conf" type="number" value="${state.liveness_confidence||0.5}" min="0" max="1" step="0.1" style="width:90px;min-width:90px"> liveness <button onclick="enableAuto()">啟用自動辨識</button><button class="red" onclick="disableAuto()">關閉自動辨識</button><button class="blue" onclick="processNow()">立即處理最新 Candidate</button><button class="red" onclick="resetState()">清除 V12A 狀態</button><div id="statusBox" class="status ${state.enabled?'ok':'warn'}">${state.enabled?'AUTO ENABLED':'AUTO DISABLED'}</div><pre id="result">${JSON.stringify(state,null,2)}</pre></div><div class="card"><h2>4. V12A Match Results</h2><table><thead><tr><th>Match</th><th>Snapshot</th><th>Name</th><th>Score</th><th>Live</th><th>Conf</th><th>HTTP</th><th>Parse</th><th>Door</th><th>Command</th><th>Block</th><th>Time</th></tr></thead><tbody>${rows}</tbody></table></div><div class="card"><h2>5. Last OpenAI Debug</h2><pre>${dbg.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre></div></div><script>function setStatus(c,m){statusBox.className='status '+c;statusBox.textContent=m;}async function enableAuto(){setStatus('warn','啟用中...');const r=await fetch('/api/v12a/auto/enable',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:true,threshold:Number(threshold.value||70),liveness_confidence:Number(live_conf.value||0.5)})});const j=await r.json();result.textContent=JSON.stringify(j,null,2);setStatus('ok','✅ AUTO ENABLED');}async function disableAuto(){const r=await fetch('/api/v12a/auto/enable',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:false})});const j=await r.json();result.textContent=JSON.stringify(j,null,2);setStatus('warn','AUTO DISABLED');}async function resetState(){const r=await fetch('/api/v12a/auto/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});const j=await r.json();result.textContent=JSON.stringify(j,null,2);setStatus('warn','CLEARED');setTimeout(()=>location.reload(),800)}async function processNow(){setStatus('warn','⏳ 處理最新 Candidate...');const r=await fetch('/api/v12a/auto/process-latest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({master_uid:master_uid.value,threshold:Number(threshold.value||70),liveness_confidence:Number(live_conf.value||0.5)})});const j=await r.json();result.textContent=JSON.stringify(j,null,2);if(j.ok&&j.result&&j.result.allow_open)setStatus('ok','✅ OPEN：MATCH '+j.result.match_score+'% / '+j.result.liveness+' / '+j.result.command_id);else if(j.ok&&j.result)setStatus('err','🔒 LOCK：MATCH '+j.result.match_score+'% / '+j.result.liveness+' / '+j.result.block_reason);else setStatus('err','❌ '+(j.error||j.reason||'UNKNOWN'));setTimeout(()=>location.reload(),2200)}async function poll(){try{const r=await fetch('/api/v12a/auto/state?_='+Date.now());const j=await r.json();if(j.processed&&j.processed.result){result.textContent=JSON.stringify(j.processed,null,2);if(j.processed.result.allow_open)setStatus('ok','✅ AUTO OPEN '+j.processed.result.command_id);else setStatus('err','AUTO LOCK '+j.processed.result.block_reason);setTimeout(()=>location.reload(),1200)}}catch(e){}}setInterval(poll,3500);</script></body></html>`)});
 
