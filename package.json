@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-production-face-match-openai-liveness-v11",
-  "version": "11.0.0",
-  "description": "RT7 EDU V11: Face Match plus OpenAI liveness before OPEN_DOOR",
+  "name": "rt7-edu-production-face-match-openai-liveness-v11a-response-debug",
+  "version": "11.0.1",
+  "description": "RT7 EDU V11A: OpenAI liveness raw response and parser debug",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
