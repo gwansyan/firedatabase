@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-production-face-match-openai-liveness-v11a-response-debug",
-  "version": "11.0.1",
-  "description": "RT7 EDU V11A: OpenAI liveness raw response and parser debug",
+  "name": "rt7-edu-production-face-match-openai-liveness-v11b-image-source-fix",
+  "version": "11.0.2",
+  "description": "RT7 EDU V11B: fix OpenAI liveness image source using latest.image_url/self-fetch fallback",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

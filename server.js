@@ -1,4 +1,4 @@
-// RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V11A_RESPONSE_DEBUG
+// RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V11B_IMAGE_SOURCE_FIX
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -13,7 +13,7 @@ const webPush = require('web-push');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V11A_RESPONSE_DEBUG';
+const VERSION = 'RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V11B_IMAGE_SOURCE_FIX';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:teacher@example.com';
 let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
@@ -705,7 +705,7 @@ load(); setInterval(load,10000);
 }
 
 function renderNodeRedPage() {
-return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V11A_RESPONSE_DEBUG_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
+return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_PRODUCTION_FACE_MATCH_OPENAI_LIVENESS_V11B_IMAGE_SOURCE_FIX_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
 Doorbell → doorbell_events.json
 Open Door → commands.json
 ACK → DONE
@@ -1400,4 +1400,127 @@ async function v11aOpenAI(){const key=process.env.OPENAI_API_KEY||'',img=path.jo
 app.post('/edu/face/openai-liveness-debug-match',express.json({limit:'1mb'}),async(req,res)=>{const body=req.body||{},uid=normalizeUid(body.master_uid||''),threshold=Number(body.threshold||70),liveThreshold=Number(body.liveness_confidence||.5);if(!uid)return res.status(400).json({ok:false,version:VERSION,error:'missing master_uid'});const {latest,db,best,best_score}=v11aBest(uid);if(!latest)return res.status(409).json({ok:false,version:VERSION,error:'NO_LATEST_FACE_GATE_PASS_SNAPSHOT'});if(!db.length)return res.status(409).json({ok:false,version:VERSION,error:'FACE_DB_EMPTY'});const debug=await v11aOpenAI(),norm=debug.normalized||{liveness:'UNKNOWN',confidence:0,reason:'no normalized'};const face_match=!!(best&&best_score>=threshold),live_ok=norm.liveness==='REAL'&&Number(norm.confidence||0)>=liveThreshold,allow_open=face_match&&live_ok;const cmd=allow_open?v11aQueueOpen(latest.community_id||best.community_id,latest.community_name||best.community_name,uid,'V11A MATCH + OpenAI debug liveness REAL'):null;const rec={match_id:'MATCH-'+Date.now().toString(36).toUpperCase(),master_uid:uid,latest_snapshot_id:latest.snapshot_id,best_face_id:best?best.face_id:'',best_name:best?best.person_name:'',match_score:best_score,threshold,face_match,liveness:norm.liveness,liveness_mode:debug.has_openai_key?'OPENAI_DEBUG':'DEMO_NO_OPENAI_KEY',liveness_confidence:norm.confidence,liveness_reason:norm.reason,openai_http_status:debug.http_status,openai_parse_ok:debug.parse_ok,openai_parse_method:debug.parse_method,openai_parse_error:debug.parse_error,openai_usage:debug.usage,openai_raw_content:String(debug.raw_content||'').slice(0,1200),allow_open,command_id:cmd?cmd.command_id:'',block_reason:allow_open?'':(!face_match?'MATCH_SCORE_BELOW_THRESHOLD':'LIVENESS_NOT_REAL'),created_at:nowIso(),lesson:VERSION};const m=v11aMatches();m.unshift(rec);v11aWriteMatches(m);const logs=v11aLogs();logs.unshift({debug_id:debug.debug_id,result:rec,debug});v11aWriteLogs(logs);res.json({ok:true,version:VERSION,result:rec,command:cmd,latest,best_face:best,openai_debug:debug})});
 app.get('/edu/openai-liveness/debug-log',(_req,res)=>res.json({ok:true,version:VERSION,logs:v11aLogs().slice(0,10)}));
 app.get('/edu/openai-liveness-debug',(_req,res)=>{const latest=v11aLatest(),faces=v11aDb(),logs=v11aLogs(),matches=v11aMatches().filter(m=>String(m.lesson||'').includes('V11A')||m.openai_parse_method);let opts=[];if(latest&&latest.master_uid)opts.push({uid:latest.master_uid,name:latest.community_name||'最新 Snapshot'});if(!opts.length&&faces.length)opts=faces.map(f=>({uid:f.master_uid,name:f.community_name||f.person_name||'Face DB'}));const seen={};opts=opts.filter(o=>o.uid&&!seen[o.uid]&&(seen[o.uid]=true)).map(o=>`<option value="${o.uid}">${o.name} (${o.uid})</option>`).join('');const latestHtml=latest?`<div class="meta">最新 Candidate：${latest.snapshot_id}｜${latest.community_name||''}｜face_gate=${latest.face_gate}｜face_count=${latest.face_count}｜bytes=${latest.bytes}｜${latest.created_at||''}</div><img src="/edu/face/latest.jpg?_=${Date.now()}">`:'<p>尚未收到 FACE_GATE_PASS Candidate Snapshot。</p>';const rows=matches.map(m=>`<tr><td>${m.match_id}</td><td>${m.best_name||''}</td><td>${m.match_score}%</td><td>${m.liveness}</td><td>${m.liveness_mode||''}</td><td>${Math.round(Number(m.liveness_confidence||0)*100)}%</td><td>${m.openai_http_status||''}</td><td>${m.openai_parse_method||''}</td><td style="font-weight:800;color:${m.allow_open?'#08783e':'#b11111'}">${m.allow_open?'OPEN':'LOCK'}</td><td>${m.command_id||''}</td><td>${m.block_reason||''}</td><td>${m.created_at}</td></tr>`).join('')||'<tr><td colspan="12">尚無 V11A Debug 結果</td></tr>';const last=logs[0]&&logs[0].debug?logs[0].debug:null;const dbg=last?JSON.stringify({debug_id:last.debug_id,has_openai_key:last.has_openai_key,model:last.model,image_bytes:last.image_bytes,http_status:last.http_status,openai_ok:last.openai_ok,usage:last.usage,parse_ok:last.parse_ok,parse_method:last.parse_method,parse_error:last.parse_error,normalized:last.normalized,raw_content:last.raw_content},null,2):'尚無 OpenAI debug log';res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${VERSION}</title><style>body{font-family:system-ui,"Noto Sans TC",sans-serif;background:#eef5f7;margin:0;color:#102330}.wrap{max-width:1120px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}button{border:0;border-radius:10px;background:#079b50;color:white;font-weight:800;padding:12px 16px;margin:6px}input,select{padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px;min-width:160px}img{max-width:100%;border-radius:12px;border:1px solid #ddd}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #dde;padding:8px;text-align:left;font-size:14px}.meta{color:#617085;margin:8px 0}.status{font-weight:800;border-radius:10px;padding:12px;margin-top:10px}.ok{background:#e8fff2;color:#08783e}.warn{background:#fff7df;color:#946200}.err{background:#ffecec;color:#a11212}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap}</style></head><body><div class="wrap"><h1>RT7 EDU V11A OPENAI LIVENESS RESPONSE DEBUG</h1><p><a href="/edu/openai-liveness-face-doorbell">第十一堂 V11</a> ｜ <a href="/edu/production-face-doorbell">第十堂 V10</a> ｜ <a href="/edu/openai-liveness/debug-log">Debug JSON</a></p><div class="card"><h2>1. 最新 FACE_GATE Candidate Snapshot</h2>${latestHtml}</div><div class="card"><h2>2. OpenAI Debug + Face Match</h2><select id="master_uid">${opts}</select><input id="threshold" type="number" value="70" min="1" max="100" style="width:90px;min-width:90px"> % <input id="live_conf" type="number" value="0.5" min="0" max="1" step="0.1" style="width:90px;min-width:90px"> liveness <button onclick="doMatch()">OpenAI Debug 活體 + 人臉辨識</button><div id="statusBox" class="status">READY</div><pre id="result">READY</pre></div><div class="card"><h2>3. V11A Match Results</h2><table><thead><tr><th>Match ID</th><th>Name</th><th>Score</th><th>Liveness</th><th>Mode</th><th>Conf</th><th>HTTP</th><th>Parse</th><th>Door</th><th>Command</th><th>Block</th><th>Time</th></tr></thead><tbody>${rows}</tbody></table></div><div class="card"><h2>4. Last OpenAI Debug</h2><pre>${dbg.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre></div></div><script>function setStatus(c,m){statusBox.className='status '+c;statusBox.textContent=m;}async function doMatch(){if(!master_uid.value){setStatus('err','❌ 尚未有 Master UID');return;}setStatus('warn','⏳ OpenAI Debug 辨識中...');const r=await fetch('/edu/face/openai-liveness-debug-match',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({master_uid:master_uid.value,threshold:Number(threshold.value||70),liveness_confidence:Number(live_conf.value||0.5)})});const j=await r.json();result.textContent=JSON.stringify(j,null,2);if(j.ok&&j.result&&j.result.allow_open)setStatus('ok','✅ OPEN：MATCH '+j.result.match_score+'% / '+j.result.liveness+' / parse='+j.result.openai_parse_method+' / '+j.result.command_id);else if(j.ok&&j.result)setStatus('err','🔒 LOCK：MATCH '+j.result.match_score+'% / '+j.result.liveness+' / parse='+j.result.openai_parse_method+' / '+j.result.block_reason);else setStatus('err','❌ 辨識失敗：'+(j.error||'UNKNOWN'));setTimeout(()=>location.reload(),2200);}</script></body></html>`)});
+
+
+
+// ===== V11B IMAGE SOURCE FIX =====
+// V11B fixes V11A "latest image not found" by resolving the actual image source.
+// It supports local files and self-fetching /edu/face/latest.jpg before calling OpenAI.
+
+function v11bShots(){const a=readJson('face_snapshots.json',[]);return Array.isArray(a)?a:[]}
+function v11bLatest(){const a=v11bShots();a.sort((x,y)=>String(y.created_at||'').localeCompare(String(x.created_at||'')));return a.find(s=>String(s.face_gate||'').toUpperCase()==='PASS'&&Number(s.face_count||0)>0)||null}
+function v11bDb(){const a=readJson('edu_face_db.json',[]);return Array.isArray(a)?a:[]}
+function v11bMatches(){const a=readJson('edu_face_matches.json',[]);return Array.isArray(a)?a:[]}
+function v11bWriteMatches(a){writeJson('edu_face_matches.json',Array.isArray(a)?a.slice(0,140):[])}
+function v11bLogs(){const a=readJson('openai_liveness_debug_log.json',[]);return Array.isArray(a)?a:[]}
+function v11bWriteLogs(a){writeJson('openai_liveness_debug_log.json',Array.isArray(a)?a.slice(0,100):[])}
+function v11bMetric(t,n){const m=String(t||'').match(new RegExp(n+'=([0-9.]+)'));return m?Number(m[1]):0}
+function v11bMeta(o){const r=String(o&&o.face_reason||''),b=r.match(/box=([0-9]+)x([0-9]+)/),c=r.match(/center=([0-9]+),([0-9]+)/);return{skin_pct:v11bMetric(r,'skin_pct'),ratio:v11bMetric(r,'ratio'),box_w:b?Number(b[1]):0,box_h:b?Number(b[2]):0,cx:c?Number(c[1]):0,cy:c?Number(c[2]):0,bytes:Number(o&&o.bytes||0)}}
+function v11bScore(latest,face){const a=v11bMeta(latest),b=v11bMeta(face);if(!a.skin_pct||!b.skin_pct||!a.box_w||!b.box_w)return 0;let s=100;s-=Math.min(28,Math.abs(a.skin_pct-b.skin_pct)*2);s-=Math.min(22,Math.abs(a.ratio-b.ratio)*30);s-=Math.min(18,Math.abs(a.box_w-b.box_w)*.55);s-=Math.min(18,Math.abs(a.box_h-b.box_h)*.55);s-=Math.min(14,(Math.abs(a.cx-b.cx)+Math.abs(a.cy-b.cy))*.7);s-=Math.min(10,Math.abs(a.bytes-b.bytes)/400);return Math.max(0,Math.min(100,Math.round(s)))}
+function v11bBest(uid){const latest=v11bLatest(),db=v11bDb().filter(f=>!uid||f.master_uid===uid);let best=null,score=0;for(const f of db){const s=v11bScore(latest,f);if(s>score){best=f;score=s}}return{latest,db,best,best_score:score}}
+function v11bQueueOpen(cid,cname,uid,note){let commands=readJson('commands.json',[]);const cmd={command_id:'CMD-'+Date.now().toString(36).toUpperCase(),command:'OPEN_DOOR',status:'PENDING',community_id:cid||'',community_name:cname||'',master_uid:uid,relay_pin:40,pulse_ms:800,source:'OPENAI_LIVENESS_IMAGE_SOURCE_FIX',created_at:nowIso(),delivered_at:'',ack_at:'',ack_note:note||'',lesson:VERSION};commands.unshift(cmd);writeJson('commands.json',commands.slice(0,50));return cmd}
+
+function v11bExtract(raw){const txt=String(raw||'').trim();if(!txt)return{ok:false,parsed:null,method:'EMPTY',error:'empty response'};try{return{ok:true,parsed:JSON.parse(txt),method:'DIRECT_JSON',error:''}}catch(e){}const fence=txt.match(/```(?:json)?\s*([\s\S]*?)```/i);if(fence&&fence[1]){try{return{ok:true,parsed:JSON.parse(fence[1].trim()),method:'MARKDOWN_JSON_FENCE',error:''}}catch(e){return{ok:false,parsed:null,method:'MARKDOWN_JSON_PARSE_FAIL',error:String(e.message||e)}}}const first=txt.indexOf('{'),last=txt.lastIndexOf('}');if(first>=0&&last>first){try{return{ok:true,parsed:JSON.parse(txt.slice(first,last+1)),method:'JSON_SUBSTRING',error:''}}catch(e){}}const up=txt.toUpperCase();if(up.includes('REAL')||up.includes('LIVE'))return{ok:true,parsed:{liveness:'REAL',confidence:.65,reason:'plain text REAL/LIVE'},method:'PLAIN_TEXT_KEYWORD',error:''};if(up.includes('PHOTO')||up.includes('PRINT'))return{ok:true,parsed:{liveness:'PHOTO',confidence:.65,reason:'plain text PHOTO/PRINT'},method:'PLAIN_TEXT_KEYWORD',error:''};if(up.includes('SCREEN')||up.includes('REPLAY')||up.includes('DISPLAY'))return{ok:true,parsed:{liveness:'SCREEN',confidence:.65,reason:'plain text SCREEN/REPLAY/DISPLAY'},method:'PLAIN_TEXT_KEYWORD',error:''};return{ok:false,parsed:null,method:'UNPARSEABLE_TEXT',error:'No JSON or keyword found'}}
+function v11bNorm(p){p=p||{};let live=String(p.liveness||p.live||p.result||p.status||p.verdict||'').toUpperCase();if(typeof p.real==='boolean')live=p.real?'REAL':'PHOTO';if(typeof p.is_live==='boolean')live=p.is_live?'REAL':'PHOTO';if(typeof p.is_real==='boolean')live=p.is_real?'REAL':'PHOTO';if(live.includes('REAL')||live.includes('LIVE'))live='REAL';else if(live.includes('PHOTO')||live.includes('PRINT'))live='PHOTO';else if(live.includes('SCREEN')||live.includes('REPLAY')||live.includes('DISPLAY'))live='SCREEN';else live='UNKNOWN';let conf=Number(p.confidence??p.score??p.probability??p.liveness_confidence??0);if(conf>1)conf=conf/100;if(!Number.isFinite(conf))conf=0;return{liveness:live,confidence:conf,reason:String(p.reason||p.explanation||p.note||p.rationale||'')}}
+
+function v11bBaseUrl(req){
+  if(process.env.RAILWAY_PUBLIC_DOMAIN) return 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN;
+  if(process.env.RAILWAY_STATIC_URL) return process.env.RAILWAY_STATIC_URL;
+  if(req && req.headers && req.headers.host) return (req.headers['x-forwarded-proto'] || 'https') + '://' + req.headers.host;
+  return '';
+}
+async function v11bResolveImage(latest, req){
+  const checked=[];
+  const names=['edu_face_latest.jpg','latest.jpg','face_latest.jpg'];
+  const dirs=[DATA_DIR,__dirname,path.join(DATA_DIR,'data'),path.join(__dirname,'data'),path.join(process.cwd(),'data'),process.cwd()];
+  for(const d of dirs){
+    for(const n of names){
+      const pth=path.join(d,n);
+      checked.push(pth);
+      try{
+        if(fs.existsSync(pth)){
+          const buf=fs.readFileSync(pth);
+          if(buf && buf.length>1000) return {ok:true,buffer:buf,source:'LOCAL_FILE',path:pth,bytes:buf.length,checked};
+        }
+      }catch(e){}
+    }
+  }
+  if(latest && latest.image_url){
+    const rel=String(latest.image_url).replace(/^\//,'');
+    const candidates=[path.join(DATA_DIR,rel),path.join(__dirname,rel),path.join(process.cwd(),rel)];
+    for(const pth of candidates){
+      checked.push(pth);
+      try{
+        if(fs.existsSync(pth)){
+          const buf=fs.readFileSync(pth);
+          if(buf && buf.length>1000) return {ok:true,buffer:buf,source:'LOCAL_IMAGE_URL_PATH',path:pth,bytes:buf.length,checked};
+        }
+      }catch(e){}
+    }
+    const base=v11bBaseUrl(req);
+    if(base){
+      const url=base + (String(latest.image_url).startsWith('/') ? latest.image_url : '/' + latest.image_url);
+      checked.push(url);
+      try{
+        const r=await fetch(url + (url.includes('?')?'&':'?') + '_=' + Date.now(), {headers:{'Cache-Control':'no-cache'}});
+        const ab=await r.arrayBuffer();
+        const buf=Buffer.from(ab);
+        if(r.ok && buf.length>1000) return {ok:true,buffer:buf,source:'SELF_FETCH_IMAGE_URL',path:url,bytes:buf.length,http_status:r.status,checked};
+        return {ok:false,buffer:null,source:'SELF_FETCH_FAILED',path:url,bytes:buf.length,http_status:r.status,checked,error:'self fetch image failed'};
+      }catch(e){
+        return {ok:false,buffer:null,source:'SELF_FETCH_EXCEPTION',path:url,bytes:0,checked,error:String(e.message||e)};
+      }
+    }
+  }
+  return {ok:false,buffer:null,source:'NOT_FOUND',path:'',bytes:0,checked,error:'image source not found'};
+}
+
+async function v11bOpenAI(latest,req){
+  const key=process.env.OPENAI_API_KEY||'';
+  const img=await v11bResolveImage(latest,req);
+  const d={debug_id:'DBG-'+Date.now().toString(36).toUpperCase(),at:nowIso(),has_openai_key:!!key,model:process.env.OPENAI_VISION_MODEL||'gpt-4o-mini',image_source:img.source,image_path:img.path,image_exists:img.ok,image_bytes:img.bytes||0,image_checked:(img.checked||[]).slice(-12),image_error:img.error||'',http_status:0,openai_ok:false,raw_content:'',usage:null,parse_ok:false,parse_method:'',parse_error:'',normalized:null};
+  if(!key){d.raw_content='DEMO_NO_OPENAI_KEY';d.parse_ok=true;d.parse_method='DEMO_NO_OPENAI_KEY';d.normalized={liveness:'REAL',confidence:.51,reason:'OPENAI_API_KEY not configured'};return d}
+  if(!img.ok || !img.buffer){d.parse_error=img.error||'latest image not found';d.normalized={liveness:'UNKNOWN',confidence:0,reason:d.parse_error};return d}
+  try{
+    const b64=img.buffer.toString('base64');
+    const body={model:d.model,messages:[{role:'user',content:[{type:'text',text:'Door access liveness check. Return ONLY compact JSON: {"liveness":"REAL|PHOTO|SCREEN|UNKNOWN","confidence":0-1,"reason":"short reason"}'},{type:'image_url',image_url:{url:'data:image/jpeg;base64,'+b64}}]}],temperature:0,max_tokens:160};
+    const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(body)});
+    d.http_status=r.status;
+    const j=await r.json();
+    d.usage=j.usage||null;
+    d.openai_ok=!!r.ok;
+    if(!r.ok){d.raw_content=j.error?JSON.stringify(j.error):JSON.stringify(j).slice(0,1000);d.parse_error=j.error?(j.error.message||'OpenAI error'):('HTTP '+r.status);d.normalized={liveness:'UNKNOWN',confidence:0,reason:d.parse_error};return d}
+    d.raw_content=j.choices&&j.choices[0]&&j.choices[0].message?String(j.choices[0].message.content||''):'';
+    const ex=v11bExtract(d.raw_content);
+    d.parse_ok=ex.ok; d.parse_method=ex.method; d.parse_error=ex.error||'';
+    d.normalized=ex.ok?v11bNorm(ex.parsed):{liveness:'UNKNOWN',confidence:0,reason:ex.error||'parse failed'};
+    return d;
+  }catch(e){d.parse_error=String(e&&e.message||e);d.normalized={liveness:'UNKNOWN',confidence:0,reason:d.parse_error};return d}
+}
+
+app.post('/edu/face/openai-liveness-image-source-match',express.json({limit:'1mb'}),async(req,res)=>{
+  const body=req.body||{},uid=normalizeUid(body.master_uid||''),threshold=Number(body.threshold||70),liveThreshold=Number(body.liveness_confidence||.5);
+  if(!uid)return res.status(400).json({ok:false,version:VERSION,error:'missing master_uid'});
+  const {latest,db,best,best_score}=v11bBest(uid);
+  if(!latest)return res.status(409).json({ok:false,version:VERSION,error:'NO_LATEST_FACE_GATE_PASS_SNAPSHOT'});
+  if(!db.length)return res.status(409).json({ok:false,version:VERSION,error:'FACE_DB_EMPTY'});
+  const debug=await v11bOpenAI(latest,req),norm=debug.normalized||{liveness:'UNKNOWN',confidence:0,reason:'no normalized'};
+  const face_match=!!(best&&best_score>=threshold),live_ok=norm.liveness==='REAL'&&Number(norm.confidence||0)>=liveThreshold,allow_open=face_match&&live_ok;
+  const cmd=allow_open?v11bQueueOpen(latest.community_id||best.community_id,latest.community_name||best.community_name,uid,'V11B MATCH + OpenAI image source fix liveness REAL'):null;
+  const rec={match_id:'MATCH-'+Date.now().toString(36).toUpperCase(),master_uid:uid,latest_snapshot_id:latest.snapshot_id,best_face_id:best?best.face_id:'',best_name:best?best.person_name:'',match_score:best_score,threshold,face_match,liveness:norm.liveness,liveness_mode:debug.has_openai_key?'OPENAI_IMAGE_SOURCE_FIX':'DEMO_NO_OPENAI_KEY',liveness_confidence:norm.confidence,liveness_reason:norm.reason,image_source:debug.image_source,image_bytes:debug.image_bytes,openai_http_status:debug.http_status,openai_parse_ok:debug.parse_ok,openai_parse_method:debug.parse_method,openai_parse_error:debug.parse_error,openai_usage:debug.usage,openai_raw_content:String(debug.raw_content||'').slice(0,1200),allow_open,command_id:cmd?cmd.command_id:'',block_reason:allow_open?'':(!face_match?'MATCH_SCORE_BELOW_THRESHOLD':'LIVENESS_NOT_REAL'),created_at:nowIso(),lesson:VERSION};
+  const m=v11bMatches();m.unshift(rec);v11bWriteMatches(m);
+  const logs=v11bLogs();logs.unshift({debug_id:debug.debug_id,result:rec,debug});v11bWriteLogs(logs);
+  res.json({ok:true,version:VERSION,result:rec,command:cmd,latest,best_face:best,openai_debug:debug});
+});
+app.get('/edu/openai-liveness/image-source-log',(_req,res)=>res.json({ok:true,version:VERSION,logs:v11bLogs().slice(0,10)}));
+app.get('/edu/openai-liveness-image-source-fix',(_req,res)=>{
+  const latest=v11bLatest(),faces=v11bDb(),logs=v11bLogs(),matches=v11bMatches().filter(m=>String(m.lesson||'').includes('V11B')||m.image_source);
+  let opts=[];if(latest&&latest.master_uid)opts.push({uid:latest.master_uid,name:latest.community_name||'最新 Snapshot'});if(!opts.length&&faces.length)opts=faces.map(f=>({uid:f.master_uid,name:f.community_name||f.person_name||'Face DB'}));
+  const seen={};opts=opts.filter(o=>o.uid&&!seen[o.uid]&&(seen[o.uid]=true)).map(o=>`<option value="${o.uid}">${o.name} (${o.uid})</option>`).join('');
+  const latestHtml=latest?`<div class="meta">最新 Candidate：${latest.snapshot_id}｜${latest.community_name||''}｜image_url=${latest.image_url||''}｜face_gate=${latest.face_gate}｜face_count=${latest.face_count}｜bytes=${latest.bytes}｜${latest.created_at||''}</div><img src="/edu/face/latest.jpg?_=${Date.now()}">`:'<p>尚未收到 FACE_GATE_PASS Candidate Snapshot。</p>';
+  const rows=matches.map(m=>`<tr><td>${m.match_id}</td><td>${m.best_name||''}</td><td>${m.match_score}%</td><td>${m.liveness}</td><td>${m.liveness_mode||''}</td><td>${Math.round(Number(m.liveness_confidence||0)*100)}%</td><td>${m.image_source||''}</td><td>${m.image_bytes||0}</td><td>${m.openai_http_status||''}</td><td>${m.openai_parse_method||''}</td><td style="font-weight:800;color:${m.allow_open?'#08783e':'#b11111'}">${m.allow_open?'OPEN':'LOCK'}</td><td>${m.command_id||''}</td><td>${m.block_reason||''}</td><td>${m.created_at}</td></tr>`).join('')||'<tr><td colspan="14">尚無 V11B 結果</td></tr>';
+  const last=logs[0]&&logs[0].debug?logs[0].debug:null;
+  const dbg=last?JSON.stringify({debug_id:last.debug_id,has_openai_key:last.has_openai_key,model:last.model,image_source:last.image_source,image_path:last.image_path,image_exists:last.image_exists,image_bytes:last.image_bytes,image_checked:last.image_checked,image_error:last.image_error,http_status:last.http_status,openai_ok:last.openai_ok,usage:last.usage,parse_ok:last.parse_ok,parse_method:last.parse_method,parse_error:last.parse_error,normalized:last.normalized,raw_content:last.raw_content},null,2):'尚無 OpenAI image source debug log';
+  res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${VERSION}</title><style>body{font-family:system-ui,"Noto Sans TC",sans-serif;background:#eef5f7;margin:0;color:#102330}.wrap{max-width:1180px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}button{border:0;border-radius:10px;background:#079b50;color:white;font-weight:800;padding:12px 16px;margin:6px}input,select{padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px;min-width:160px}img{max-width:100%;border-radius:12px;border:1px solid #ddd}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #dde;padding:8px;text-align:left;font-size:13px}.meta{color:#617085;margin:8px 0}.status{font-weight:800;border-radius:10px;padding:12px;margin-top:10px}.ok{background:#e8fff2;color:#08783e}.warn{background:#fff7df;color:#946200}.err{background:#ffecec;color:#a11212}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap}</style></head><body><div class="wrap"><h1>RT7 EDU V11B OPENAI LIVENESS IMAGE SOURCE FIX</h1><p><a href="/edu/openai-liveness-debug">V11A Debug</a> ｜ <a href="/edu/openai-liveness-face-doorbell">V11</a> ｜ <a href="/edu/production-face-doorbell">V10</a> ｜ <a href="/edu/openai-liveness/image-source-log">Image Source Log JSON</a></p><div class="card"><h2>1. 最新 FACE_GATE Candidate Snapshot</h2>${latestHtml}</div><div class="card"><h2>2. OpenAI Image Source Fix + Face Match</h2><p>V11B 不再只讀 DATA_DIR/edu_face_latest.jpg，會 fallback 到 /edu/face/latest.jpg self-fetch。</p><select id="master_uid">${opts}</select><input id="threshold" type="number" value="70" min="1" max="100" style="width:90px;min-width:90px"> % <input id="live_conf" type="number" value="0.5" min="0" max="1" step="0.1" style="width:90px;min-width:90px"> liveness <button onclick="doMatch()">OpenAI Image Fix 活體 + 人臉辨識</button><div id="statusBox" class="status">READY</div><pre id="result">READY</pre></div><div class="card"><h2>3. V11B Results</h2><table><thead><tr><th>Match ID</th><th>Name</th><th>Score</th><th>Live</th><th>Mode</th><th>Conf</th><th>ImgSrc</th><th>ImgBytes</th><th>HTTP</th><th>Parse</th><th>Door</th><th>Command</th><th>Block</th><th>Time</th></tr></thead><tbody>${rows}</tbody></table></div><div class="card"><h2>4. Last Image Source Debug</h2><pre>${dbg.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre></div></div><script>function setStatus(c,m){statusBox.className='status '+c;statusBox.textContent=m;}async function doMatch(){if(!master_uid.value){setStatus('err','❌ 尚未有 Master UID');return;}setStatus('warn','⏳ OpenAI Image Source Fix 辨識中...');const r=await fetch('/edu/face/openai-liveness-image-source-match',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({master_uid:master_uid.value,threshold:Number(threshold.value||70),liveness_confidence:Number(live_conf.value||0.5)})});const j=await r.json();result.textContent=JSON.stringify(j,null,2);if(j.ok&&j.result&&j.result.allow_open)setStatus('ok','✅ OPEN：MATCH '+j.result.match_score+'% / '+j.result.liveness+' / img='+j.result.image_bytes+' / '+j.result.command_id);else if(j.ok&&j.result)setStatus('err','🔒 LOCK：MATCH '+j.result.match_score+'% / '+j.result.liveness+' / img='+j.result.image_bytes+' / '+j.result.block_reason);else setStatus('err','❌ 辨識失敗：'+(j.error||'UNKNOWN'));setTimeout(()=>location.reload(),2400);}</script></body></html>`);
+});
 
