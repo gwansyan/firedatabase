@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-production-face-match-openai-liveness-v11b-image-source-fix",
-  "version": "11.0.2",
-  "description": "RT7 EDU V11B: fix OpenAI liveness image source using latest.image_url/self-fetch fallback",
+  "name": "rt7-edu-production-face-match-openai-liveness-v11c-multiframe",
+  "version": "11.0.3",
+  "description": "RT7 EDU V11C: multi-frame OpenAI liveness challenge",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
