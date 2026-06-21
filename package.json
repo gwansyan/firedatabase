@@ -1,14 +1,15 @@
 {
-  "name": "rt7-edu-v12b-two-step-challenge",
-  "version": "12.0.2",
-  "description": "RT7 EDU V12B two-step TURN_LEFT/TURN_RIGHT liveness",
+  "name": "rt7-cloud-server",
+  "version": "5.6.16",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "cors": "latest",
-    "express": "latest",
-    "web-push": "latest"
+    "express": "^4.18.2",
+    "ws": "^8.16.0",
+    "jpeg-js": "^0.4.4",
+    "sql.js": "^1.10.3",
+    "web-push": "^3.6.7"
   }
 }
