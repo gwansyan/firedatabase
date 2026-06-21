@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-v12b-two-step-challenge",
-  "version": "12.0.2",
-  "description": "RT7 EDU V12B two-step TURN_LEFT/TURN_RIGHT liveness",
+  "name": "rt7-edu-face-tft-guide-v13",
+  "version": "13.0.0",
+  "description": "RT7 EDU V13: ESP32 TFT guide for FACE_GATE and two-step liveness",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
