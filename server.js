@@ -1,4 +1,4 @@
-// RT7_EDU_FACE_TFT_GUIDE_V13A2_FACEGATE_TYPEDEF_HARD_FIXA1_TYPEDEF_FIX_TFT_STREAM_PREVIEW
+// RT7_EDU_FACE_TFT_GUIDE_V13B_FROM_V12B_BASE_TFT_STREAM
 // 第五堂課：開門控制 / Command Queue
 // 保留第一堂 Heartbeat、第二堂 Community Register、第三堂 Login Auth
 // 新增 API: POST /edu/command/open-door, GET /edu/master/command, POST /edu/master/command/ack
@@ -13,7 +13,7 @@ const webPush = require('web-push');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const VERSION = 'RT7_EDU_FACE_TFT_GUIDE_V13A2_FACEGATE_TYPEDEF_HARD_FIXA1_TYPEDEF_FIX_TFT_STREAM_PREVIEW';
+const VERSION = 'RT7_EDU_FACE_TFT_GUIDE_V13B_FROM_V12B_BASE_TFT_STREAM';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:teacher@example.com';
 let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
@@ -705,7 +705,7 @@ load(); setInterval(load,10000);
 }
 
 function renderNodeRedPage() {
-return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_FACE_TFT_GUIDE_V13A2_FACEGATE_TYPEDEF_HARD_FIXA1_TYPEDEF_FIX_TFT_STREAM_PREVIEW_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
+return String.raw`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU Node-RED Flow V6</title><style>body{font-family:Arial,'Noto Sans TC',sans-serif;background:#eef4f6;margin:0;color:#10232e}.wrap{max-width:980px;margin:20px auto;padding:16px}.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0001}code,pre{background:#f5f7f8;padding:10px;border-radius:8px;display:block;overflow:auto}.tag{display:inline-block;background:#e9f7ef;color:#087848;border-radius:999px;padding:4px 10px;font-size:13px}.blue{background:#0b6fa4;color:#fff;border:0;border-radius:8px;padding:10px;margin:4px;cursor:pointer}.ok{color:#079b50;font-weight:bold}</style></head><body><div class="wrap"><h1>RT7 EDU NODE-RED FLOW V6</h1><p><span class="tag">第六堂課</span> Node-RED Flow / Railway Observer</p><p><button class="blue" onclick="location.href='/edu/open-door'">回第五堂開門控制</button></p><div class="card"><h2>1. 匯入 Flow</h2><p>Node-RED 選單 → Import → Clipboard，貼上專案內：</p><pre>node-red/RT7_EDU_FACE_TFT_GUIDE_V13B_FROM_V12B_BASE_TFT_STREAM_OBSERVER_FLOW.json</pre></div><div class="card"><h2>2. Flow 觀察目標</h2><pre>Heartbeat → Master Registry
 Doorbell → doorbell_events.json
 Open Door → commands.json
 ACK → DONE
@@ -1816,18 +1816,15 @@ OpenAI 比較 A/B + Face Match → OPEN_DOOR</pre></div><div class="card"><h2>2.
 
 
 
-// ===== V13 TFT GUIDE MONITOR =====
-function v13Read(n,d){const a=readJson(n,d);return Array.isArray(d)?(Array.isArray(a)?a:[]):(a&&typeof a==='object'?a:{})}
-function v13Latest(){const a=v13Read('face_snapshots.json',[]);a.sort((x,y)=>String(y.created_at||'').localeCompare(String(x.created_at||'')));return a.find(s=>String(s.face_gate||'').toUpperCase()==='PASS'&&Number(s.face_count||0)>0)||null}
-function v13Challenge(){return v13Read('v12b_two_step_challenge.json',{})}
-function v13Matches(){return v13Read('edu_face_matches.json',[]).filter(m=>String(m.lesson||'').includes('V13')||String(m.lesson||'').includes('V12B')).slice(0,12)}
-app.get('/edu/tft-guide-v13a22',(_req,res)=>{
-  const latest=v13Latest(), ch=v13Challenge(), matches=v13Matches();
-  const latestHtml=latest?`<div class="meta">最新 FACE_GATE_PASS：<b>${latest.snapshot_id}</b>｜${latest.community_name||''}｜bytes=${latest.bytes}｜${latest.created_at||''}</div><img src="/edu/face/latest.jpg?_=${Date.now()}">`:'<p class="bad">尚未收到 FACE_GATE_PASS Candidate Snapshot。</p>';
-  const rows=matches.map(m=>`<tr><td>${m.match_id}</td><td>${m.best_name||''}</td><td>${m.match_score||''}%</td><td>${m.liveness||''}</td><td>${m.challenge_pass?'PASS':'FAIL'}</td><td style="font-weight:900;color:${m.allow_open?'#08783e':'#b11111'}">${m.allow_open?'OPEN':'LOCK'}</td><td>${m.block_reason||''}</td><td>${m.created_at||''}</td></tr>`).join('')||'<tr><td colspan="8">尚無資料</td></tr>';
-  res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 EDU FACE TFT GUIDE V13A</title><style>body{font-family:system-ui,"Noto Sans TC",sans-serif;background:#eef5f7;margin:0;color:#102330}.wrap{max-width:1180px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.step{background:#f5f7f9;border-left:6px solid #1677a8;border-radius:12px;padding:12px;font-weight:800}img{max-width:100%;border-radius:12px;border:1px solid #ddd}pre{background:#f5f7f9;border-radius:12px;padding:12px;overflow:auto;white-space:pre-wrap}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #dde;padding:8px;text-align:left}.bad{color:#b11111;font-weight:900}.meta{color:#617085;margin:8px 0}</style></head><body><div class="wrap"><h1>RT7 EDU FACE TFT GUIDE V13A</h1><p><a href="/edu/two-step-liveness">V12B 二步活體測試</a> ｜ <a href="/edu/face-gate/state">FACE_GATE state</a> ｜ <a href="/api/v12b/challenge/state">Challenge JSON</a></p><div class="card"><h2>1. TFT 本機導引流程</h2><div class="grid"><div class="step">1 請站鏡頭前</div><div class="step">2 請靠近 / 請看鏡頭</div><div class="step">3 FACE_GATE PASS</div><div class="step">4 請向左轉頭</div><div class="step">5 請向右轉頭</div><div class="step">6 辨識中</div><div class="step">7 開門 / 鎖定</div></div></div><div class="card"><h2>2. 最新 ESP32 Candidate</h2>${latestHtml}</div><div class="card"><h2>3. Challenge State</h2><pre>${JSON.stringify(ch,null,2).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre></div><div class="card"><h2>4. 最新辨識結果</h2><table><tr><th>Match</th><th>Name</th><th>Score</th><th>Live</th><th>Challenge</th><th>Door</th><th>Block</th><th>Time</th></tr>${rows}</table></div><div class="card"><h2>5. 教學重點</h2><pre>V13A 不改 Railway 判斷邏輯，重點是 ESP32 本機 TFT 顯示導引：
-- 使用者不需要看電腦或手機才知道下一步
-- TFT 提示站位、距離、向左轉、向右轉、辨識中、開門/鎖定
-- 可提升 Snapshot 品質與 Face Match 穩定度</pre></div></div></body></html>`)
+// ===== V13B TFT stream monitor page =====
+app.get('/edu/tft-guide-v13b', (_req, res) => {
+  res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RT7 V13B TFT Stream</title><style>body{font-family:system-ui,"Noto Sans TC",sans-serif;background:#eef5f7;margin:0;color:#102330}.wrap{max-width:980px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}pre{background:#f5f7f9;border-radius:12px;padding:12px;white-space:pre-wrap}a{font-weight:800}</style></head><body><div class="wrap"><h1>RT7 EDU FACE TFT GUIDE V13B</h1><div class="card"><h2>本版重點</h2><pre>回到可編譯的 V12B 無 TFT ESP32 基礎版
+只加入原始專案 GC9A01 TFT 本機串流預覽
+不改 V12B Railway / FaceGate / Command / Heartbeat 函式</pre></div><div class="card"><h2>測試頁</h2><p><a href="/edu/two-step-liveness">/edu/two-step-liveness</a></p><p><a href="/edu/face-gate/state">/edu/face-gate/state</a></p></div><div class="card"><h2>TFT 腳位</h2><pre>SCK=19
+MOSI=20
+CS=45
+DC=48
+RST=3V3
+BL=3V3</pre></div></div></body></html>`);
 });
 

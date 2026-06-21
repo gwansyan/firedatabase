@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-face-tft-guide-v13a2-facegate-typedef-hard-fix",
-  "version": "13.1.2",
-  "description": "RT7 EDU V13A2: hard fix FaceGate typedef order for Arduino compile",
+  "name": "rt7-edu-face-tft-guide-v13b-from-v12b-base",
+  "version": "13.2.0",
+  "description": "RT7 EDU V13B: V12B base ESP32 plus original-project GC9A01 TFT stream preview",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
