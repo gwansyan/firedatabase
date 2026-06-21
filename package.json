@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-production-face-match-openai-liveness-v12a-auto-face-gate",
-  "version": "12.0.1",
-  "description": "RT7 EDU V12A: ESP32 auto FACE_GATE recognition, Railway auto match + OpenAI liveness",
+  "name": "rt7-edu-v12b-two-step-challenge",
+  "version": "12.0.2",
+  "description": "RT7 EDU V12B two-step TURN_LEFT/TURN_RIGHT liveness",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
