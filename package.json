@@ -1,6 +1,6 @@
 {
   "name": "rt7-cloud-server",
-  "version": "5.15.3",
+  "version": "5.6.16",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -10,7 +10,6 @@
     "ws": "^8.16.0",
     "jpeg-js": "^0.4.4",
     "sql.js": "^1.10.3",
-    "web-push": "^3.6.7",
-    "cors": "^2.8.5"
+    "web-push": "^3.6.7"
   }
 }
