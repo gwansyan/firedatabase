@@ -896,137 +896,18 @@ async function rt7V14OpenAIVision_(question, imageBase64) {
   };
 }
 
+app.get('/edu/ai-voice-assistant-v14e.js', (_req, res) => {
+  res.type('application/javascript').send("\n(function(){\n  var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;\n  var rec = null;\n  var busy = false;\n  var hearTimer = null;\n  function el(id){ return document.getElementById(id); }\n  function setText(id, text){ var e=el(id); if(e) e.textContent = text; }\n  function log(x){ var d=el('debug'); if(d) d.textContent = (typeof x==='string') ? x : JSON.stringify(x,null,2); }\n  function addLog(x){ var d=el('debug'); if(d) d.textContent = String(d.textContent||'') + '\\n' + x; }\n  function status(x){ setText('micStatus', x); addLog('[STATUS] '+x); }\n  function stopSpeak(){ try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(e){} }\n  function stopMic(){ try{ if(rec) rec.stop(); }catch(e){} if(hearTimer){ clearTimeout(hearTimer); hearTimer=null; } }\n  function speak(t){\n    try{\n      if(!window.speechSynthesis){ addLog('[TTS] not supported'); return; }\n      stopMic(); window.speechSynthesis.cancel();\n      var u = new SpeechSynthesisUtterance(String(t||''));\n      u.lang = 'zh-TW'; u.rate = 1; u.pitch = 1;\n      u.onstart = function(){ stopMic(); };\n      window.speechSynthesis.speak(u);\n    }catch(e){ addLog('[TTS_ERROR] '+e); }\n  }\n  function reloadSnap(){\n    var img=el('snap'); var no=el('noSnap');\n    if(no) no.style.display='none';\n    if(img){ img.style.display='block'; img.src='/edu/face/latest.jpg?_='+Date.now(); }\n  }\n  function askText(q){\n    q = String(q || (el('question') && el('question').value) || '').trim() || '現在看到什麼？';\n    if(el('question')) el('question').value = q;\n    if(busy){ status('AI 正在處理，請稍候'); return; }\n    busy = true; stopSpeak(); stopMic();\n    setText('answer','AI 分析中...');\n    status('送出問題：'+q);\n    fetch('/api/v14/voice/camera-qa?_='+Date.now(), {\n      method:'POST', cache:'no-store',\n      headers:{'Content-Type':'application/json'},\n      body:JSON.stringify({question:q})\n    }).then(function(r){\n      return r.text().then(function(t){ return {status:r.status, text:t}; });\n    }).then(function(o){\n      var j; try{ j=JSON.parse(o.text); }catch(e){ j={ok:false,error:'NON_JSON',raw:o.text,http_status:o.status}; }\n      log(j);\n      if(j && j.ok){\n        setText('answer', j.answer || '(沒有回答)');\n        status('AI 回答完成');\n        reloadSnap();\n        speak(j.answer || '完成');\n      } else {\n        setText('answer','錯誤：'+((j && (j.error||j.raw)) || 'unknown'));\n        status('AI 回答失敗');\n      }\n    }).catch(function(e){\n      log('[FETCH_ERROR] '+(e && (e.stack||e.message) || e));\n      setText('answer','送出失敗：'+e);\n      status('送出失敗');\n    }).then(function(){ busy=false; });\n  }\n  function startMic(){\n    log('MIC_CLICK V14E\\nSpeechRecognition='+(!!SR)+'\\nprotocol='+location.protocol+'\\nhost='+location.host);\n    if(!SR){ status('這個瀏覽器不支援 SpeechRecognition，請用手機 Chrome，或先用文字詢問。'); return; }\n    try{\n      stopSpeak(); stopMic();\n      rec = new SR();\n      rec.lang = 'zh-TW';\n      rec.interimResults = true;\n      rec.continuous = false;\n      rec.maxAlternatives = 1;\n      rec.onstart = function(){ status('語音單次聆聽中，請說：現在看到什麼？'); hearTimer=setTimeout(function(){ try{rec.stop();}catch(e){} status('沒有聽到語音，請再按一次麥克風'); }, 9000); };\n      rec.onaudiostart = function(){ status('麥克風已開啟，請說話'); };\n      rec.onspeechstart = function(){ status('已偵測到語音，正在辨識'); };\n      rec.onerror = function(e){ status('語音辨識錯誤：'+((e&&e.error)||'unknown')); addLog('[SR_ERROR] '+JSON.stringify(e||{})); };\n      rec.onend = function(){ if(hearTimer){ clearTimeout(hearTimer); hearTimer=null; } addLog('[SR_END]'); };\n      rec.onresult = function(ev){\n        if(hearTimer){ clearTimeout(hearTimer); hearTimer=null; }\n        var finalText='', interimText='';\n        for(var i=ev.resultIndex||0;i<ev.results.length;i++){\n          var txt=''; try{ txt=ev.results[i][0].transcript || ''; }catch(e){}\n          if(ev.results[i].isFinal) finalText += txt; else interimText += txt;\n        }\n        if(finalText){ status('辨識完成：'+finalText); askText(finalText); }\n        else if(interimText){ status('正在聽：'+interimText); }\n      };\n      rec.start();\n    }catch(e){ status('麥克風啟動失敗：'+(e && (e.message||e) || e)); addLog('[MIC_START_ERROR] '+(e && (e.stack||e.message)||e)); }\n  }\n  function bind(){\n    window.rt7V14AskText = askText;\n    window.rt7V14StartMic = startMic;\n    window.rt7V14Stop = function(){ stopSpeak(); stopMic(); status('已停止'); };\n    window.rt7V14ReloadSnap = reloadSnap;\n    var b;\n    b=el('btnText'); if(b) b.onclick=function(){ askText(); };\n    b=el('btnMic'); if(b) b.onclick=function(){ startMic(); };\n    b=el('btnStop'); if(b) b.onclick=function(){ window.rt7V14Stop(); };\n    b=el('btnSnap'); if(b) b.onclick=function(){ reloadSnap(); };\n    log('JS_READY V14E\\nSpeechRecognition='+(!!SR)+'\\nprotocol='+location.protocol+'\\nhost='+location.host);\n    status('JS_READY V14E，請先按「文字詢問」測試');\n  }\n  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();\n})();\n");
+});
+
 app.get('/edu/ai-voice-assistant', (_req, res) => {
-  res.type('html').send(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>RT7 EDU AI Voice Assistant V14D</title><style>
-body{margin:0;background:#eef5f7;color:#102330;font-family:system-ui,-apple-system,'Noto Sans TC',sans-serif}.wrap{max-width:980px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}.top{display:flex;gap:8px;flex-wrap:wrap}.top a{background:#1677a8;color:#fff;text-decoration:none;font-weight:900;border-radius:10px;padding:10px 12px}button{border:0;border-radius:14px;background:#079b50;color:white;font-weight:900;padding:14px 18px;margin:6px;font-size:18px}.red{background:#c9342d}.blue{background:#1677a8}.mic{font-size:28px;border-radius:999px;width:96px;height:96px}input,textarea{box-sizing:border-box;width:100%;font-size:18px;padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px 0}img{max-width:100%;border-radius:12px;border:1px solid #ddd;background:#f8fafc}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap}.ok{color:#08783e;font-weight:900}.bad{color:#b11111;font-weight:900}.hint{color:#64748b;line-height:1.6}.answer{font-size:22px;font-weight:900;line-height:1.55;background:#f0fff5;border-left:6px solid #079b50;border-radius:14px;padding:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:760px){.grid{grid-template-columns:1fr}.mic{width:86px;height:86px}}
-</style></head><body><div class="wrap"><h1>第14堂 AI語音助理 V14D</h1><p class="hint">維持原始 RT7：手機 MIC → Chrome webkitSpeechRecognition → 文字 → Railway Snapshot → OpenAI Vision → 手機 Speaker。</p><div class="top"><a href="/edu/community/register">社區註冊</a><a href="/edu/two-step-liveness">V12B 二步活體</a><a href="/edu/face-snapshot">Snapshot</a><a href="/edu/state">EDU State</a></div><div class="grid"><div class="card"><h2>1. 手機 MIC</h2><p class="hint">請用手機 Chrome 開啟本頁。按「文字詢問」應立即有反應；按麥克風會啟動單次聆聽。</p><button id="btnMic" class="mic" type="button">🎙️</button><button id="btnText" class="blue" type="button">文字詢問</button><button id="btnStop" class="red" type="button">停止播放</button><textarea id="question" rows="3">現在看到什麼？</textarea><div id="micStatus" class="hint">JS 載入中...</div></div><div class="card"><h2>2. 最新 ESP32 Snapshot</h2><img id="snap" src="/edu/face/latest.jpg?_=" onerror="this.style.display='none';document.getElementById('noSnap').style.display='block'"><p id="noSnap" class="bad" style="display:none">尚未收到 snapshot，請先讓 ESP32 上傳 FACE_GATE_PASS Candidate。</p><button id="btnSnap" type="button">重新載入 Snapshot</button></div></div><div class="card"><h2>3. AI 回答</h2><div id="answer" class="answer">尚未詢問</div><pre id="debug">BOOTING</pre></div><div class="card"><h2>4. 測試流程</h2><pre>1. 開頁後狀態應顯示 JS_READY\n2. 先按「文字詢問」確認 API 正常\n3. 再按 🎙️，手機應跳出/使用麥克風權限\n4. 說：現在看到什麼？\n5. Speaker 播放回答</pre></div></div><script>
-(function(){
-  'use strict';
-  var RT7_SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-  var recog = null;
-  var listening = false;
-  var speechStarted = false;
-  var gotSpeechText = false;
-  var busy = false;
-  var hearTimer = null;
-  function el(id){ return document.getElementById(id); }
-  function esc(s){ return String(s == null ? '' : s).replace(/[<>&]/g,function(c){ return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c]; }); }
-  function setDebug(x){ var d=el('debug'); if(d) d.textContent = (typeof x === 'string') ? x : JSON.stringify(x,null,2); }
-  function appendDebug(x){ var d=el('debug'); if(d) d.textContent = String(d.textContent || '') + '\n' + x; }
-  function setStatus(html){ el('micStatus').innerHTML = html; appendDebug('[STATUS] ' + String(html).replace(/<[^>]+>/g,'')); }
-  window.addEventListener('error', function(e){ setStatus('<span class="bad">JS 錯誤：'+esc(e.message || e.error || e)+'</span>'); appendDebug('[JS_ERROR] '+(e.message||e)); });
-  window.addEventListener('unhandledrejection', function(e){ setStatus('<span class="bad">Promise 錯誤：'+esc((e.reason && e.reason.message) || e.reason || e)+'</span>'); appendDebug('[PROMISE_ERROR] '+((e.reason && e.reason.stack) || e.reason || e)); });
-  function reloadSnap(){ var img=el('snap'); el('noSnap').style.display='none'; img.style.display='block'; img.src='/edu/face/latest.jpg?_='+Date.now(); }
-  function clearHearTimer(){ if(hearTimer){ clearTimeout(hearTimer); hearTimer=null; } }
-  function stopRecognition(){ try{ if(recog) recog.stop(); }catch(e){} listening=false; clearHearTimer(); }
-  function stopSpeak(){ try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(e){} }
-  function speak(text){
-    try{
-      if(!('speechSynthesis' in window)) { appendDebug('[SPEAKER] speechSynthesis not supported'); return; }
-      stopRecognition(); window.speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(String(text || ''));
-      u.lang='zh-TW'; u.rate=1.0; u.pitch=1.0;
-      u.onstart=function(){ stopRecognition(); };
-      window.speechSynthesis.speak(u);
-    }catch(e){ appendDebug('[SPEAKER_ERROR] '+(e.stack||e)); }
-  }
-  async function ask(q){
-    q = String(q || (el('question') && el('question').value) || '').trim() || '現在看到什麼？';
-    el('question').value = q;
-    if(busy){ setStatus('<span class="bad">AI 正在處理，請稍候。</span>'); return; }
-    busy = true; stopSpeak(); stopRecognition();
-    el('answer').textContent = 'AI 分析中...';
-    setStatus('送出問題：<b>'+esc(q)+'</b>');
-    try{
-      var r = await fetch('/api/v14/voice/camera-qa?_=' + Date.now(), { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question:q}), cache:'no-store' });
-      var txt = await r.text();
-      var j = {}; try{ j = JSON.parse(txt); }catch(e){ j = { ok:false, error:'NON_JSON', raw:txt, status:r.status }; }
-      setDebug(j);
-      var ans = j.answer || j.error || '沒有回答';
-      el('answer').textContent = ans;
-      if(j.ok) speak(ans); else setStatus('<span class="bad">AI 失敗：'+esc(ans)+'</span>');
-    }catch(e){ el('answer').textContent = '連線失敗：' + e; setDebug(String(e.stack || e)); }
-    finally{ busy = false; }
-  }
-  function scheduleHearWatchdog(){
-    clearHearTimer();
-    hearTimer = setTimeout(function(){
-      if(listening && !speechStarted && !gotSpeechText){
-        stopRecognition();
-        setStatus('<span class="bad">沒有聽到聲音。請確認手機 Chrome 麥克風權限，靠近手機再按一次。</span>');
-      }
-    }, 7000);
-  }
-  async function checkMicPermission(){
-    try{
-      if(navigator.permissions && navigator.permissions.query){
-        var p = await navigator.permissions.query({name:'microphone'});
-        appendDebug('[PERMISSION] microphone=' + (p && p.state));
-        if(p && p.state === 'denied') return {ok:false, message:'Chrome 麥克風權限被拒絕，請到網址列鎖頭/設定允許麥克風。'};
-      }
-    }catch(e){ appendDebug('[PERMISSION] query skipped: '+e); }
-    return {ok:true};
-  }
-  function isVisionQuestion(t){
-    t = String(t || '').trim();
-    if(!t) return false;
-    return /鏡頭|攝影機|畫面|看到|看見|看得到|門口|有人|有沒有人|人物|人臉|燈具|天花板|現在.*什麼|那裡.*什麼|前面.*什麼/.test(t);
-  }
-  async function startMic(){
-    appendDebug('[CLICK] mic');
-    if(busy){ setStatus('<span class="bad">AI 正在回答，請稍候。</span>'); return; }
-    if(!RT7_SR){ setStatus('<span class="bad">此手機瀏覽器不支援 Web Speech API，請改用手機 Chrome 或文字詢問。</span>'); return; }
-    stopSpeak(); stopRecognition();
-    var perm = await checkMicPermission();
-    if(!perm.ok){ setStatus('<span class="bad">'+esc(perm.message)+'</span>'); return; }
-    try{
-      recog = new RT7_SR();
-      recog.lang = 'zh-TW';
-      recog.interimResults = true;
-      recog.continuous = false;
-      recog.maxAlternatives = 1;
-      recog.onstart = function(){ listening=true; speechStarted=false; gotSpeechText=false; scheduleHearWatchdog(); setStatus('<span class="ok">語音單次聆聽中，請現在說：鏡頭現在看到什麼？</span>'); };
-      recog.onaudiostart = function(){ setStatus('<span class="ok">麥克風已開啟，請說：鏡頭現在看到什麼？</span>'); };
-      recog.onspeechstart = function(){ speechStarted=true; setStatus('<span class="ok">已偵測到語音，正在辨識...</span>'); };
-      recog.onspeechend = function(){ try{ recog.stop(); }catch(e){} };
-      recog.onnomatch = function(){ listening=false; clearHearTimer(); setStatus('<span class="bad">沒有辨識到文字，請再按一次麥克風。</span>'); };
-      recog.onresult = function(ev){
-        clearHearTimer();
-        var finalText=''; var interimText='';
-        for(var i=ev.resultIndex || 0; i<ev.results.length; i++){
-          var txt=''; try{ txt = ev.results[i][0].transcript || ''; }catch(e){}
-          if(ev.results[i].isFinal) finalText += txt; else interimText += txt;
-        }
-        if(finalText){ gotSpeechText=true; listening=false; setStatus('辨識完成：<b>'+esc(finalText)+'</b>'); ask(finalText); }
-        else if(interimText && isVisionQuestion(interimText)){ gotSpeechText=true; setStatus('正在聽：<b>'+esc(interimText)+'</b>'); }
-        else if(interimText){ setStatus('正在聽：'+esc(interimText)); scheduleHearWatchdog(); }
-      };
-      recog.onerror = function(e){
-        clearHearTimer(); listening=false;
-        var er = (e && e.error) || 'unknown';
-        var msg = 'MIC 錯誤：' + er;
-        if(er === 'not-allowed' || er === 'service-not-allowed') msg='瀏覽器擋住麥克風。請允許麥克風後再按一次。';
-        if(er === 'no-speech') msg='沒有聽到聲音，請靠近手機再按一次。';
-        if(er === 'audio-capture') msg='找不到麥克風或麥克風被其他程式占用。';
-        setStatus('<span class="bad">'+esc(msg)+'</span>');
-      };
-      recog.onend = function(){ listening=false; clearHearTimer(); appendDebug('[MIC] end'); };
-      setStatus('MIC 啟動中...');
-      recog.start();
-    }catch(e){ setStatus('<span class="bad">語音啟動失敗：'+esc(e.message || e)+'</span>'); }
-  }
-  function bind(){
-    el('btnMic').addEventListener('click', startMic);
-    el('btnText').addEventListener('click', function(){ appendDebug('[CLICK] text'); ask(el('question').value); });
-    el('btnStop').addEventListener('click', function(){ stopSpeak(); stopRecognition(); setStatus('已停止播放/聆聽'); });
-    el('btnSnap').addEventListener('click', reloadSnap);
-    reloadSnap();
-    setDebug('JS_READY V14D\nSpeechRecognition=' + (!!RT7_SR) + '\nprotocol=' + location.protocol + '\nhost=' + location.host);
-    setStatus('<span class="ok">JS_READY，請先按「文字詢問」測試。</span>');
-  }
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
-})();
-</script></body></html>`);
+  res.type('html').send(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>RT7 EDU AI Voice Assistant V14E</title><style>
+body{margin:0;background:#eef5f7;color:#102330;font-family:system-ui,-apple-system,'Noto Sans TC',sans-serif}.wrap{max-width:980px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}.top{display:flex;gap:8px;flex-wrap:wrap}.top a{background:#1677a8;color:#fff;text-decoration:none;font-weight:900;border-radius:10px;padding:10px 12px}button{border:0;border-radius:14px;background:#079b50;color:white;font-weight:900;padding:14px 18px;margin:6px;font-size:18px}.red{background:#c9342d}.blue{background:#1677a8}.mic{font-size:28px;border-radius:999px;width:96px;height:96px}textarea{box-sizing:border-box;width:100%;font-size:18px;padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px 0}img{max-width:100%;border-radius:12px;border:1px solid #ddd;background:#f8fafc}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap}.bad{color:#b11111;font-weight:900}.hint{color:#64748b;line-height:1.6}.answer{font-size:22px;font-weight:900;line-height:1.55;background:#f0fff5;border-left:6px solid #079b50;border-radius:14px;padding:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:760px){.grid{grid-template-columns:1fr}.mic{width:86px;height:86px}}
+</style></head><body><div class="wrap"><h1>第14堂 AI語音助理 V14E</h1><p class="hint">維持原始 RT7：手機 MIC → Chrome webkitSpeechRecognition → 文字 → Railway Snapshot → OpenAI Vision → 手機 Speaker。</p><div class="top"><a href="/edu/community/register">社區註冊</a><a href="/edu/two-step-liveness">V12B 二步活體</a><a href="/edu/face-snapshot">Snapshot</a><a href="/edu/state">EDU State</a></div><div class="grid"><div class="card"><h2>1. 手機 MIC</h2><p class="hint">V14E 使用外部 JS，避免手機頁按鈕沒有綁定。開頁後應顯示 JS_READY V14E。</p><button id="btnMic" class="mic" type="button" onclick="window.rt7V14StartMic&&window.rt7V14StartMic()">🎙️</button><button id="btnText" class="blue" type="button" onclick="window.rt7V14AskText&&window.rt7V14AskText()">文字詢問</button><button id="btnStop" class="red" type="button" onclick="window.rt7V14Stop&&window.rt7V14Stop()">停止播放</button><textarea id="question" rows="3">現在看到什麼？</textarea><div id="micStatus" class="hint">JS 載入中...</div></div><div class="card"><h2>2. 最新 ESP32 Snapshot</h2><img id="snap" src="/edu/face/latest.jpg?_=" onerror="this.style.display='none';document.getElementById('noSnap').style.display='block'"><p id="noSnap" class="bad" style="display:none">尚未收到 snapshot，請先讓 ESP32 上傳 FACE_GATE_PASS Candidate。</p><button id="btnSnap" type="button" onclick="window.rt7V14ReloadSnap&&window.rt7V14ReloadSnap()">重新載入 Snapshot</button></div></div><div class="card"><h2>3. AI 回答</h2><div id="answer" class="answer">尚未詢問</div><pre id="debug">BOOTING</pre></div><div class="card"><h2>4. 測試流程</h2><pre>1. 開頁後狀態應顯示 JS_READY V14E
+2. 先按「文字詢問」確認 API 正常
+3. 再按 🎙️，手機應跳出/使用麥克風權限
+4. 說：現在看到什麼？
+5. Speaker 播放回答</pre></div></div><script src="/edu/ai-voice-assistant-v14e.js?_=${Date.now()}"></script></body></html>`);
 });
 
 app.post('/api/v14/voice/camera-qa', express.json({ limit: '1mb' }), async (req, res) => {
