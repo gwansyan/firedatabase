@@ -1984,3 +1984,286 @@ app.get('/edu/two-step-liveness',(req,res)=>{const latest=bLatest(),ch=bCh(),fac
 向右轉頭 → ESP32 上傳新 snapshot → 擷取 Frame B
 OpenAI 比較 A/B + Face Match → OPEN_DOOR</pre></div><div class="card"><h2>2. 最新 ESP32 Candidate</h2>${latestHtml}</div><div class="card"><h2>3. 控制</h2><button class="red" onclick="resetC()">重設挑戰</button><button class="orange" onclick="cap('A')">擷取 TURN_LEFT / Frame A</button><button class="orange" onclick="cap('B')">擷取 TURN_RIGHT / Frame B</button><select id="master_uid">${opts}</select><input id="threshold" type="number" value="70" style="width:90px;min-width:90px"> % <input id="live_conf" type="number" value="0.5" step="0.1" style="width:90px;min-width:90px"> liveness <button class="blue" onclick="verify()">OpenAI 二步活體 + 人臉辨識</button><div id="statusBox" class="status warn">READY</div><pre id="result">READY</pre></div><div class="card"><h2>4. Challenge State</h2><pre>${JSON.stringify(ch,null,2).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre></div><div class="card"><h2>5. V12B Results</h2><table><tr><th>Match</th><th>Name</th><th>Score</th><th>Same</th><th>Live</th><th>Chal</th><th>Conf</th><th>Frame A</th><th>Frame B</th><th>HTTP</th><th>Parse</th><th>Door</th><th>Command</th><th>Block</th><th>Time</th></tr>${rows}</table></div><div class="card"><h2>6. Last OpenAI Debug</h2><pre>${dbg.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre></div></div><script>function st(c,m){statusBox.className='status '+c;statusBox.textContent=m}async function resetC(){st('warn','重設中');let r=await fetch('/api/v12b/challenge/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});let j=await r.json();result.textContent=JSON.stringify(j,null,2);st('ok','請向左轉頭並上傳 snapshot');setTimeout(()=>location.reload(),900)}async function cap(label){st('warn','擷取 '+label);let r=await fetch('/api/v12b/challenge/capture',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({label})});let j=await r.json();result.textContent=JSON.stringify(j,null,2);st(j.ok?'ok':'err',j.ok?'已擷取 '+label:'失敗 '+(j.error||''));setTimeout(()=>location.reload(),1200)}async function verify(){st('warn','OpenAI 辨識中');let r=await fetch('/api/v12b/challenge/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({master_uid:master_uid.value,threshold:Number(threshold.value||70),liveness_confidence:Number(live_conf.value||.5)})});let j=await r.json();result.textContent=JSON.stringify(j,null,2);if(j.ok&&j.result&&j.result.allow_open)st('ok','OPEN '+j.result.command_id);else if(j.ok&&j.result)st('err','LOCK '+j.result.block_reason);else st('err','失敗 '+(j.error||''));setTimeout(()=>location.reload(),2500)}</script></body></html>`)});
 
+
+
+
+// =========================
+// RT7 EDU Lesson 15 - AI Voice Music Assistant V15A
+// Non-destructive addon after V14G.
+// Phone MIC -> Chrome webkitSpeechRecognition -> text command -> phone Speaker music.
+// Original RT7 music intent keywords: 播放 / 放一首 / 我想聽 / 想聽 / 音樂,
+// and controls: 停止音樂 / 暫停音樂 / 繼續音樂.
+// =========================
+
+const RT7_V15_MUSIC_VERSION = 'RT7_EDU_AI_MUSIC_ASSISTANT_V15A_PHONE_SPEAKER_MUSIC';
+
+function rt7V15SafeString_(v) { return (v === undefined || v === null) ? '' : String(v); }
+
+function rt7V15ExtractMusicQuery_(text) {
+  let t = rt7V15SafeString_(text).trim();
+  const prefixes = ['播放', '放一首', '我想聽', '想聽', '聽', '音樂'];
+  for (const p of prefixes) {
+    const idx = t.indexOf(p);
+    if (idx >= 0) {
+      let q = t.slice(idx + p.length);
+      q = q.replace(/音樂/g, '').replace(/歌曲/g, '').replace(/給我聽/g, '').replace(/一下/g, '').trim();
+      return q || 'RT7 Demo Music';
+    }
+  }
+  return t || 'RT7 Demo Music';
+}
+
+function rt7V15MusicIntent_(text) {
+  const t = rt7V15SafeString_(text).trim();
+  if (!t) return { action:'idle', query:'', message:'尚未收到指令' };
+  if (/停止音樂|關掉音樂|停止播放|關掉播放|不要播/.test(t)) return { action:'stop', query:'', message:'已停止音樂' };
+  if (/暫停音樂|暫停播放|先暫停/.test(t)) return { action:'pause', query:'', message:'已暫停音樂' };
+  if (/繼續音樂|恢復音樂|繼續播放|恢復播放/.test(t)) return { action:'resume', query:'', message:'繼續播放音樂' };
+  if (/播放|放一首|我想聽|想聽|音樂/.test(t)) {
+    const q = rt7V15ExtractMusicQuery_(t);
+    return { action:'play', query:q, message:'準備播放：' + q };
+  }
+  return { action:'chat', query:t, message:'這不是音樂指令。你可以說：播放音樂、停止音樂、暫停音樂、繼續音樂。' };
+}
+
+app.get('/edu/ai-music-assistant-v15a.js', (_req, res) => {
+  res.type('application/javascript').send(String.raw`
+(function(){
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  var rec = null, busy = false, hearTimer = null;
+  var audio = null, ctx = null, demoTimer = null, demoStep = 0, demoGain = null, demoOsc = null;
+
+  function el(id){ return document.getElementById(id); }
+  function setText(id, text){ var e=el(id); if(e) e.textContent = text; }
+  function log(x){ var d=el('debug'); if(d) d.textContent = (typeof x==='string') ? x : JSON.stringify(x,null,2); }
+  function addLog(x){ var d=el('debug'); if(d) d.textContent = String(d.textContent||'') + '\n' + x; }
+  function status(x){ setText('musicStatus', x); addLog('[STATUS] '+x); }
+  function setMicUi(on){ var b=el('btnMic'); if(b){ b.style.outline = on ? '6px solid rgba(34,197,94,.25)' : ''; } }
+  function stopRecognition(){ try{ if(rec) rec.stop(); }catch(e){} if(hearTimer){ clearTimeout(hearTimer); hearTimer=null; } }
+  function speak(t){ try{ if(!window.speechSynthesis) return; window.speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(String(t||'')); u.lang='zh-TW'; u.rate=1; u.pitch=1; window.speechSynthesis.speak(u); }catch(e){ addLog('[TTS_ERROR] '+e); } }
+
+  function stopDemo(){
+    if(demoTimer){ clearInterval(demoTimer); demoTimer=null; }
+    try{ if(demoOsc){ demoOsc.stop(); demoOsc.disconnect(); demoOsc=null; } }catch(e){}
+  }
+
+  function stopAudio(){
+    try{ if(audio){ audio.pause(); audio.src=''; audio=null; } }catch(e){}
+    stopDemo();
+    setText('nowPlaying','停止');
+  }
+
+  function pauseAudio(){
+    try{ if(audio) audio.pause(); }catch(e){}
+    try{ if(ctx && ctx.state === 'running') ctx.suspend(); }catch(e){}
+    setText('nowPlaying','暫停');
+  }
+
+  function resumeAudio(){
+    try{ if(audio){ audio.play().catch(function(e){ addLog('[AUDIO_RESUME_ERROR] '+e); }); } }catch(e){}
+    try{ if(ctx && ctx.state === 'suspended') ctx.resume(); }catch(e){}
+    setText('nowPlaying','繼續播放');
+  }
+
+  function playDemoMusic(query){
+    stopAudio();
+    try{
+      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+      if(ctx.state === 'suspended') ctx.resume();
+      demoGain = ctx.createGain();
+      demoGain.gain.value = 0.055;
+      demoGain.connect(ctx.destination);
+      var notes = [261.63,293.66,329.63,392.00,329.63,293.66,261.63,392.00];
+      demoStep = 0;
+      function playOne(){
+        try{ if(demoOsc){ demoOsc.stop(); demoOsc.disconnect(); } }catch(e){}
+        demoOsc = ctx.createOscillator();
+        demoOsc.type = 'sine';
+        demoOsc.frequency.value = notes[demoStep % notes.length];
+        demoOsc.connect(demoGain);
+        demoOsc.start();
+        demoStep++;
+      }
+      playOne();
+      demoTimer = setInterval(playOne, 360);
+      setText('nowPlaying','Demo Music：' + (query || 'RT7'));
+      status('播放手機 Speaker Demo 音樂：' + (query || 'RT7'));
+    }catch(e){
+      status('WebAudio 播放失敗：' + (e && (e.message||e) || e));
+      addLog('[DEMO_AUDIO_ERROR] '+(e && (e.stack||e.message)||e));
+    }
+  }
+
+  function playUrlMusic(url, title){
+    stopAudio();
+    audio = new Audio(url);
+    audio.crossOrigin = 'anonymous';
+    audio.loop = true;
+    audio.onplay = function(){ status('手機 Speaker 播放中：' + title); };
+    audio.onerror = function(){ status('音樂 URL 播放失敗，改播 Demo 音樂'); playDemoMusic(title); };
+    audio.play().then(function(){
+      setText('nowPlaying', title || url);
+    }).catch(function(e){
+      addLog('[AUDIO_PLAY_ERROR] '+(e && (e.message||e)||e));
+      status('瀏覽器阻擋音樂播放或 URL 不可用，改播 Demo 音樂');
+      playDemoMusic(title);
+    });
+  }
+
+  async function ensureMicPermission(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      status('此手機瀏覽器不支援 getUserMedia，直接嘗試語音辨識');
+      return true;
+    }
+    try{
+      status('正在啟用手機 MIC 權限...');
+      var stream = await navigator.mediaDevices.getUserMedia({audio:true, video:false});
+      try{ stream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){}
+      setMicUi(true);
+      status('MIC 權限已開啟，準備啟動語音辨識');
+      await new Promise(function(resolve){ setTimeout(resolve, 650); });
+      return true;
+    }catch(e){
+      setMicUi(false);
+      status('手機 MIC 啟用失敗：' + (e && (e.name||e.message)||e));
+      return false;
+    }
+  }
+
+  async function sendCommand(q){
+    q = String(q || (el('question')&&el('question').value) || '').trim() || '播放音樂';
+    if(el('question')) el('question').value = q;
+    if(busy){ status('正在處理，請稍候'); return; }
+    busy = true;
+    stopRecognition();
+    status('送出音樂指令：' + q);
+    setText('answer','處理中...');
+    try{
+      var r = await fetch('/api/v15/music/command?_=' + Date.now(), {
+        method:'POST', cache:'no-store',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({text:q})
+      });
+      var txt = await r.text();
+      var j; try{ j = JSON.parse(txt); }catch(e){ j={ok:false,error:'NON_JSON',raw:txt,status:r.status}; }
+      log(j);
+      if(!j.ok){ setText('answer','錯誤：'+(j.error||j.raw||'unknown')); status('音樂指令失敗'); return; }
+      setText('answer', j.message || j.action);
+      if(j.action === 'play'){
+        if(j.music_url) playUrlMusic(j.music_url, j.title || j.query || 'RT7 Music');
+        else playDemoMusic(j.query || 'RT7 Music');
+        speak('開始播放音樂');
+      } else if(j.action === 'stop'){
+        stopAudio(); status('已停止音樂'); speak('已停止音樂');
+      } else if(j.action === 'pause'){
+        pauseAudio(); status('已暫停音樂'); speak('已暫停音樂');
+      } else if(j.action === 'resume'){
+        resumeAudio(); status('繼續播放音樂'); speak('繼續播放音樂');
+      } else {
+        status(j.message || '請說：播放音樂');
+        speak(j.message || '請說播放音樂');
+      }
+    }catch(e){
+      log('[FETCH_ERROR] '+(e && (e.stack||e.message)||e));
+      setText('answer','送出失敗：'+e);
+      status('送出失敗');
+    }finally{
+      busy = false;
+    }
+  }
+
+  async function startMic(){
+    log('MIC_CLICK V15A\nSpeechRecognition='+(!!SR)+'\ngetUserMedia='+(!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia))+'\nprotocol='+location.protocol+'\nhost='+location.host);
+    stopRecognition();
+    var ok = await ensureMicPermission();
+    if(!ok) return;
+    if(!SR){ status('此瀏覽器不支援 SpeechRecognition，請用文字輸入音樂指令'); return; }
+    try{
+      rec = new SR();
+      rec.lang='zh-TW';
+      rec.interimResults=true;
+      rec.continuous=false;
+      rec.maxAlternatives=1;
+      rec.onstart=function(){
+        status('語音單次聆聽中，請說：播放音樂 / 停止音樂');
+        hearTimer=setTimeout(function(){ try{rec.stop();}catch(e){} status('沒有聽到語音，請再按一次麥克風'); }, 10000);
+      };
+      rec.onaudiostart=function(){ status('麥克風已開啟，請說音樂指令'); };
+      rec.onspeechstart=function(){ status('已偵測到語音，正在辨識'); };
+      rec.onspeechend=function(){ try{ rec.stop(); }catch(e){} };
+      rec.onerror=function(e){ var er=(e&&e.error)||'unknown'; status('語音辨識錯誤：'+er+'，請再按一次麥克風'); addLog('[SR_ERROR] '+JSON.stringify(e||{})); };
+      rec.onend=function(){ if(hearTimer){ clearTimeout(hearTimer); hearTimer=null; } addLog('[SR_END]'); };
+      rec.onresult=function(ev){
+        if(hearTimer){ clearTimeout(hearTimer); hearTimer=null; }
+        var finalText='', interimText='';
+        for(var i=ev.resultIndex||0;i<ev.results.length;i++){
+          var txt=''; try{ txt=ev.results[i][0].transcript || ''; }catch(e){}
+          if(ev.results[i].isFinal) finalText += txt; else interimText += txt;
+        }
+        if(finalText){ status('辨識完成：'+finalText); sendCommand(finalText); }
+        else if(interimText){ status('正在聽：'+interimText); }
+      };
+      setTimeout(function(){ try{ rec.start(); addLog('[SR_START_CALLED]'); }catch(e){ status('SpeechRecognition 啟動失敗：'+(e.message||e)); } }, 180);
+    }catch(e){
+      status('麥克風流程啟動失敗：'+(e && (e.message||e)||e));
+    }
+  }
+
+  function bind(){
+    window.rt7V15StartMic = startMic;
+    window.rt7V15SendCommand = sendCommand;
+    window.rt7V15Stop = function(){ stopAudio(); stopRecognition(); status('已停止音樂 / MIC'); };
+    var b;
+    b=el('btnMic'); if(b) b.onclick=function(){ startMic(); };
+    b=el('btnText'); if(b) b.onclick=function(){ sendCommand(); };
+    b=el('btnStop'); if(b) b.onclick=function(){ sendCommand('停止音樂'); };
+    b=el('btnPause'); if(b) b.onclick=function(){ sendCommand('暫停音樂'); };
+    b=el('btnResume'); if(b) b.onclick=function(){ sendCommand('繼續音樂'); };
+    b=el('btnDemo'); if(b) b.onclick=function(){ sendCommand('播放 RT7 demo 音樂'); };
+    log('JS_READY V15A\nSpeechRecognition='+(!!SR)+'\ngetUserMedia='+(!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia))+'\nAudioContext='+(!!(window.AudioContext||window.webkitAudioContext)));
+    status('JS_READY V15A，請先按「文字播放」測試，再按麥克風說：播放音樂。');
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+})();
+  `);
+});
+
+app.get('/edu/ai-music-assistant', (_req, res) => {
+  res.type('html').send(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>RT7 EDU AI Music Assistant V15A</title><style>
+body{margin:0;background:#eef5f7;color:#102330;font-family:system-ui,-apple-system,'Noto Sans TC',sans-serif}.wrap{max-width:980px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}.top{display:flex;gap:8px;flex-wrap:wrap}.top a{background:#1677a8;color:#fff;text-decoration:none;font-weight:900;border-radius:10px;padding:10px 12px}button{border:0;border-radius:14px;background:#079b50;color:white;font-weight:900;padding:14px 18px;margin:6px;font-size:18px}.red{background:#c9342d}.blue{background:#1677a8}.orange{background:#d97706}.mic{font-size:28px;border-radius:999px;width:96px;height:96px}textarea{box-sizing:border-box;width:100%;font-size:18px;padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px 0}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap}.hint{color:#64748b;line-height:1.6}.answer{font-size:22px;font-weight:900;line-height:1.55;background:#f0fff5;border-left:6px solid #079b50;border-radius:14px;padding:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:760px){.grid{grid-template-columns:1fr}.mic{width:86px;height:86px}}
+</style></head><body><div class="wrap"><h1>第15堂 AI語音助理：播放音樂 V15A</h1><p class="hint">手機 MIC → Chrome webkitSpeechRecognition → 音樂指令判斷 → 手機 Speaker 播放。指令：播放音樂、停止音樂、暫停音樂、繼續音樂。</p><div class="top"><a href="/edu/ai-voice-assistant">第14堂 問鏡頭</a><a href="/edu/community/register">社區註冊</a><a href="/edu/two-step-liveness">V12B 二步活體</a><a href="/edu/state">EDU State</a></div><div class="grid"><div class="card"><h2>1. 手機 MIC 音樂指令</h2><p class="hint">先按「文字播放」確認手機 Speaker 可播放，再按麥克風說：播放音樂。</p><button id="btnMic" class="mic" type="button">🎙️</button><button id="btnText" class="blue" type="button">文字播放</button><button id="btnDemo" class="orange" type="button">Demo 音樂</button><button id="btnPause" class="orange" type="button">暫停</button><button id="btnResume" class="blue" type="button">繼續</button><button id="btnStop" class="red" type="button">停止音樂</button><textarea id="question" rows="3">播放 RT7 demo 音樂</textarea><div id="musicStatus" class="hint">JS 載入中...</div></div><div class="card"><h2>2. 手機 Speaker</h2><div class="answer" id="nowPlaying">尚未播放</div><p class="hint">若 Railway Variables 設定 <b>RT7_MUSIC_URL</b>，會播放該音樂 URL；未設定時播放內建 WebAudio Demo Melody，方便教學測試。</p></div></div><div class="card"><h2>3. AI / 指令結果</h2><div id="answer" class="answer">尚未詢問</div><pre id="debug">BOOTING</pre></div><div class="card"><h2>4. 測試流程</h2><pre>1. 開頁後狀態應顯示 JS_READY V15A
+2. 按「文字播放」→ 手機 Speaker 播放 Demo 音樂
+3. 按「停止音樂」→ 音樂停止
+4. 按 🎙️ → 說「播放音樂」
+5. 再說「暫停音樂 / 繼續音樂 / 停止音樂」</pre></div></div><script src="/edu/ai-music-assistant-v15a.js?_=${Date.now()}"></script></body></html>`);
+});
+
+app.post('/api/v15/music/command', express.json({ limit: '1mb' }), async (req, res) => {
+  try {
+    const text = rt7V15SafeString_((req.body || {}).text || '').trim();
+    const intent = rt7V15MusicIntent_(text);
+    const musicUrl = rt7V15SafeString_(process.env.RT7_MUSIC_URL || '').trim();
+    res.json({
+      ok: true,
+      version: RT7_V15_MUSIC_VERSION,
+      input: text,
+      action: intent.action,
+      query: intent.query,
+      title: intent.query || 'RT7 Music',
+      music_url: intent.action === 'play' ? musicUrl : '',
+      mode: musicUrl ? 'MUSIC_URL' : 'WEB_AUDIO_DEMO',
+      message: intent.message
+    });
+  } catch (e) {
+    res.status(500).json({ ok:false, version:RT7_V15_MUSIC_VERSION, error:String(e && e.message || e) });
+  }
+});
+
+app.get('/api/v15/music/status', (_req, res) => {
+  res.json({
+    ok: true,
+    version: RT7_V15_MUSIC_VERSION,
+    music_url_configured: !!rt7V15SafeString_(process.env.RT7_MUSIC_URL || '').trim(),
+    mode: rt7V15SafeString_(process.env.RT7_MUSIC_URL || '').trim() ? 'MUSIC_URL' : 'WEB_AUDIO_DEMO'
+  });
+});

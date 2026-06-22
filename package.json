@@ -1,7 +1,7 @@
 {
-  "name": "rt7-edu-ai-voice-assistant-v14f-mic-permission-first-fix",
-  "version": "14.0.6",
-  "description": "RT7 EDU V14A non-destructive AI voice assistant addon for V12B/V13B3",
+  "name": "rt7-edu-ai-music-assistant-v15a",
+  "version": "15.0.0",
+  "description": "RT7 EDU Lesson 15 AI music assistant: phone MIC and phone Speaker music",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
