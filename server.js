@@ -1988,14 +1988,14 @@ OpenAI 比較 A/B + Face Match → OPEN_DOOR</pre></div><div class="card"><h2>2.
 
 
 // =========================
-// RT7 EDU Lesson 15 - AI Voice Music Assistant V15A
+// RT7 EDU Lesson 15 - AI Voice Music Assistant V15B
 // Non-destructive addon after V14G.
-// Phone MIC -> Chrome webkitSpeechRecognition -> text command -> phone Speaker music.
+// Phone MIC -> Chrome webkitSpeechRecognition -> text command -> Railway resolves YouTube first video -> RT7 YouTube player.
 // Original RT7 music intent keywords: 播放 / 放一首 / 我想聽 / 想聽 / 音樂,
 // and controls: 停止音樂 / 暫停音樂 / 繼續音樂.
 // =========================
 
-const RT7_V15_MUSIC_VERSION = 'RT7_EDU_AI_MUSIC_ASSISTANT_V15A_PHONE_SPEAKER_MUSIC';
+const RT7_V15_MUSIC_VERSION = 'RT7_EDU_AI_MUSIC_ASSISTANT_V15B_YOUTUBE_PLAYER_LINK';
 
 function rt7V15SafeString_(v) { return (v === undefined || v === null) ? '' : String(v); }
 
@@ -2026,7 +2026,7 @@ function rt7V15MusicIntent_(text) {
   return { action:'chat', query:t, message:'這不是音樂指令。你可以說：播放音樂、停止音樂、暫停音樂、繼續音樂。' };
 }
 
-app.get('/edu/ai-music-assistant-v15a.js', (_req, res) => {
+app.get('/edu/ai-music-assistant-v15b.js', (_req, res) => {
   res.type('application/javascript').send(String.raw`
 (function(){
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
@@ -2150,9 +2150,17 @@ app.get('/edu/ai-music-assistant-v15a.js', (_req, res) => {
       if(!j.ok){ setText('answer','錯誤：'+(j.error||j.raw||'unknown')); status('音樂指令失敗'); return; }
       setText('answer', j.message || j.action);
       if(j.action === 'play'){
-        if(j.music_url) playUrlMusic(j.music_url, j.title || j.query || 'RT7 Music');
+        setText('nowPlaying', j.title || j.query || 'YouTube Music');
+        if(j.player_url){
+          status('開啟 RT7 YouTube 播放頁：' + (j.title || j.query));
+          setText('answer','已找到 YouTube 影片，準備播放：' + (j.title || j.query));
+          try{ location.href = j.player_url; }catch(e){ window.open(j.player_url,'_blank'); }
+        } else if(j.watch_url || j.youtube_url){
+          var u = j.watch_url || j.youtube_url;
+          status('開啟 YouTube：' + (j.title || j.query));
+          try{ location.href = u; }catch(e){ window.open(u,'_blank'); }
+        } else if(j.music_url) playUrlMusic(j.music_url, j.title || j.query || 'RT7 Music');
         else playDemoMusic(j.query || 'RT7 Music');
-        speak('開始播放音樂');
       } else if(j.action === 'stop'){
         stopAudio(); status('已停止音樂'); speak('已停止音樂');
       } else if(j.action === 'pause'){
@@ -2173,7 +2181,7 @@ app.get('/edu/ai-music-assistant-v15a.js', (_req, res) => {
   }
 
   async function startMic(){
-    log('MIC_CLICK V15A\nSpeechRecognition='+(!!SR)+'\ngetUserMedia='+(!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia))+'\nprotocol='+location.protocol+'\nhost='+location.host);
+    log('MIC_CLICK V15B\nSpeechRecognition='+(!!SR)+'\ngetUserMedia='+(!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia))+'\nprotocol='+location.protocol+'\nhost='+location.host);
     stopRecognition();
     var ok = await ensureMicPermission();
     if(!ok) return;
@@ -2219,9 +2227,9 @@ app.get('/edu/ai-music-assistant-v15a.js', (_req, res) => {
     b=el('btnStop'); if(b) b.onclick=function(){ sendCommand('停止音樂'); };
     b=el('btnPause'); if(b) b.onclick=function(){ sendCommand('暫停音樂'); };
     b=el('btnResume'); if(b) b.onclick=function(){ sendCommand('繼續音樂'); };
-    b=el('btnDemo'); if(b) b.onclick=function(){ sendCommand('播放 RT7 demo 音樂'); };
-    log('JS_READY V15A\nSpeechRecognition='+(!!SR)+'\ngetUserMedia='+(!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia))+'\nAudioContext='+(!!(window.AudioContext||window.webkitAudioContext)));
-    status('JS_READY V15A，請先按「文字播放」測試，再按麥克風說：播放音樂。');
+    b=el('btnDemo'); if(b) b.onclick=function(){ sendCommand('播放五月天溫柔'); };
+    log('JS_READY V15B\nSpeechRecognition='+(!!SR)+'\ngetUserMedia='+(!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia))+'\nAudioContext='+(!!(window.AudioContext||window.webkitAudioContext)));
+    status('JS_READY V15B，請先按「文字播放」測試，再按麥克風說：播放音樂。');
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
 })();
@@ -2229,30 +2237,95 @@ app.get('/edu/ai-music-assistant-v15a.js', (_req, res) => {
 });
 
 app.get('/edu/ai-music-assistant', (_req, res) => {
-  res.type('html').send(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>RT7 EDU AI Music Assistant V15A</title><style>
+  res.type('html').send(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>RT7 EDU AI Music Assistant V15B</title><style>
 body{margin:0;background:#eef5f7;color:#102330;font-family:system-ui,-apple-system,'Noto Sans TC',sans-serif}.wrap{max-width:980px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}.top{display:flex;gap:8px;flex-wrap:wrap}.top a{background:#1677a8;color:#fff;text-decoration:none;font-weight:900;border-radius:10px;padding:10px 12px}button{border:0;border-radius:14px;background:#079b50;color:white;font-weight:900;padding:14px 18px;margin:6px;font-size:18px}.red{background:#c9342d}.blue{background:#1677a8}.orange{background:#d97706}.mic{font-size:28px;border-radius:999px;width:96px;height:96px}textarea{box-sizing:border-box;width:100%;font-size:18px;padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px 0}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap}.hint{color:#64748b;line-height:1.6}.answer{font-size:22px;font-weight:900;line-height:1.55;background:#f0fff5;border-left:6px solid #079b50;border-radius:14px;padding:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:760px){.grid{grid-template-columns:1fr}.mic{width:86px;height:86px}}
-</style></head><body><div class="wrap"><h1>第15堂 AI語音助理：播放音樂 V15A</h1><p class="hint">手機 MIC → Chrome webkitSpeechRecognition → 音樂指令判斷 → 手機 Speaker 播放。指令：播放音樂、停止音樂、暫停音樂、繼續音樂。</p><div class="top"><a href="/edu/ai-voice-assistant">第14堂 問鏡頭</a><a href="/edu/community/register">社區註冊</a><a href="/edu/two-step-liveness">V12B 二步活體</a><a href="/edu/state">EDU State</a></div><div class="grid"><div class="card"><h2>1. 手機 MIC 音樂指令</h2><p class="hint">先按「文字播放」確認手機 Speaker 可播放，再按麥克風說：播放音樂。</p><button id="btnMic" class="mic" type="button">🎙️</button><button id="btnText" class="blue" type="button">文字播放</button><button id="btnDemo" class="orange" type="button">Demo 音樂</button><button id="btnPause" class="orange" type="button">暫停</button><button id="btnResume" class="blue" type="button">繼續</button><button id="btnStop" class="red" type="button">停止音樂</button><textarea id="question" rows="3">播放 RT7 demo 音樂</textarea><div id="musicStatus" class="hint">JS 載入中...</div></div><div class="card"><h2>2. 手機 Speaker</h2><div class="answer" id="nowPlaying">尚未播放</div><p class="hint">若 Railway Variables 設定 <b>RT7_MUSIC_URL</b>，會播放該音樂 URL；未設定時播放內建 WebAudio Demo Melody，方便教學測試。</p></div></div><div class="card"><h2>3. AI / 指令結果</h2><div id="answer" class="answer">尚未詢問</div><pre id="debug">BOOTING</pre></div><div class="card"><h2>4. 測試流程</h2><pre>1. 開頁後狀態應顯示 JS_READY V15A
+</style></head><body><div class="wrap"><h1>第15堂 AI語音助理：播放音樂 V15B</h1><p class="hint">手機 MIC → Chrome webkitSpeechRecognition → Railway 搜尋 YouTube 第一個影片 → RT7 YouTube 播放頁。指令：播放五月天溫柔、停止音樂。</p><div class="top"><a href="/edu/ai-voice-assistant">第14堂 問鏡頭</a><a href="/edu/community/register">社區註冊</a><a href="/edu/two-step-liveness">V12B 二步活體</a><a href="/edu/state">EDU State</a></div><div class="grid"><div class="card"><h2>1. 手機 MIC 音樂指令</h2><p class="hint">先按「文字播放」確認可開啟真正 YouTube 播放頁，再按麥克風說：播放五月天溫柔。</p><button id="btnMic" class="mic" type="button">🎙️</button><button id="btnText" class="blue" type="button">文字播放</button><button id="btnDemo" class="orange" type="button">Demo 音樂</button><button id="btnPause" class="orange" type="button">暫停</button><button id="btnResume" class="blue" type="button">繼續</button><button id="btnStop" class="red" type="button">停止音樂</button><textarea id="question" rows="3">播放五月天溫柔</textarea><div id="musicStatus" class="hint">JS 載入中...</div></div><div class="card"><h2>2. 手機 Speaker</h2><div class="answer" id="nowPlaying">尚未播放</div><p class="hint">V15B 參考原始 RT7：Railway 解析 YouTube 搜尋第一個影片，開啟 RT7 YouTube 播放頁；播放結束可返回教學頁。</p></div></div><div class="card"><h2>3. AI / 指令結果</h2><div id="answer" class="answer">尚未詢問</div><pre id="debug">BOOTING</pre></div><div class="card"><h2>4. 測試流程</h2><pre>1. 開頁後狀態應顯示 JS_READY V15B
 2. 按「文字播放」→ 手機 Speaker 播放 Demo 音樂
 3. 按「停止音樂」→ 音樂停止
 4. 按 🎙️ → 說「播放音樂」
-5. 再說「暫停音樂 / 繼續音樂 / 停止音樂」</pre></div></div><script src="/edu/ai-music-assistant-v15a.js?_=${Date.now()}"></script></body></html>`);
+5. 再說「暫停音樂 / 繼續音樂 / 停止音樂」</pre></div></div><script src="/edu/ai-music-assistant-v15b.js?_=${Date.now()}"></script></body></html>`);
+});
+
+
+async function rt7V15FindFirstYoutubeVideo_(q) {
+  q = rt7V15SafeString_(q).trim();
+  if (!q) return '';
+  const searchUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
+  try {
+    const r = await fetch(searchUrl, {
+      headers: {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+        'accept-language': 'zh-TW,zh;q=0.9,en;q=0.8'
+      }
+    });
+    const html = await r.text();
+    const ids = [];
+    let m;
+    const re1 = /\"videoId\":\"([a-zA-Z0-9_-]{11})\"/g;
+    while ((m = re1.exec(html)) && ids.length < 30) ids.push(m[1]);
+    const re2 = /watch\?v=([a-zA-Z0-9_-]{11})/g;
+    while ((m = re2.exec(html)) && ids.length < 30) ids.push(m[1]);
+    for (const id of ids) {
+      if (/^[a-zA-Z0-9_-]{11}$/.test(id)) return 'https://www.youtube.com/watch?v=' + id;
+    }
+  } catch (e) {
+    console.log('[V15B][YT_FIRST] fail', e && e.message || e);
+  }
+  return '';
+}
+
+function rt7V15YoutubeVideoId_(url) {
+  const m = rt7V15SafeString_(url).match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : '';
+}
+
+app.get('/edu/yt-music-player', (req, res) => {
+  const videoId = rt7V15SafeString_(req.query.video_id || req.query.v || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 11);
+  const q = rt7V15SafeString_(req.query.q || '').slice(0, 120);
+  const returnUrlRaw = rt7V15SafeString_(req.query.return || '/edu/ai-music-assistant');
+  const returnUrl = returnUrlRaw.startsWith('/') ? returnUrlRaw : '/edu/ai-music-assistant';
+  if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) return res.status(400).type('text/plain').send('missing video_id');
+  const h = (v) => String(v || '').replace(/[&<>\"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));
+  res.type('html').send(`<!doctype html><html lang="zh-Hant"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>RT7 EDU YouTube Music V15B</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:#06191d;color:#fff;font-family:system-ui,-apple-system,'Noto Sans TC',sans-serif;min-height:100vh}body{display:flex;flex-direction:column}.top{height:64px;background:#0b252b;display:flex;align-items:center;gap:10px;padding:0 14px}.back{border:0;border-radius:10px;background:#334155;color:#fff;font-size:16px;font-weight:900;padding:10px 14px}.title{font-size:16px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}.frame{flex:1;display:flex;align-items:center;justify-content:center;background:#000}.frame iframe{width:100%;height:calc(100vh - 64px);border:0}.hint{position:fixed;left:12px;right:12px;bottom:12px;background:#000a;border-radius:12px;padding:10px;font-size:14px;color:#dbeafe}.yt{background:#c4302b}.open{border:0;border-radius:10px;background:#0ea5e9;color:#fff;font-size:16px;font-weight:900;padding:10px 14px;text-decoration:none}
+</style></head><body>
+<div class="top"><button class="back" onclick="location.href='${h(returnUrl)}'">返回第15堂</button><div class="title">RT7 YouTube：${h(q || videoId)}</div><a class="open yt" href="https://www.youtube.com/watch?v=${h(videoId)}">YouTube</a></div>
+<div class="frame"><iframe src="https://www.youtube.com/embed/${h(videoId)}?autoplay=1&playsinline=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+<div class="hint">若手機瀏覽器阻擋自動播放，請點影片中央播放鍵。這是真正 YouTube 影片，不是 Demo Melody。</div>
+</body></html>`);
 });
 
 app.post('/api/v15/music/command', express.json({ limit: '1mb' }), async (req, res) => {
   try {
     const text = rt7V15SafeString_((req.body || {}).text || '').trim();
     const intent = rt7V15MusicIntent_(text);
-    const musicUrl = rt7V15SafeString_(process.env.RT7_MUSIC_URL || '').trim();
+    let query = intent.query || '五月天 溫柔';
+    const youtubeSearchUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(query);
+    let watchUrl = '';
+    let videoId = '';
+    let playerUrl = '';
+    if (intent.action === 'play') {
+      watchUrl = await rt7V15FindFirstYoutubeVideo_(query);
+      videoId = rt7V15YoutubeVideoId_(watchUrl);
+      if (videoId) playerUrl = '/edu/yt-music-player?video_id=' + encodeURIComponent(videoId) + '&q=' + encodeURIComponent(query) + '&return=' + encodeURIComponent('/edu/ai-music-assistant');
+    }
     res.json({
       ok: true,
       version: RT7_V15_MUSIC_VERSION,
       input: text,
       action: intent.action,
-      query: intent.query,
-      title: intent.query || 'RT7 Music',
-      music_url: intent.action === 'play' ? musicUrl : '',
-      mode: musicUrl ? 'MUSIC_URL' : 'WEB_AUDIO_DEMO',
-      message: intent.message
+      query,
+      title: query,
+      mode: intent.action === 'play' ? (playerUrl ? 'YOUTUBE_FIRST_VIDEO' : 'YOUTUBE_SEARCH_FALLBACK') : 'CONTROL',
+      watch_url: watchUrl,
+      video_id: videoId,
+      player_url: playerUrl,
+      youtube_url: youtubeSearchUrl,
+      music_url: '',
+      message: intent.action === 'play' ? (playerUrl ? ('已找到 YouTube 影片：' + query) : ('找不到第一影片，開啟 YouTube 搜尋：' + query)) : intent.message
     });
   } catch (e) {
     res.status(500).json({ ok:false, version:RT7_V15_MUSIC_VERSION, error:String(e && e.message || e) });
@@ -2263,7 +2336,7 @@ app.get('/api/v15/music/status', (_req, res) => {
   res.json({
     ok: true,
     version: RT7_V15_MUSIC_VERSION,
-    music_url_configured: !!rt7V15SafeString_(process.env.RT7_MUSIC_URL || '').trim(),
-    mode: rt7V15SafeString_(process.env.RT7_MUSIC_URL || '').trim() ? 'MUSIC_URL' : 'WEB_AUDIO_DEMO'
+    youtube_first_video: true,
+    mode: 'YOUTUBE_FIRST_VIDEO'
   });
 });

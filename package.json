@@ -1,14 +1,13 @@
 {
-  "name": "rt7-edu-ai-music-assistant-v15a",
-  "version": "15.0.0",
-  "description": "RT7 EDU Lesson 15 AI music assistant: phone MIC and phone Speaker music",
+  "name": "rt7-cloud-server",
+  "version": "5.15.2",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
+  "scripts": { "start": "node server.js" },
   "dependencies": {
-    "cors": "latest",
-    "express": "latest",
-    "web-push": "latest"
+    "express": "^4.18.2",
+    "ws": "^8.16.0",
+    "jpeg-js": "^0.4.4",
+    "sql.js": "^1.10.3",
+    "web-push": "^3.6.7"
   }
 }
