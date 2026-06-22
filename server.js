@@ -897,23 +897,138 @@ async function rt7V14OpenAIVision_(question, imageBase64) {
 }
 
 app.get('/edu/ai-voice-assistant', (_req, res) => {
-  res.type('html').send(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>RT7 EDU AI Voice Assistant V14</title><style>
+  res.type('html').send(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>RT7 EDU AI Voice Assistant V14C</title><style>
 body{margin:0;background:#eef5f7;color:#102330;font-family:system-ui,-apple-system,'Noto Sans TC',sans-serif}.wrap{max-width:980px;margin:auto;padding:18px}.card{background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #0001}.top{display:flex;gap:8px;flex-wrap:wrap}.top a{background:#1677a8;color:#fff;text-decoration:none;font-weight:900;border-radius:10px;padding:10px 12px}button{border:0;border-radius:14px;background:#079b50;color:white;font-weight:900;padding:14px 18px;margin:6px;font-size:18px}.red{background:#c9342d}.blue{background:#1677a8}.mic{font-size:28px;border-radius:999px;width:96px;height:96px}input,textarea{box-sizing:border-box;width:100%;font-size:18px;padding:12px;border:1px solid #cfdbe3;border-radius:10px;margin:6px 0}img{max-width:100%;border-radius:12px;border:1px solid #ddd;background:#f8fafc}pre{background:#f5f7f9;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap}.ok{color:#08783e;font-weight:900}.bad{color:#b11111;font-weight:900}.hint{color:#64748b;line-height:1.6}.answer{font-size:22px;font-weight:900;line-height:1.55;background:#f0fff5;border-left:6px solid #079b50;border-radius:14px;padding:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:760px){.grid{grid-template-columns:1fr}.mic{width:86px;height:86px}}
-</style></head><body><div class="wrap"><h1>第14堂 AI語音助理</h1><p class="hint">手機 MIC 問：「現在看到什麼？」→ Railway 讀 ESP32 最新 Snapshot → OpenAI Vision 回答 → 手機 Speaker 播放。</p><div class="top"><a href="/edu/community/register">社區註冊</a><a href="/edu/two-step-liveness">V12B 二步活體</a><a href="/edu/face-snapshot">Snapshot</a><a href="/edu/state">EDU State</a></div><div class="grid"><div class="card"><h2>1. 手機 MIC</h2><p class="hint">請用手機 Chrome 開啟本頁，按麥克風後說話。</p><button class="mic" onclick="startMic()">🎙️</button><button class="blue" onclick="askText()">文字詢問</button><button class="red" onclick="stopSpeak()">停止播放</button><textarea id="question" rows="3">現在看到什麼？</textarea><div id="micStatus" class="hint">READY</div></div><div class="card"><h2>2. 最新 ESP32 Snapshot</h2><img id="snap" src="/edu/face/latest.jpg?_=" onerror="this.style.display='none';document.getElementById('noSnap').style.display='block'"><p id="noSnap" class="bad" style="display:none">尚未收到 snapshot，請先讓 ESP32 上傳 FACE_GATE_PASS Candidate。</p><button onclick="reloadSnap()">重新載入 Snapshot</button></div></div><div class="card"><h2>3. AI 回答</h2><div id="answer" class="answer">尚未詢問</div><pre id="debug">READY</pre></div><div class="card"><h2>4. 測試流程</h2><pre>1. ESP32 開機並上傳 Snapshot
+</style></head><body><div class="wrap"><h1>第14堂 AI語音助理 V14C</h1><p class="hint">手機 MIC 問：「現在看到什麼？」→ Railway 讀 ESP32 最新 Snapshot → OpenAI Vision 回答 → 手機 Speaker 播放。</p><div class="top"><a href="/edu/community/register">社區註冊</a><a href="/edu/two-step-liveness">V12B 二步活體</a><a href="/edu/face-snapshot">Snapshot</a><a href="/edu/state">EDU State</a></div><div class="grid"><div class="card"><h2>1. 手機 MIC</h2><p class="hint">請用手機 Chrome 開啟本頁，按麥克風後說話。</p><button class="mic" onclick="startMic()">🎙️</button><button class="blue" onclick="askText()">文字詢問</button><button class="red" onclick="stopSpeak()">停止播放</button><textarea id="question" rows="3">現在看到什麼？</textarea><div id="micStatus" class="hint">READY</div></div><div class="card"><h2>2. 最新 ESP32 Snapshot</h2><img id="snap" src="/edu/face/latest.jpg?_=" onerror="this.style.display='none';document.getElementById('noSnap').style.display='block'"><p id="noSnap" class="bad" style="display:none">尚未收到 snapshot，請先讓 ESP32 上傳 FACE_GATE_PASS Candidate。</p><button onclick="reloadSnap()">重新載入 Snapshot</button></div></div><div class="card"><h2>3. AI 回答</h2><div id="answer" class="answer">尚未詢問</div><pre id="debug">READY</pre></div><div class="card"><h2>4. 測試流程</h2><pre>1. ESP32 開機並上傳 Snapshot
 2. 手機開啟 /edu/ai-voice-assistant
 3. 按 🎙️ 說：現在看到什麼？
 4. Railway 呼叫 OpenAI Vision
 5. 手機 Speaker 播放回答</pre></div></div><script>
+// RT7 V14C: 與原始 RT7 專案一致：手機端 Web Speech API 語音辨識，不使用錄音上傳 Whisper。
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recog = null;
+let listening = false;
+let speechStarted = false;
+let gotSpeechText = false;
+let busy = false;
+let hearTimer = null;
 function $(id){return document.getElementById(id)}
+function esc(s){return String(s==null?'':s).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c]})}
 function log(x){$('debug').textContent = typeof x === 'string' ? x : JSON.stringify(x,null,2)}
+function statusHtml(h){$('micStatus').innerHTML=h; log(String($('debug').textContent||'READY')+'\n[MIC] '+h.replace(/<[^>]+>/g,''));}
 function reloadSnap(){const img=$('snap');$('noSnap').style.display='none';img.style.display='block';img.src='/edu/face/latest.jpg?_='+Date.now()}
-function speak(text){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='zh-TW';u.rate=1.0;u.pitch=1.0;speechSynthesis.speak(u)}catch(e){log('speaker error: '+e)}}
 function stopSpeak(){try{speechSynthesis.cancel()}catch(e){}}
-async function ask(q){q = String(q || $('question').value || '').trim() || '現在看到什麼？';$('question').value=q;$('answer').textContent='AI 分析中...';$('micStatus').innerHTML='送出問題：<b>'+q.replace(/[<>&]/g,'')+'</b>';try{const r=await fetch('/api/v14/voice/camera-qa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});const j=await r.json();log(j);const ans=j.answer||j.error||'沒有回答';$('answer').textContent=ans;if(j.ok)speak(ans)}catch(e){$('answer').textContent='連線失敗：'+e;log(String(e.stack||e))}}
+function stopRecognition(){try{ if(recog) recog.stop(); }catch(e){} listening=false; clearHearTimer();}
+function speak(text){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    stopRecognition();
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='zh-TW'; u.rate=1.0; u.pitch=1.0;
+    u.onstart=function(){ stopRecognition(); };
+    speechSynthesis.speak(u);
+  }catch(e){log('speaker error: '+e)}
+}
+async function ask(q){
+  q = String(q || $('question').value || '').trim() || '現在看到什麼？';
+  $('question').value=q; busy=true; stopRecognition();
+  $('answer').textContent='AI 分析中...';
+  $('micStatus').innerHTML='送出問題：<b>'+esc(q)+'</b>';
+  try{
+    const r=await fetch('/api/v14/voice/camera-qa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+    const j=await r.json(); log(j);
+    const ans=j.answer||j.error||'沒有回答';
+    $('answer').textContent=ans;
+    if(j.ok) speak(ans);
+  }catch(e){$('answer').textContent='連線失敗：'+e;log(String(e.stack||e))}
+  finally{busy=false;}
+}
 function askText(){ask($('question').value)}
-function startMic(){if(!SpeechRecognition){$('micStatus').innerHTML='<span class="bad">此瀏覽器不支援 Web Speech API，請用文字詢問。</span>';return}stopSpeak();recog=new SpeechRecognition();recog.lang='zh-TW';recog.interimResults=false;recog.maxAlternatives=1;recog.onstart=()=>{$('micStatus').innerHTML='<span class="ok">正在聽...</span>'};recog.onerror=e=>{$('micStatus').innerHTML='<span class="bad">MIC 錯誤：'+e.error+'</span>'};recog.onresult=e=>{const t=e.results&&e.results[0]&&e.results[0][0]?e.results[0][0].transcript:'';$('micStatus').innerHTML='辨識：<b>'+t+'</b>';ask(t)};recog.onend=()=>{};recog.start()}
+function clearHearTimer(){ if(hearTimer){ clearTimeout(hearTimer); hearTimer=null; } }
+function scheduleHearWatchdog(){
+  clearHearTimer();
+  hearTimer=setTimeout(function(){
+    if(listening && !speechStarted && !gotSpeechText){
+      try{ if(recog) recog.stop(); }catch(e){}
+      statusHtml('<span class="bad">沒有聽到聲音。請確認手機 Chrome 麥克風權限，靠近手機再按一次。</span>');
+      listening=false;
+    }
+  }, 7000);
+}
+function isVisionQuestion(t){
+  t=String(t||'').trim();
+  if(!t) return false;
+  return /鏡頭|攝影機|畫面|看到|看見|看得到|門口|有人|有沒有人|人物|人臉|燈具|天花板|現在.*什麼|那裡.*什麼|前面.*什麼/.test(t);
+}
+async function checkMicPermission(){
+  try{
+    if(navigator.permissions && navigator.permissions.query){
+      const p=await navigator.permissions.query({name:'microphone'});
+      if(p && p.state==='denied') return {ok:false, message:'Chrome 麥克風權限被拒絕，請到網址列鎖頭/設定允許麥克風。'};
+    }
+  }catch(e){}
+  return {ok:true};
+}
+async function startMic(){
+  if(busy){statusHtml('<span class="bad">AI 正在回答，請稍候。</span>');return;}
+  if(!SpeechRecognition){$('micStatus').innerHTML='<span class="bad">此手機瀏覽器不支援 Web Speech API，請改用 Chrome 或文字詢問。</span>';return;}
+  stopSpeak(); stopRecognition();
+  const perm=await checkMicPermission();
+  if(!perm.ok){statusHtml('<span class="bad">'+esc(perm.message)+'</span>');return;}
+  try{
+    recog=new SpeechRecognition();
+    recog.lang='zh-TW';
+    recog.interimResults=true;
+    // 原始 RT7 修正：Android Chrome continuous=true 常常待命不回傳，改單次辨識。
+    recog.continuous=false;
+    recog.maxAlternatives=1;
+    recog.onstart=function(){
+      listening=true; speechStarted=false; gotSpeechText=false;
+      scheduleHearWatchdog();
+      statusHtml('<span class="ok">語音單次聆聽中，請現在說：鏡頭現在看到什麼？</span>');
+    };
+    recog.onaudiostart=function(){ statusHtml('<span class="ok">麥克風已開啟，請說：鏡頭現在看到什麼？</span>'); };
+    recog.onspeechstart=function(){ speechStarted=true; statusHtml('<span class="ok">已偵測到語音，正在辨識...</span>'); };
+    recog.onspeechend=function(){ try{ recog.stop(); }catch(e){} };
+    recog.onnomatch=function(){
+      listening=false; clearHearTimer();
+      statusHtml('<span class="bad">沒有辨識到文字，請再按一次麥克風。</span>');
+    };
+    recog.onresult=function(ev){
+      clearHearTimer();
+      let finalText=''; let interimText='';
+      for(let i=ev.resultIndex||0;i<ev.results.length;i++){
+        let txt=''; try{ txt=ev.results[i][0].transcript || ''; }catch(e){}
+        if(ev.results[i].isFinal) finalText += txt; else interimText += txt;
+      }
+      if(finalText){
+        gotSpeechText=true; listening=false;
+        statusHtml('辨識完成：<b>'+esc(finalText)+'</b>');
+        ask(finalText);
+      } else if(interimText && isVisionQuestion(interimText)) {
+        gotSpeechText=true;
+        statusHtml('正在聽：<b>'+esc(interimText)+'</b>');
+      } else if(interimText) {
+        statusHtml('正在聽：'+esc(interimText));
+        scheduleHearWatchdog();
+      }
+    };
+    recog.onerror=function(e){
+      clearHearTimer(); listening=false;
+      const er=(e&&e.error)||'unknown';
+      let msg='MIC 錯誤：'+er;
+      if(er==='not-allowed' || er==='service-not-allowed') msg='瀏覽器擋住麥克風。請允許麥克風後再按一次。';
+      if(er==='no-speech') msg='沒有聽到聲音，請靠近手機再按一次。';
+      if(er==='audio-capture') msg='找不到麥克風或麥克風被其他程式占用。';
+      statusHtml('<span class="bad">'+esc(msg)+'</span>');
+    };
+    recog.onend=function(){ listening=false; clearHearTimer(); };
+    recog.start();
+  }catch(e){
+    statusHtml('<span class="bad">語音啟動失敗：'+esc(e.message||e)+'</span>');
+  }
+}
 reloadSnap();
 </script></body></html>`);
 });
@@ -926,7 +1041,7 @@ app.post('/api/v14/voice/camera-qa', express.json({ limit: '1mb' }), async (req,
     if (!file) return res.status(409).json({ ok:false, version: VERSION, error:'NO_SNAPSHOT', answer:'我還沒有收到 ESP32 的最新照片，請先讓 ESP32 上傳 Snapshot。' });
     const buf = fs.readFileSync(file);
     const result = await rt7V14OpenAIVision_(question, buf.toString('base64'));
-    const out = Object.assign({ ok: !!result.ok, version: VERSION, lesson:'RT7_EDU_AI_VOICE_ASSISTANT_V14A_NON_DESTRUCTIVE_ADDON', question, snapshot_bytes: buf.length, snapshot_meta: meta }, result);
+    const out = Object.assign({ ok: !!result.ok, version: VERSION, lesson:'RT7_EDU_AI_VOICE_ASSISTANT_V14C_ORIGINAL_SPEECH_RECOGNITION_FIX', question, snapshot_bytes: buf.length, snapshot_meta: meta }, result);
     res.status(out.ok ? 200 : 502).json(out);
   } catch (e) {
     res.status(500).json({ ok:false, version: VERSION, error:String(e && e.message || e), answer:'AI 語音助理發生錯誤。' });

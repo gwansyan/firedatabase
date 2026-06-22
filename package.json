@@ -1,6 +1,6 @@
 {
-  "name": "rt7-edu-ai-voice-assistant-v14a-addon",
-  "version": "14.0.1",
+  "name": "rt7-edu-ai-voice-assistant-v14c-original-speech-recognition",
+  "version": "14.0.3",
   "description": "RT7 EDU V14A non-destructive AI voice assistant addon for V12B/V13B3",
   "main": "server.js",
   "scripts": {
