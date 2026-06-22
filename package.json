@@ -1,6 +1,6 @@
 {
-  "name": "rt7-edu-ai-voice-assistant-v14c-original-speech-recognition",
-  "version": "14.0.3",
+  "name": "rt7-edu-ai-voice-assistant-v14f-mic-permission-first-fix",
+  "version": "14.0.6",
   "description": "RT7 EDU V14A non-destructive AI voice assistant addon for V12B/V13B3",
   "main": "server.js",
   "scripts": {
