@@ -1,14 +1,9 @@
 {
-  "name": "rt7-phase10-dvr-cloud-capability-scanner-v1",
+  "name": "rt7-phase10-gateway-diagnostic-scanner",
   "version": "1.0.0",
   "private": true,
-  "description": "RT7 DVR Network + RTSP + FFmpeg capability scanner for Railway",
+  "description": "RT7 Native RTSP Gateway end-to-end diagnostic scanner",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "check": "node --check server.js"
-  },
-  "engines": {
-    "node": ">=20"
-  }
+  "scripts": {"start": "node server.js", "check": "node --check server.js"},
+  "engines": {"node": ">=18"}
 }
