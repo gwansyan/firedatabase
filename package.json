@@ -1,15 +1,17 @@
 {
-  "name": "rt7-cloud-server",
-  "version": "5.6.16",
+  "name": "rt7-phase10-native-rtsp-cloud-direct-test",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Railway FFmpeg and direct DVR RTSP reachability diagnostic",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "check": "node --check server.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "ws": "^8.16.0",
-    "jpeg-js": "^0.4.4",
-    "sql.js": "^1.10.3",
-    "web-push": "^3.6.7"
+    "express": "^4.21.2"
   }
 }
