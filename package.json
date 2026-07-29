@@ -1,8 +1,8 @@
 {
-  "name": "rt7-phase10-gateway-diagnostic-scanner",
-  "version": "1.0.0",
+  "name": "rt7-phase10-gateway-diagnostic-scanner-v2",
+  "version": "2.0.0",
   "private": true,
-  "description": "RT7 Native RTSP Gateway end-to-end diagnostic scanner",
+  "description": "RT7 Native RTSP Gateway auto-discovery and MJPEG diagnostic scanner",
   "main": "server.js",
   "scripts": {"start": "node server.js", "check": "node --check server.js"},
   "engines": {"node": ">=18"}
