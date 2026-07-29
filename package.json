@@ -1,9 +1,8 @@
 {
-  "name": "rt7-phase10-dvr-system-diagnostic-suite-v1",
-  "version": "1.0.0",
+  "name": "rt7-phase10-dvr-system-diagnostic-suite-v6-gateway-process-clone",
+  "version": "6.0.0",
   "private": true,
-  "description": "RT7 DVR Network, RTSP, FFmpeg and Native Gateway diagnostic suite",
+  "description": "RT7 DVR diagnostic suite V6 with live Gateway FFmpeg process command-line cloning",
   "main": "server.js",
-  "scripts": {"start": "node server.js"},
-  "engines": {"node": ">=18"}
+  "scripts": {"start": "node server.js", "check": "node --check server.js"}
 }
