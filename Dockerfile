@@ -5,10 +5,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY package*.json ./
-RUN npm install --omit=dev
-COPY . .
+COPY package.json ./
+COPY server.js ./
 
 ENV NODE_ENV=production
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
